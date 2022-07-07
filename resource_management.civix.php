@@ -449,5 +449,16 @@ function _resource_management_civix_civicrm_alterSettingsFolders(&$metaDataFolde
  * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_entityTypes
  */
 function _resource_management_civix_civicrm_entityTypes(&$entityTypes) {
-  $entityTypes = array_merge($entityTypes, []);
+  $entityTypes = array_merge($entityTypes, [
+    'CRM_ResourceManagement_DAO_ResoureCalendar' => [
+      'name' => 'ResoureCalendar',
+      'class' => 'CRM_ResourceManagement_DAO_ResoureCalendar',
+      'table' => 'civicrm_resoure_calendar',
+    ],
+    'CRM_ResourceManagement_DAO_ResoureCalendarParticipant' => [
+      'name' => 'ResoureCalendarParticipant',
+      'class' => 'CRM_ResourceManagement_DAO_ResoureCalendarParticipant',
+      'table' => 'civicrm_resoure_calendar_participant',
+    ],
+  ]);
 }
