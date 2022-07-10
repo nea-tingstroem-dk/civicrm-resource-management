@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<menu>
+  <item>
+    <path>civicrm/admin/resource-calendars</path>
+    <page_callback>CRM_ResourceManagement_Page_ManageResouceCalendars</page_callback>
+    <title>ManageResouceCalendars</title>
+    <access_arguments>access CiviCRM</access_arguments>
+  </item>
+  <item>
+    <path>civicrm/resource-calendarsettings</path>
+    <page_callback>CRM_ResourceManagement_Form_ResourceCalendarSettings</page_callback>
+    <title>ResourceCalendarSettings</title>
+    <access_arguments>access CiviCRM</access_arguments>
+  </item>
+  <item>
+    <path>civicrm/showresourceevents</path>
+    <page_callback>CRM_ResourceManagement_Page_ShowResourceEvents</page_callback>
+    <title>ShowResourceEvents</title>
+    <access_arguments>access CiviCRM</access_arguments>
+  </item>
+  <item>
+    <path>civicrm/ajax/resource-events</path>
+    <page_callback>CRM_ResourceManagement_Page_AJAX::getEvents</page_callback>
+    <title>AJAX</title>
+    <access_arguments>access CiviEvent</access_arguments>
+  </item>
+</menu>

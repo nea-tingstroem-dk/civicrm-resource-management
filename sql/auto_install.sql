@@ -17,8 +17,8 @@
 
 SET FOREIGN_KEY_CHECKS=0;
 
-DROP TABLE IF EXISTS `civicrm_resoure_calendar_participant`;
-DROP TABLE IF EXISTS `civicrm_resoure_calendar`;
+DROP TABLE IF EXISTS `civicrm_resource_calendar_participant`;
+DROP TABLE IF EXISTS `civicrm_resource_calendar`;
 
 SET FOREIGN_KEY_CHECKS=1;
 -- /*******************************************************
@@ -29,12 +29,12 @@ SET FOREIGN_KEY_CHECKS=1;
 
 -- /*******************************************************
 -- *
--- * civicrm_resoure_calendar
+-- * civicrm_resource_calendar
 -- *
 -- * FIXME
 -- *
 -- *******************************************************/
-CREATE TABLE `civicrm_resoure_calendar` (
+CREATE TABLE `civicrm_resource_calendar` (
   `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'Unique ResourceCalendar ID',
   `calendar_title` varchar(255) COMMENT 'Calendar Title',
   `calendar_type` varchar(64) COMMENT 'Null or resource name',
@@ -56,18 +56,18 @@ ENGINE=InnoDB;
 
 -- /*******************************************************
 -- *
--- * civicrm_resoure_calendar_participant
+-- * civicrm_resource_calendar_participant
 -- *
 -- * FIXME
 -- *
 -- *******************************************************/
-CREATE TABLE `civicrm_resoure_calendar_participant` (
-  `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'Unique ResoureCalendarParticipant ID',
+CREATE TABLE `civicrm_resource_calendar_participant` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'Unique ResourceCalendarParticipant ID',
   `resource_calendar_id` int unsigned COMMENT 'FK to Resource Calendar',
   `contact_id` int unsigned COMMENT 'FK to Contact',
   `event_color` varchar(255) COMMENT 'Hex code for event type display color',
   PRIMARY KEY (`id`),
-  CONSTRAINT FK_civicrm_resoure_calendar_participant_resource_calendar_id FOREIGN KEY (`resource_calendar_id`) REFERENCES `civicrm_event_calendar`(`id`) ON DELETE CASCADE,
-  CONSTRAINT FK_civicrm_resoure_calendar_participant_contact_id FOREIGN KEY (`contact_id`) REFERENCES `civicrm_contact`(`id`) ON DELETE CASCADE
+  CONSTRAINT FK_civicrm_resource_calendar_participant_resource_calendar_id FOREIGN KEY (`resource_calendar_id`) REFERENCES `civicrm_resource_calendar`(`id`) ON DELETE CASCADE,
+  CONSTRAINT FK_civicrm_resource_calendar_participant_contact_id FOREIGN KEY (`contact_id`) REFERENCES `civicrm_contact`(`id`) ON DELETE CASCADE
 )
 ENGINE=InnoDB;
