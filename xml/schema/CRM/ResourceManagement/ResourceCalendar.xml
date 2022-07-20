@@ -100,8 +100,8 @@
     <add>1.0</add>
   </field>
   <field>
-    <name>event_templates</name>
-    <type>varchar(64)</type>
+    <name>event_template</name>
+    <type>int unsigned</type>
     <comment>Null or Resource template id's</comment>
     <add>1.0</add>
   </field>

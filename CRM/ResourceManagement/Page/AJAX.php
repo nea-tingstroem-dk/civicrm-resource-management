@@ -4,6 +4,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Scripting/EmptyPHP.php to edit this template
  */
+
 class CRM_ResourceManagement_Page_AJAX {
 
     public static function getEvents() {
@@ -13,11 +14,17 @@ class CRM_ResourceManagement_Page_AJAX {
         $settings = self::getResourceCalendarSettings($calendarId);
 
         $whereCondition = '';
-        $resources = $settings['resources'];
+        $filter = (int) ($_GET['filter'] ?? 0);
 
-        if (!empty($resources)) {
-            $contactList = implode(',', array_keys($resources));
-            $whereCondition .= " AND p.contact_id in ({$contactList})";
+        if ($filter) {
+            $whereCondition .= " AND p.contact_id = {$filter}";
+        } else {
+            $resources = $settings['resources'];
+
+            if (!empty($resources)) {
+                $contactList = implode(',', array_keys($resources));
+                $whereCondition .= " AND p.contact_id in ({$contactList})";
+            }
         }
         $whereCondition .= " AND e.start_date >= '{$_GET['start']}'";
         $whereCondition .= " AND e.start_date <= '{$_GET['end']}'";
@@ -37,7 +44,7 @@ class CRM_ResourceManagement_Page_AJAX {
                 ";
 
         $query .= $whereCondition;
-        
+
         $dao = CRM_Core_DAO::executeQuery($query);
         $eventCalendarParams = array('title' => 'title', 'start' => 'start', 'url' => 'url');
 
@@ -105,21 +112,17 @@ class CRM_ResourceManagement_Page_AJAX {
                 $settings['week_begins_from_day'] = $dao->week_begins_from_day;
                 $settings['recurring_event'] = $dao->recurring_event;
                 $settings['enrollment_status'] = $dao->enrollment_status;
+                $settings['event_template'] = $dao->event_template;
             }
             $eventTypes = array();
             $resources = array();
-            if ($settings['calendar_type'] === 'Event') {
-                $sql = "SELECT * FROM civicrm_event_calendar_event_type WHERE `event_calendar_id` = {$calendarId};";
-                $dao = CRM_Core_DAO::executeQuery($sql);
-                while ($dao->fetch()) {
-                    $eventTypes[] = $dao->toArray();
-                }
-            } else {
-                $sql = "SELECT * FROM civicrm_event_calendar_participant WHERE `event_calendar_id` = {$calendarId};";
-                $dao = CRM_Core_DAO::executeQuery($sql);
-                while ($dao->fetch()) {
-                    $resources[] = $dao->toArray();
-                }
+            $sql = "SELECT p.*,c.display_name 
+                    FROM civicrm_resource_calendar_participant p
+                    LEFT JOIN civicrm_contact c on c.id=p.contact_id
+                    WHERE `resource_calendar_id` = {$calendarId};";
+            $dao = CRM_Core_DAO::executeQuery($sql);
+            while ($dao->fetch()) {
+                $resources[] = $dao->toArray();
             }
         } elseif ($calendarId == 0) {
             $settings['calendar_title'] = 'Event Calendar';
@@ -136,11 +139,11 @@ class CRM_ResourceManagement_Page_AJAX {
         if (!empty($resources)) {
             foreach ($resources as $resource) {
                 $settings['resources'][$resource['contact_id']] = $resource['event_color'];
+                $settings['resource_titles'][$resource['contact_id']] = $resource['display_name'];
             }
         }
 
         return $settings;
-        
     }
 
 }

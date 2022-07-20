@@ -17,6 +17,7 @@
 
 SET FOREIGN_KEY_CHECKS=0;
 
+DROP TABLE IF EXISTS `civicrm_resource_configuration`;
 DROP TABLE IF EXISTS `civicrm_resource_calendar_participant`;
 DROP TABLE IF EXISTS `civicrm_resource_calendar`;
 
@@ -49,7 +50,7 @@ CREATE TABLE `civicrm_resource_calendar` (
   `time_format_24_hour` tinyint COMMENT 'Use 24 hour format',
   `recurring_event` tinyint COMMENT 'Show recurring events',
   `enrollment_status` tinyint COMMENT 'Show enrollment status',
-  `event_templates` varchar(64) COMMENT 'Null or Resource template id\'s',
+  `event_template` int unsigned COMMENT 'Null or Resource template id\'s',
   PRIMARY KEY (`id`)
 )
 ENGINE=InnoDB;
@@ -69,5 +70,20 @@ CREATE TABLE `civicrm_resource_calendar_participant` (
   PRIMARY KEY (`id`),
   CONSTRAINT FK_civicrm_resource_calendar_participant_resource_calendar_id FOREIGN KEY (`resource_calendar_id`) REFERENCES `civicrm_resource_calendar`(`id`) ON DELETE CASCADE,
   CONSTRAINT FK_civicrm_resource_calendar_participant_contact_id FOREIGN KEY (`contact_id`) REFERENCES `civicrm_contact`(`id`) ON DELETE CASCADE
+)
+ENGINE=InnoDB;
+
+-- /*******************************************************
+-- *
+-- * civicrm_resource_configuration
+-- *
+-- * FIXME
+-- *
+-- *******************************************************/
+CREATE TABLE `civicrm_resource_configuration` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'Unique ResourceConfiguration ID',
+  `config_key` varchar(20) COMMENT 'Configuration key',
+  `config_value` varchar(256) COMMENT 'Configuration value',
+  PRIMARY KEY (`id`)
 )
 ENGINE=InnoDB;

@@ -19,5 +19,5 @@
 {* FOOTER *}
 <div class="crm-submit-buttons">
   {include file="CRM/common/formButtons.tpl" location="bottom"}
-  {crmButton p='civicrm/admin/asset-calendars' icon="times"}{ts}Cancel{/ts}{/crmButton}
+  {crmButton p='civicrm/admin/resource-calendars' icon="times"}{ts}Cancel{/ts}{/crmButton}
 </div>

@@ -4,7 +4,7 @@
     <path>civicrm/admin/resource-calendars</path>
     <page_callback>CRM_ResourceManagement_Page_ManageResouceCalendars</page_callback>
     <title>ManageResouceCalendars</title>
-    <access_arguments>access CiviCRM</access_arguments>
+    <access_arguments>administer CiviCRM</access_arguments>
   </item>
   <item>
     <path>civicrm/resource-calendarsettings</path>
@@ -23,5 +23,17 @@
     <page_callback>CRM_ResourceManagement_Page_AJAX::getEvents</page_callback>
     <title>AJAX</title>
     <access_arguments>access CiviEvent</access_arguments>
+  </item>
+  <item>
+    <path>civicrm/book-resource</path>
+    <page_callback>CRM_ResourceManagement_Form_CreateResourceEvent</page_callback>
+    <title>CreateResourceEvent</title>
+    <access_arguments>access CiviCRM</access_arguments>
+  </item>
+  <item>
+    <path>civicrm/admin/resource-mamagement</path>
+    <page_callback>CRM_ResourceManagement_Form_AdminResourceManagement</page_callback>
+    <title>AdminResourceManagement</title>
+    <access_arguments>administer CiviCRM</access_arguments>
   </item>
 </menu>

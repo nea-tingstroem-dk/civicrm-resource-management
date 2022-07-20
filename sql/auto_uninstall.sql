@@ -15,6 +15,7 @@
 
 SET FOREIGN_KEY_CHECKS=0;
 
+DROP TABLE IF EXISTS `civicrm_resource_configuration`;
 DROP TABLE IF EXISTS `civicrm_resource_calendar_participant`;
 DROP TABLE IF EXISTS `civicrm_resource_calendar`;
 

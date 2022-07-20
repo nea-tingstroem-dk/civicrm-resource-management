@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="iso-8859-1" ?>
+
+<table>
+  <base>CRM/ResourceManagement</base>
+  <class>ResourceConfiguration</class>
+  <name>civicrm_resource_configuration</name>
+  <comment>FIXME</comment>
+  <log>true</log>
+
+  <field>
+    <name>id</name>
+    <type>int unsigned</type>
+    <required>true</required>
+    <comment>Unique ResourceConfiguration ID</comment>
+    <html>
+      <type>Number</type>
+    </html>
+  </field>
+  <primaryKey>
+    <name>id</name>
+    <autoincrement>true</autoincrement>
+  </primaryKey>
+
+  <field>
+    <name>config_key</name>
+    <type>varchar(20)</type>
+    <comment>Configuration key</comment>
+  </field>
+  <index>
+      <name>index_config_key</name>
+      <field>config_key</field>
+      <unique>true</unique>
+  </index>
+  <field>
+    <name>config_value</name>
+    <type>varchar(256)</type>
+    <comment>Configuration value</comment>
+  </field>
+  
+</table>

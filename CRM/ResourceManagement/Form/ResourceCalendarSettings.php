@@ -75,9 +75,9 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
 
             $eventTemplates = self::getEventTemplates();
 
-            $this->add('select', 'event_templates', ts("Select Event template(s)"), $eventTemplates,
-                    FALSE, ['class' => 'crm-select2', 'multiple' => TRUE,
-                'placeholder' => ts('- select template(s) -')]);
+            $this->add('select', 'event_template', ts("Select Event template"), $eventTemplates,
+                    FALSE, ['class' => 'crm-select2', 'multiple' => FALSE,
+                'placeholder' => ts('- select template -')]);
 
             $query = "SELECT `id`, `display_name`  FROM `civicrm_contact` 
                             WHERE `contact_sub_type` LIKE '%" . $this->_calendar_type . "%' 

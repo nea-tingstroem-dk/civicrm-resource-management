@@ -143,7 +143,7 @@ class CRM_ResourceManagement_DAO_ResourceCalendarParticipant extends CRM_Core_DA
         ],
         'event_color' => [
           'name' => 'event_color',
-          'type' => CRM_Utils_Type::T_TEXT,
+          'type' => CRM_Utils_Type::T_VARCHAR(255),
           'title' => E::ts('Event Color'),
           'description' => E::ts('Hex code for event type display color'),
           'where' => 'civicrm_resource_calendar_participant.event_color',

@@ -1,0 +1,8 @@
+SELECT n.title, t.name, d.field_booking_dato_value, d.field_booking_dato_value2, a.field_ansvarlig_value, c.id, n.*
+FROM `node` n
+LEFT JOIN `field_data_field_lokale` l on l.entity_id=n.nid
+LEFT JOIN `taxonomy_term_data` t on t.tid=l.field_lokale_tid
+LEFT JOIN `field_data_field_booking_dato` d on d.entity_id = n.nid
+LEFT JOIN `field_data_field_ansvarlig` a on a.entity_id = n.nid
+LEFT JOIN `civicrm_contact` c on c.display_name LIKE a.field_ansvarlig_value
+WHERE l.entity_id IS NOT NULL;
