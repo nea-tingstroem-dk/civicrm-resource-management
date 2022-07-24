@@ -70,6 +70,7 @@
                 allDay = "0";
             }
             location.href = "/civicrm/book-resource?calendar_id=" + calendarId + 
+                  "&filter=" + cj('#resource_selector')[0].value  +
                   "&start=" + start.format("YYYY-MM-DD HH:mm:ss") + 
                   "&end=" + end.format("YYYY-MM-DD HH:mm:ss") +
                   "&allday=" + allDay;
@@ -84,6 +85,7 @@
           center: 'title',
           right: 'month,agendaWeek,agendaDay'
         },
+        defaultView: 'agendaWeek',
         selectable: true,
         selectOverlap: false,
       });

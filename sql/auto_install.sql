@@ -82,8 +82,9 @@ ENGINE=InnoDB;
 -- *******************************************************/
 CREATE TABLE `civicrm_resource_configuration` (
   `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'Unique ResourceConfiguration ID',
-  `config_key` varchar(20) COMMENT 'Configuration key',
+  `config_key` varchar(20) NOT NULL COMMENT 'Configuration key',
   `config_value` varchar(256) COMMENT 'Configuration value',
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `index_config_key`(config_key)
 )
 ENGINE=InnoDB;

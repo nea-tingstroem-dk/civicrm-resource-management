@@ -1,6 +1,7 @@
 <?php
 
 use CRM_ResourceManagement_ExtensionUtil as E;
+use CRM_ResourceManagement_BAO_ResourceConfiguration as C;
 
 /**
  * Form controller class
@@ -55,12 +56,13 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
 
     public function buildQuickForm() {
         CRM_Core_Resources::singleton()->addScriptFile('resource-management', 'js/moment.js', 5);
-
         $startTime = date('Y-m-d H:i:s', $this->_start_time);
         $this->assign('start_time', $startTime);
         $endTime = date('Y-m-d H:i:s', $this->_end_time);
         $this->assign('end_time', $endTime);
         $this->add('hidden', 'calendar_id', $this->_calendar_id);
+        $this->controller->_destination = CRM_Utils_System::url('civicrm/showresourceevents',
+                ['id' => $this->_calendar_id]);
         $this->add('hidden', 'start_time', $startTime);
 
         $settings = CRM_ResourceManagement_Page_AJAX::getResourceCalendarSettings($this->_calendar_id);
@@ -72,8 +74,15 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
         }
         $this->assign('resources', json_encode($resources));
 
-        $this->add('select', 'resources', ts("Select Resource(s)"), $resource_options,
+        $filter = (int)($_GET['filter'] ?? 0);
+        if ($filter ) {
+            $this->add('hidden', 'resources', $filter);
+            $this->add('static', 'resource', ts("Selected Resource"), $resource_options[$filter]);
+        } else {
+            $this->add('select', 'resources', ts("Select Resource(s)"), $resource_options,
                 FALSE, ['class' => 'crm-select2', 'multiple' => TRUE, 'placeholder' => ts('- select resource(s) -')]);
+ 
+        }
 
         if ($this->_superUser) {
             $this->addEntityRef('responsible_contact', ts('Select responsible contact'));
@@ -120,6 +129,9 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
 
     public function postProcess() {
         $values = $this->exportValues();
+        if (!is_array($values['resources'])) {
+            $values['resources'] = [$values['resources']];
+        }
         $params = [];
         $params['start_date'] = $values['event_start_date'] ?? NULL;
         $params['end_date'] = $values['event_end_date'] ?? NULL;
@@ -127,16 +139,32 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
         $params['is_map'] = FALSE;
         $params['title'] = $values['event_title'];
         $params = array_merge(CRM_Event_BAO_Event::getTemplateDefaultValues($values['event_template']), $params);
-
+        $today = date('Y-m-d H:i:s');
         $event = CRM_Event_BAO_Event::copy($values['event_template'], $params);
         $event->is_template = 0;
         $event->update();
-        foreach ($values['resources'] as $res_id => $res_val) {
+        $statuses = explode(',', C::getConfig('resource_status_ids'));
+        $resourceRole = C::getConfig('resource_role_id');
+
+        foreach ($values['resources'] as $res_id) {
             $params = [
-                'role_id' => 8,
+                'registration_date' => $today,
+                'role_id' => $resourceRole,
+                'contact_id' => $res_id,
+                'event_id' => $event->id,
+                'status_id' => $statuses[0],
             ];
-            $participant = CRM_Event_BAO_Participant::add($params);
+            $participant = CRM_Event_BAO_Participant::create($params);
+            $participant->save();
         }
+        $params = [
+                'role_id' => C::getConfig('host_role_id'),
+                'contact_id' => $values['responsible_contact'],
+                'event_id' => $event->id,
+                'status_id' => C::getConfig('host_status_id'),
+        ];
+        $participant = CRM_Event_BAO_Participant::create($params);
+        $participant->save();
         parent::postProcess();
     }
 

@@ -23,4 +23,13 @@ class CRM_ResourceManagement_BAO_ResourceConfiguration extends CRM_ResourceManag
     return $instance;
   } */
 
+    public static function getConfig($key){
+        $config = new self();
+        $config->config_key = $key;
+        $config->find();
+        if ($config->fetch()) {
+            return $config->config_value;
+        }
+        return false;
+    }
 }

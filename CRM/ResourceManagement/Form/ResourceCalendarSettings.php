@@ -112,7 +112,6 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
 
     public function postProcess() {
         $submitted = $this->exportValues();
-        $templates = implode(',', $submitted['event_templates']);
         $this->_calendar_type = $submitted['calendar_type'];
         foreach ($submitted as $key => $value) {
             if (!$value && $key != 'calendar_title' && $key != 'calendar_type') {
@@ -127,7 +126,7 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
                 events_by_month, event_timings, events_from_month, 
                 event_type_filters, week_begins_from_day, 
                 time_format_24_hour, recurring_event, 
-                enrollment_status, event_templates)
+                enrollment_status, event_template)
             VALUES
                 ('{$submitted['calendar_title']}', '{$submitted['calendar_type']}', 
                 {$submitted['show_past_events']}, {$submitted['show_end_date']}, 
@@ -136,7 +135,7 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
                 {$submitted['event_type_filters']}, {$submitted['week_begins_from_day']}, 
                 {$submitted['time_format_24_hour']}, {$submitted['recurring_event']}, 
                 {$submitted['enrollment_status']}, 
-                '{$templates}');";
+                {$submitted['event_template']})";
             $dao = CRM_Core_DAO::executeQuery($sql);
             $cfId = CRM_Core_DAO::singleValueQuery('SELECT LAST_INSERT_ID()');
             foreach ($submitted as $key => $value) {
@@ -163,7 +162,7 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
             time_format_24_hour = {$submitted['time_format_24_hour']}, 
             recurring_event = {$submitted['recurring_event']},  
             enrollment_status = {$submitted['enrollment_status']},
-            event_templates = '{$templates}'
+            event_template = {$submitted['event_template']}
        WHERE `id` = {$submitted['calendar_id']};";
             $dao = CRM_Core_DAO::executeQuery($sql);
             //delete current event type records to update with new ones

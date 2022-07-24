@@ -24,11 +24,12 @@
   <field>
     <name>config_key</name>
     <type>varchar(20)</type>
+    <required>true</required>
     <comment>Configuration key</comment>
   </field>
   <index>
       <name>index_config_key</name>
-      <field>config_key</field>
+      <fieldName>config_key</fieldName>
       <unique>true</unique>
   </index>
   <field>
