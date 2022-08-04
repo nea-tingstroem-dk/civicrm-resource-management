@@ -14,12 +14,13 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
     private $_all_day = false;
     private $_start_time = 0;
     private $_end_time = 0;
+    private $_min_start = 0;
+    private $_max_end = 0;
     private $_userId = 0;
     private $_userName = "";
     private $_userExternalId = "";
     private $_superUser = false;
     private $_authUser = false;
-    private $_event_template = 0;
 
     public function preProcess() {
         parent::preProcess();
@@ -35,19 +36,23 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
         $this->_userExternalId = $actualUser['external_identifier'];
         $this->_superUser = CRM_Core_Permission::check('edit all events', $getContactId);
         $this->_authUser = CRM_Core_Permission::check('access CiviEvent', $getContactId);
-        $this->_calendar_id = $_GET['calendar_id'] ?? $_POST['calendar_id'];
-        $allDay = $_GET['allday'] ?? '0';
+        $this->_calendar_id = CRM_Utils_Request::retrieve('calendar_id', 'Integer');
+        $allDay = CRM_Utils_Request::retrieve('allday', 'Integer');
+        $start = CRM_Utils_Request::retrieve('start', 'String');
+        $end = CRM_Utils_Request::retrieve('end', 'String');
         if ($allDay == "1") {
             $this->_all_day = true;
         } else {
             $this->_all_day = false;
         }
         if ($this->_all_day) {
-            $this->_start_time = strtotime('+ 9 hours' , strtotime($_GET['start'] ?? $_POST['event_start_date']));
-            $this->_end_time = strtotime('+ 9 hours' , strtotime($_GET['end'] ?? $_POST['event_end_date']));
+            $this->_start_time = strtotime('+ 9 hours' , 
+                    strtotime($start));
+            $this->_end_time = 
+                    strtotime('+ 9 hours' , strtotime($end));
         } else {
-            $this->_start_time = strtotime($_GET['start'] ?? $_POST['event_start_date']);
-            $this->_end_time = strtotime($_GET['end'] ?? $_POST['event_end_date']);
+            $this->_start_time = strtotime($start);
+            $this->_end_time = strtotime($end);
         }
         if (!$this->_start_time) {
             $this->_start_time = time();
@@ -56,11 +61,14 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
 
     public function buildQuickForm() {
         CRM_Core_Resources::singleton()->addScriptFile('resource-management', 'js/moment.js', 5);
+        CRM_Core_Resources::singleton()->addScriptFile('resource-management', 'js/create_resource.js', 5);
         $startTime = date('Y-m-d H:i:s', $this->_start_time);
-        $this->assign('start_time', $startTime);
+        $this->add('hidden', 'start_date', $startTime);
         $endTime = date('Y-m-d H:i:s', $this->_end_time);
-        $this->assign('end_time', $endTime);
+        $this->add('hidden', 'end_date', $endTime);
         $this->add('hidden', 'calendar_id', $this->_calendar_id);
+        $duration = $this->_end_time - $this->_start_time;
+        $this->add('hidden', 'duration', $duration);
         $this->controller->_destination = CRM_Utils_System::url('civicrm/showresourceevents',
                 ['id' => $this->_calendar_id]);
         $this->add('hidden', 'start_time', $startTime);
@@ -72,27 +80,30 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
         foreach ($resources as $id => $res) {
             $resource_options[$id] = $res['name'];
         }
-        $this->assign('resources', json_encode($resources));
-
-        $filter = (int)($_GET['filter'] ?? 0);
+        $this->add('hidden', 'resource_source', json_encode($resources));
+        $filter = CRM_Utils_Request::retrieve('filter', 'Integer');
         if ($filter ) {
+            $this->add('hidden', 'min_start', $resources[$filter]['min_start']);
+            $this->add('hidden', 'max_end', $resources[$filter]['max_end']);       
             $this->add('hidden', 'resources', $filter);
             $this->add('static', 'resource', ts("Selected Resource"), $resource_options[$filter]);
         } else {
+            $this->add('hidden', 'min_start', $this->_min_start);
+            $this->add('hidden', 'max_end', $this->_max_end);        
             $this->add('select', 'resources', ts("Select Resource(s)"), $resource_options,
-                FALSE, ['class' => 'crm-select2', 'multiple' => TRUE, 'placeholder' => ts('- select resource(s) -')]);
- 
+                TRUE, ['class' => 'crm-select2', 'multiple' => TRUE, 'placeholder' => ts('- select resource(s) -')]);
         }
 
         if ($this->_superUser) {
-            $this->addEntityRef('responsible_contact', ts('Select responsible contact'));
+            $this->addEntityRef('responsible_contact', ts('Select responsible contact'), NULL, TRUE);
 
             $eventTemplates = CRM_ResourceManagement_Form_ResourceCalendarSettings::getEventTemplates();
             $this->add('select', 'event_template', ts('Select template for event'),
-                    $eventTemplates, FALSE, ['class' => 'crm-select2', 'multiple' => false,
+                    $eventTemplates, TRUE, ['class' => 'crm-select2', 'multiple' => false,
                 'placeholder' => ts('- select template -')]);
-            $this->add('text', 'event_title', ts('Event Title'));
+            $this->add('text', 'event_title', ts('Event Title'), NULL, TRUE);
         } else {
+            $this->add('hidden', 'respoensible_contact', $this->_userId);
             $this->add('static', 'user_info', ts('Responsible'),
                     $this->_userExternalId . ' ' . $this->_userName);
             $this->add('hidden', 'event_template', $settings['event_template']);
@@ -102,11 +113,13 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
         }
 
         $this->add('datepicker', 'event_start_date', ts('Start Date'),
+                NULL,
+                TRUE, 
                 [
-                    'minDate' => format_date($this->_start_time, 'y-m-d H:i'),
-                    'maxDate' => format_date($this->_start_time + 60 * 60 * 24, 'y-m-d H:i'),
-                ],
-                TRUE, ['time' => TRUE]);
+                    'time' => TRUE,
+                    'minDate' => $this->_min_start,
+                    'maxDate' => $this->_max_end,
+                ]);
         $this->add('datepicker', 'event_end_date', ts('End Date'),
                 [
                     'minDate' => format_date($this->_start_time, 'y-m-d H:i'),
@@ -120,6 +133,11 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
                 'name' => E::ts('Submit'),
                 'isDefault' => TRUE,
             ),
+            array(
+                'type' => 'cancel',
+                'name' => E::ts('Cancel'),
+                'isDefault' => FALSE,
+            ),
         ));
 
         // export form elements
@@ -132,12 +150,17 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
         if (!is_array($values['resources'])) {
             $values['resources'] = [$values['resources']];
         }
+        if (!isset($values['responsible_contact'])) {
+            $values['responsible_contact'] = $this->_userId;
+        }
         $params = [];
         $params['start_date'] = $values['event_start_date'] ?? NULL;
         $params['end_date'] = $values['event_end_date'] ?? NULL;
         $params['has_waitlist'] = FALSE;
         $params['is_map'] = FALSE;
-        $params['title'] = $values['event_title'];
+        if (isset($values['event_title'])) {
+            $params['title'] = $values['event_title'];
+        }
         $params = array_merge(CRM_Event_BAO_Event::getTemplateDefaultValues($values['event_template']), $params);
         $today = date('Y-m-d H:i:s');
         $event = CRM_Event_BAO_Event::copy($values['event_template'], $params);
@@ -148,7 +171,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
 
         foreach ($values['resources'] as $res_id) {
             $params = [
-                'registration_date' => $today,
+                'register_date' => $today,
                 'role_id' => $resourceRole,
                 'contact_id' => $res_id,
                 'event_id' => $event->id,
@@ -158,6 +181,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
             $participant->save();
         }
         $params = [
+                'register_date' => $today,
                 'role_id' => C::getConfig('host_role_id'),
                 'contact_id' => $values['responsible_contact'],
                 'event_id' => $event->id,
@@ -170,8 +194,8 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
 
     public function getResources() {
         $options = [];
-        $start_time = date(DATE_ATOM, $this->_start_time);
-        $now = date(DATE_ATOM, time());
+        $start_time = date('Y-m-d\TH:i:s', $this->_start_time);
+        $now = date('Y-m-d\TH:i:s', time());
         $query = "SELECT p.id resource_calendar_id, p.`contact_id`,c.display_name name
                 FROM `civicrm_resource_calendar_participant` p
                 LEFT JOIN `civicrm_contact` c on c.id=p.`contact_id`
@@ -182,18 +206,22 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
                     LEFT JOIN `civicrm_participant` p ON p.event_id = e.id
                     WHERE p.contact_id = {$dao->contact_id}
                     AND e.`start_date` > '{$start_time}'
-                    AND e.`start_date` > '{$now}'
                     ORDER BY e.`start_date` ASC
                     LIMIT 1;";
             $max_time = CRM_CORE_DAO::singleValueQuery($sql);
+            if (!$this->_max_end || ($max_time != null && $this->_max_end < $max_time)) {
+                $this->_max_end = $max_time;
+            }
             $sql = "SELECT e.end_date FROM `civicrm_event` e
                     LEFT JOIN `civicrm_participant` p ON p.event_id = e.id
                     WHERE p.contact_id = {$dao->contact_id}
-                    AND e.`end_date` < '{$max_time}'
-                    AND e.`end_date` > '{$now}'
+                    AND e.`end_date` <= '{$start_time}'
                     ORDER BY e.`end_date` DESC
                     LIMIT 1;";
-            $min_time = CRM_CORE_DAO::singleValueQuery($sql) ?? date('Y-m-d H:i', time());
+            $min_time = CRM_CORE_DAO::singleValueQuery($sql) ?? date('Y-m-d H:i:s', time());
+            if (!$this->_min_start || $this->_min_start < $min_time) {
+                $this->_min_start = $min_time;
+            }
             $resource = [
                 'name' => $dao->name,
                 'min_start' => $min_time,

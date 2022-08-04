@@ -16,14 +16,9 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
     public function buildQuickForm() {
         CRM_Utils_System::setTitle(E::ts('Resource Calendars Settings'));
         $this->controller->_destination = CRM_Utils_System::url('civicrm/admin/resource-calendars', 'reset=1');
-        $this->action = '';
-        if (isset($_GET['action'])) {
-            $this->action = $_GET['action'];
-        }
-        $this->calendar_id = $_GET['id'] ?? '';
-        if (empty($this->calendar_id)) {
-            $this->calendar_id = $_POST['calendar_id'] ?? '';
-        }
+        $this->action = CRM_Utils_Request::retrieve('action', 'String') ?? '';
+        $this->calendar_id = CRM_Utils_Request::retrieve('id', 'Integer') ??
+                CRM_Utils_Request::retrieve('calendar_id', 'Integer');
         if (isset($_GET['resource'])) {
             $this->_calendar_type = $_GET['resource'];
         } else if (isset($this->calendar_id) && $this->calendar_id != '') {
@@ -119,7 +114,7 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
             }
         }
 
-        if ($submitted['action'] == 'add') {
+        if ($submitted['action'] == CRM_Core_Action::ADD) {
             $sql = "INSERT INTO civicrm_resource_calendar
                 (calendar_title, calendar_type, show_past_events, 
                 show_end_date, show_public_events, 
@@ -148,7 +143,7 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
             }
         }
 
-        if ($submitted['action'] == 'update') {
+        if ($submitted['action'] == CRM_Core_Action::UPDATE) {
             $sql = "UPDATE civicrm_resource_calendar
        SET calendar_title = '{$submitted['calendar_title']}', 
             show_past_events = {$submitted['show_past_events']}, 
@@ -179,7 +174,7 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
             }
         }
 
-        if ($submitted['action'] == 'delete') {
+        if ($submitted['action'] == CRM_Core_Action::DELETE) {
             $sql = "DELETE FROM civicrm_resource_calendar WHERE `id` = {$submitted['calendar_id']};";
             $dao = CRM_Core_DAO::executeQuery($sql);
         }

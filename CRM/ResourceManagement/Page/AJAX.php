@@ -4,30 +4,30 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Scripting/EmptyPHP.php to edit this template
  */
+use CRM_ResourceManagement_BAO_ResourceConfiguration as C;
 
 class CRM_ResourceManagement_Page_AJAX {
 
     public static function getEvents() {
         $events = [];
 
-        $calendarId = isset($_GET['calendar_id']) ? $_GET['calendar_id'] : '';
+        $calendarId = CRM_Utils_Request::retrieve('calendar_id', 'Integer');
         $settings = self::getResourceCalendarSettings($calendarId);
 
         $whereCondition = '';
-        $filter = (int) ($_GET['filter'] ?? 0);
+        $resources = $settings['resources'];
+        $filter = CRM_Utils_Request::retrieve('filter', 'Integer');
 
         if ($filter) {
             $whereCondition .= " AND p.contact_id = {$filter}";
-        } else {
-            $resources = $settings['resources'];
-
-            if (!empty($resources)) {
-                $contactList = implode(',', array_keys($resources));
-                $whereCondition .= " AND p.contact_id in ({$contactList})";
-            }
+        } else if (!empty($resources)) {
+            $contactList = implode(',', array_keys($resources));
+            $whereCondition .= " AND p.contact_id in ({$contactList})";
         }
-        $whereCondition .= " AND e.start_date >= '{$_GET['start']}'";
-        $whereCondition .= " AND e.start_date <= '{$_GET['end']}'";
+        $start = CRM_Utils_Request::retrieve('start', 'String');
+        $end = CRM_Utils_Request::retrieve('end', 'String');
+        $whereCondition .= " AND e.start_date >= '{$start}'";
+        $whereCondition .= " AND e.start_date <= '{$end}'";
 
         //Show/Hide Public Events
         if (!empty($settings['event_is_public'])) {
@@ -35,10 +35,9 @@ class CRM_ResourceManagement_Page_AJAX {
         }
 
         $query = "
-                SELECT e.`id` id, e.`title`, e.`start_date` start, e.`end_date` end, p.`contact_id`, c.display_name
+                SELECT DISTINCT e.`id` id, e.`title`, e.`start_date` start, e.`end_date` end
                 FROM `civicrm_event` e
                 LEFT JOIN `civicrm_participant` p ON p.event_id = e.id
-                LEFT JOIN `civicrm_contact`c on c.id=p.contact_id
                 WHERE e.is_active = 1
                   AND e.is_template = 0
                 ";
@@ -46,11 +45,9 @@ class CRM_ResourceManagement_Page_AJAX {
         $query .= $whereCondition;
 
         $dao = CRM_Core_DAO::executeQuery($query);
-        $eventCalendarParams = array('title' => 'title', 'start' => 'start', 'url' => 'url');
-
-        if (!empty($settings['event_end_date'])) {
-            $eventCalendarParams['end'] = 'end';
-        }
+        $eventCalendarParams = array('title' => 'title', 'start' => 'start', 'end' => 'end', 'url' => 'url');
+        $resourceRoleId = C::getConfig('resource_role_id');
+        $responsibleRoleId = C::getConfig('host_role_id');
 
         while ($dao->fetch()) {
             $eventData = array();
@@ -58,20 +55,32 @@ class CRM_ResourceManagement_Page_AJAX {
             foreach ($eventCalendarParams as $k) {
                 $eventData[$k] = $dao->$k;
             }
-            if (!empty($resources)) {
-                $eventData['backgroundColor'] = "#{$resources[$dao->contact_id]}";
-                $eventData['textColor'] = CRM_EventCalendar_Page_ShowEvents::_getContrastTextColor($eventData['backgroundColor']);
-                $eventData['title'] .= "\n" . $dao->display_name;
-            } else if (!empty($eventTypes)) {
-                $eventData['backgroundColor'] = "#{$eventTypes[$dao->event_type]}";
-                $eventData['textColor'] = CRM_EventCalendar_Page_ShowEvents::_getContrastTextColor($eventData['backgroundColor']);
-                $eventData['eventType'] = $civieventTypesList[$dao->event_type];
-            } elseif ($calendarId == 0) {
-                $eventData['backgroundColor'] = "";
-                $eventData['textColor'] = CRM_EventCalendar_Page_ShowEvents::_getContrastTextColor($eventData['backgroundColor']);
-                $eventData['eventType'] = $civieventTypesList[$dao->event_type];
+            $pSql = "SELECT p.`contact_id`, c.display_name, p.role_id
+                FROM `civicrm_participant` p
+                LEFT JOIN `civicrm_contact`c on c.id=p.contact_id
+                WHERE p.event_id ={$dao->id}
+                    AND p.role_id in ({$resourceRoleId},{$responsibleRoleId})
+                ";
+            $pDao = CRM_Core_DAO::executeQuery($pSql);
+            $resource_names = '';
+            $resp_name = '';
+            while ($pDao->fetch()) {
+                if (!empty($resources) && 
+                        isset($resources[$pDao->contact_id]) &&
+                        !isset($eventData['backgroundColor'])) {
+                    $eventData['backgroundColor'] = "#{$resources[$pDao->contact_id]}";
+                    $eventData['textColor'] = CRM_EventCalendar_Page_ShowEvents::_getContrastTextColor($eventData['backgroundColor']);
+                }
+                if ($pDao->role_id == $resourceRoleId) {
+                    if (!empty($resource_names)) {
+                        $resource_names .= ", "; 
+                    }
+                    $resource_names .= $pDao->display_name;
+                } else {
+                    $resp_name = $pDao->display_name;
+                }
             }
-
+            $eventData['title'] .= "\n" . $resource_names . "\n" . $resp_name;
             $enrollment_status = civicrm_api3('Event', 'getsingle', [
                 'return' => ['is_full'],
                 'id' => $dao->id,
