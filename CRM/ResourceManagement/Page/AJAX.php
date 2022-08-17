@@ -51,7 +51,7 @@ class CRM_ResourceManagement_Page_AJAX {
 
         while ($dao->fetch()) {
             $eventData = array();
-            $dao->url = html_entity_decode(CRM_Utils_System::url('civicrm/event/info', 'id=' . $dao->id ?: NULL));
+            $dao->url = 'civicrm/book-resource?event_id=' . $dao->id ?: NULL;
             foreach ($eventCalendarParams as $k) {
                 $eventData[$k] = $dao->$k;
             }
