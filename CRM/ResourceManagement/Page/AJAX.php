@@ -9,6 +9,9 @@ use CRM_ResourceManagement_BAO_ResourceConfiguration as C;
 class CRM_ResourceManagement_Page_AJAX {
 
     public static function getEvents() {
+        $getContactId = (int) CRM_Core_Session::singleton()->getLoggedInContactID();
+        $superUser = CRM_Core_Permission::check('edit all events', $getContactId);
+
         $events = [];
 
         $calendarId = CRM_Utils_Request::retrieve('calendar_id', 'Integer');
@@ -51,7 +54,12 @@ class CRM_ResourceManagement_Page_AJAX {
 
         while ($dao->fetch()) {
             $eventData = array();
-            $dao->url = 'civicrm/book-resource?event_id=' . $dao->id ?: NULL;
+            if ($superUser) {
+                $dao->url = 'civicrm/book-resource?event_id=' . $dao->id ?: NULL;
+            } else {
+                $dao->url = 'event/info?id=' . $dao->id ?: NULL;
+            }
+            
             foreach ($eventCalendarParams as $k) {
                 $eventData[$k] = $dao->$k;
             }

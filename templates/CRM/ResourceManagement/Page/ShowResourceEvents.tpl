@@ -52,6 +52,7 @@
       var weekStartDay = {/literal}{$weekBeginDay}{literal};
       var use24HourFormat = {/literal}{$use24Hour}{literal};
       var calendarId = {/literal}{$calendar_id}{literal};
+      const isAdmin = {/literal}{$is_admin}{literal}
       const defaultStartDate = (localStorage.getItem("fcDefaultStartDate") !== null ? localStorage.getItem("fcDefaultStartDate") : moment());
       var isLoading = true;
 
@@ -101,8 +102,8 @@
           localStorage.setItem("fcDefaultStartDate", view.start);
         },
         eventClick: function (event, el, jsEvent) {
-          el.preventDefault();
-          if ({/literal}{$is_admin}{literal}) {
+          if (isAdmin) {
+            el.preventDefault();
             CRM.loadForm(CRM.url(event.url, {
                 action: 'edit',
                 calendar_id: calendarId,
@@ -117,7 +118,6 @@
             .on('crmFormCancel', function(event, data){
                 concole.log('Canceled');
             });
-          } else {
           }
         },
         displayEventEnd: true,

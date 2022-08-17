@@ -14,7 +14,7 @@ class CRM_ResourceManagement_Page_ShowResourceEvents extends CRM_Core_Page {
         CRM_Core_Resources::singleton()->addStyleFile('resource-management', 'css/fullcalendar.css');
 
         $getContactId = (int) CRM_Core_Session::singleton()->getLoggedInContactID();
-        $superUser = CRM_Core_Permission::check('edit all events', $getContactId);
+        $superUser = CRM_Core_Permission::check('edit all events', $getContactId) ?: 0;
         $this->assign('is_admin', $superUser);
         $civieventTypesList = CRM_Event_PseudoConstant::eventType();
 
