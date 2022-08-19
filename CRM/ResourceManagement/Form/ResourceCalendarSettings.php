@@ -10,63 +10,50 @@ use CRM_ResourceManagement_ExtensionUtil as E;
 class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form {
 
     private $_submittedValues = array();
-    private $_settings = array();
     private $_calendar_type = '';
+    private $_calendar_id = 0;
+
+    public function preProcess() {
+        $this->_calendar_id = CRM_Utils_Request::retrieve('id', 'Integer') ??
+                CRM_Utils_Request::retrieve('calendar_id', 'Integer');
+        if (isset($this->_calendar_id)) {
+            $this->_calendar_type = CRM_Core_DAO::singleValueQuery("SELECT `calendar_type` FROM `civicrm_resource_calendar`
+                                                                    WHERE `id` = {$this->_calendar_id};");
+        } else {
+            $this->_calendar_type = CRM_Utils_Request::retrieve('resource', 'String') ??
+                    CRM_Utils_Request::retrieve('calendar_type', 'String');
+        }
+        parent::preProcess();
+    }
 
     public function buildQuickForm() {
         CRM_Utils_System::setTitle(E::ts('Resource Calendars Settings'));
         $this->controller->_destination = CRM_Utils_System::url('civicrm/admin/resource-calendars', 'reset=1');
-        $this->action = CRM_Utils_Request::retrieve('action', 'String') ?? '';
-        $this->calendar_id = CRM_Utils_Request::retrieve('id', 'Integer') ??
-                CRM_Utils_Request::retrieve('calendar_id', 'Integer');
-        if (isset($_GET['resource'])) {
-            $this->_calendar_type = $_GET['resource'];
-        } else if (isset($this->calendar_id) && $this->calendar_id != '') {
-            $this->_calendar_type = CRM_Core_DAO::singleValueQuery("SELECT `calendar_type` FROM `civicrm_resource_calendar`
-                                                                    WHERE `id` = {$this->calendar_id};");
-        } else {
-            $this->_calendar_type = $_POST['calendar_type'] ?? 'Event';
-        }
+        $this->action = CRM_Utils_Request::retrieve('action', 'Int') ?? null;
 
+        $this->add('hidden', 'calendar_id', $this->_calendar_id);
+        $this->add('hidden', 'calendar_type', $this->_calendar_type);
         if ($this->action == 'delete') {
             $descriptions['delete_warning'] = ts('Are you sure you want to delete this calendar?');
             $this->add('hidden', 'action', $this->action);
-            $this->add('hidden', 'calendar_id', $this->calendar_id);
             $this->assign('descriptions', $descriptions);
         } else {
             CRM_Core_Resources::singleton()->addScriptFile('resource-management', 'js/jscolor.js');
             CRM_Core_Resources::singleton()->addScriptFile('resource-management', 'js/resourcecalendar.js');
 
-            $settings = $this->getFormSettings();
             $descriptions = array();
 
             $this->add('hidden', 'action', $this->action);
-            $this->add('hidden', 'calendar_id', $this->calendar_id);
-            $this->add('hidden', 'calendar_type', $this->_calendar_type);
             $this->add('text', 'calendar_title', ts('Calendar Title'));
             $descriptions['calendar_title'] = ts('Event calendar title.');
-            $this->add('advcheckbox', 'show_past_events', ts('Show Past Events?'));
-            $descriptions['show_past_events'] = ts('Show past events as well as current/future.');
             $this->add('advcheckbox', 'show_end_date', ts('Show End Date?'));
             $descriptions['show_end_date'] = ts('Show the event with start and end dates on the calendar.');
             $this->add('advcheckbox', 'show_public_events', ts('Show Public Events?'));
             $descriptions['show_public_events'] = ts('Show only public events, or all events.');
-            $this->add('advcheckbox', 'events_by_month', ts('Show Events by Month?'));
-            $descriptions['events_by_month'] = ts('Show the month parameter on calendar.');
-            $this->add('advcheckbox', 'event_timings', ts('Show Event Times?'));
-            $descriptions['event_timings'] = ts('Show the event timings on calendar.');
-            $this->add('text', 'events_from_month', ts('Events from Month'));
-            $descriptions['events_from_month'] = ts('Show events from how many months from current month.');
-            $this->add('advcheckbox', 'event_type_filters', ts('Filter Event Types?'));
-            $descriptions['event_type_filters'] = ts('Show event types filter on calendar.');
             $this->add('advcheckbox', 'week_begins_from_day', ts('Week begins on'));
             $descriptions['week_begins_from_day'] = ts('Use weekBegin settings from CiviCRM. You can override settings at Administer > Localization > Date Formats.');
             $this->add('advcheckbox', 'time_format_24_hour', ts('24 hour time format'));
             $descriptions['time_format_24_hour'] = ts('Use 24 hour time format - default is AM/PM format.');
-            $this->add('advcheckbox', 'recurring_event', ts('Show recurring events'));
-            $descriptions['recurring_event'] = ts('Show only recurring events.');
-            $this->add('advcheckbox', 'enrollment_status', ts('Show enrollment status'));
-            $descriptions['enrollment_status'] = ts('Show enrollment status on calendar event.');
 
             $eventTemplates = self::getEventTemplates();
 
@@ -102,6 +89,7 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
         ));
         // export form element
         $this->assign('elementNames', $this->getRenderableElementNames());
+        $this->assign('descriptions', $descriptions);
         parent::buildQuickForm();
     }
 
@@ -116,20 +104,16 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
 
         if ($submitted['action'] == CRM_Core_Action::ADD) {
             $sql = "INSERT INTO civicrm_resource_calendar
-                (calendar_title, calendar_type, show_past_events, 
+                (calendar_title, calendar_type,  
                 show_end_date, show_public_events, 
-                events_by_month, event_timings, events_from_month, 
-                event_type_filters, week_begins_from_day, 
-                time_format_24_hour, recurring_event, 
-                enrollment_status, event_template)
+                week_begins_from_day, 
+                time_format_24_hour,
+                event_template)
             VALUES
                 ('{$submitted['calendar_title']}', '{$submitted['calendar_type']}', 
-                {$submitted['show_past_events']}, {$submitted['show_end_date']}, 
-                {$submitted['show_public_events']}, {$submitted['events_by_month']},
-                {$submitted['event_timings']}, {$submitted['events_from_month']}, 
-                {$submitted['event_type_filters']}, {$submitted['week_begins_from_day']}, 
-                {$submitted['time_format_24_hour']}, {$submitted['recurring_event']}, 
-                {$submitted['enrollment_status']}, 
+                {$submitted['show_end_date']}, 
+                {$submitted['show_public_events']}, {$submitted['week_begins_from_day']}, 
+                {$submitted['time_format_24_hour']},
                 {$submitted['event_template']})";
             $dao = CRM_Core_DAO::executeQuery($sql);
             $cfId = CRM_Core_DAO::singleValueQuery('SELECT LAST_INSERT_ID()');
@@ -146,19 +130,12 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
         if ($submitted['action'] == CRM_Core_Action::UPDATE) {
             $sql = "UPDATE civicrm_resource_calendar
        SET calendar_title = '{$submitted['calendar_title']}', 
-            show_past_events = {$submitted['show_past_events']}, 
             show_end_date = {$submitted['show_end_date']}, 
             show_public_events = {$submitted['show_public_events']}, 
-            events_by_month = {$submitted['events_by_month']},
-            event_timings = {$submitted['event_timings']}, 
-            events_from_month = {$submitted['events_from_month']},
-            event_type_filters = {$submitted['event_type_filters']}, 
             week_begins_from_day = {$submitted['week_begins_from_day']}, 
             time_format_24_hour = {$submitted['time_format_24_hour']}, 
-            recurring_event = {$submitted['recurring_event']},  
-            enrollment_status = {$submitted['enrollment_status']},
             event_template = {$submitted['event_template']}
-       WHERE `id` = {$submitted['calendar_id']};";
+       WHERE `id` = {$this->_calendar_id};";
             $dao = CRM_Core_DAO::executeQuery($sql);
             //delete current event type records to update with new ones
             $sql = "DELETE FROM civicrm_resource_calendar_participant WHERE `resource_calendar_id` = {$submitted['calendar_id']};";
@@ -168,7 +145,7 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
                 if ("resourceid" == substr($key, 0, 10)) {
                     $id = explode("_", $key)[1];
                     $sql = "INSERT INTO civicrm_resource_calendar_participant(resource_calendar_id, contact_id, event_color)
-                                VALUES ({$submitted['calendar_id']}, {$id}, '{$submitted['eventcolor_' . $id]}');";
+                                VALUES ({$this->_calendar_id}, {$id}, '{$submitted['eventcolor_' . $id]}');";
                     $dao = CRM_Core_DAO::executeQuery($sql);
                 }
             }
@@ -204,49 +181,30 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
     }
 
     /**
-     * Get the settings we are going to allow to be set on this form.
-     *
-     * @return array
-     */
-    public function getFormSettings() {
-        if (empty($this->_settings)) {
-            $sql = "SELECT * FROM civicrm_event_calendar;";
-            $dao = CRM_Core_DAO::executeQuery($sql);
-            while ($dao->fetch()) {
-                $settings[] = $dao->toArray();
-            }
-            return isset($settings);
-        }
-    }
-
-    /**
      * Set defaults for form.
      *
      * @see CRM_Core_Form::setDefaultValues()
      */
     public function setDefaultValues() {
-        if ($this->calendar_id && ($this->action != 'delete')) {
+        if ($this->_calendar_id && ($this->action != 'delete')) {
             $existing = array();
-            $sql = "SELECT * FROM civicrm_resource_calendar WHERE id = {$this->calendar_id};";
+            $sql = "SELECT * FROM civicrm_resource_calendar WHERE id = {$this->_calendar_id} LIMIT 1;";
             $dao = CRM_Core_DAO::executeQuery($sql);
-            while ($dao->fetch()) {
-                $existing[] = $dao->toArray();
+            $defaults = [];
+            if ($dao->fetch()) {
+                $defaults = $dao->toArray();
             }
-            $defaults = array();
-            foreach ($existing as $name => $value) {
-                $defaults[$name] = $value;
-            }
-            $sql = "SELECT * FROM civicrm_resource_calendar_participant WHERE resource_calendar_id = {$this->calendar_id};";
+            $sql = "SELECT * FROM civicrm_resource_calendar_participant WHERE resource_calendar_id = {$this->_calendar_id};";
             $dao = CRM_Core_DAO::executeQuery($sql);
             $existing = array();
             while ($dao->fetch()) {
                 $existing[] = $dao->toArray();
             }
             foreach ($existing as $name => $value) {
-                $defaults[0]['resourceid_' . $value['contact_id']] = 1;
-                $defaults[0]['eventcolor_' . $value['contact_id']] = $value['event_color'];
+                $defaults['resourceid_' . $value['contact_id']] = 1;
+                $defaults['eventcolor_' . $value['contact_id']] = $value['event_color'];
             }
-            return $defaults[0];
+            return $defaults;
         }
     }
 
