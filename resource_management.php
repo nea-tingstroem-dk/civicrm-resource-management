@@ -155,14 +155,22 @@ function resource_management_civicrm_themes(&$themes) {
  *
  * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_navigationMenu
  */
-//function resource_management_civicrm_navigationMenu(&$menu) {
-//  _resource_management_civix_insert_navigation_menu($menu, 'Mailings', [
-//    'label' => E::ts('New subliminal message'),
-//    'name' => 'mailing_subliminal_message',
-//    'url' => 'civicrm/mailing/subliminal',
-//    'permission' => 'access CiviMail',
-//    'operator' => 'OR',
-//    'separator' => 0,
-//  ]);
-//  _resource_management_civix_navigationMenu($menu);
-//}
+function resource_management_civicrm_navigationMenu(&$menu) {
+  _resource_management_civix_insert_navigation_menu($menu, 'Administer', [
+    'label' => E::ts('Resource Calendar Settings'),
+    'name' => 'resource-calendar-settings',
+    'url' => 'civicrm/admin/resource-calendars',
+    'permission' => 'administer CiviCRM',
+    'operator' => 'AND',
+    'separator' => 0,
+  ]);
+  _resource_management_civix_insert_navigation_menu($menu, 'Administer/resource-calendar-settings', [
+    'label' => E::ts('Resource Management Settings'),
+    'name' => 'resource-management-settings',
+    'url' => 'civicrm/admin/resource-mamagement',
+    'permission' => 'administer CiviCRM',
+    'operator' => 'AND',
+    'separator' => 0,
+  ]);
+  _resource_management_civix_navigationMenu($menu);
+}

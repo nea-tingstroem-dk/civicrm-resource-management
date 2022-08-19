@@ -38,8 +38,9 @@ class CRM_ResourceManagement_Page_ManageResouceCalendars extends CRM_Core_Page_B
     public function run() {
         CRM_Utils_System::setTitle(E::ts('Manage Resource Calendars'));
 
-        $query = 'SELECT * FROM `civicrm_contact_type`
-                WHERE `description` LIKE "%resource%";';
+        $resourceTypes = CRM_ResourceManagement_BAO_ResourceConfiguration::getConfig('resource_types');
+        $query = "SELECT * FROM `civicrm_contact_type`
+                WHERE id in ({$resourceTypes});";
         $dao = CRM_Core_DAO::executeQuery($query);
 
         $resourcetypes = [];

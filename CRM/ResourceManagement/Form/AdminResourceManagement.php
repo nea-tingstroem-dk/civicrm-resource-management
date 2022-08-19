@@ -10,15 +10,81 @@ use CRM_ResourceManagement_ExtensionUtil as E;
 class CRM_ResourceManagement_Form_AdminResourceManagement extends CRM_Core_Form {
 
     public function buildQuickForm() {
+        CRM_Utils_System::setTitle(E::ts('Resource Management Settings'));
+
+        $contactTypeOptions = [];
+        $query = 'SELECT * FROM `civicrm_contact_type`
+                WHERE `parent_id` is not null';
+        $dao = CRM_Core_DAO::executeQuery($query);
+
+        while ($dao->fetch()) {
+            $contactTypeOptions[$dao->id] = $dao->label;
+        }
 
         // add form elements
-        $this->add(
-                'select', // field type
-                'favorite_color', // field name
-                'Favorite Color', // field label
-                $this->getColorOptions(), // list of options
-                TRUE // is required
-        );
+        $this->add('select',
+                'resource_types', ts("Select Resource Contact Types"),
+                $contactTypeOptions,
+                TRUE,
+                [
+                    'class' => 'crm-select2',
+                    'multiple' => TRUE,
+                    'placeholder' => ts('- select type(s) -')
+        ]);
+        $roleOptions = [];
+        $sql = "SELECT `id`,`option_group_id`,`label`,`value`,`name`
+                FROM `civicrm_option_value`
+                WHERE option_group_id = 
+                (SELECT id FROM `civicrm_option_group` 
+                WHERE name = 'participant_role');";
+        $dao = CRM_Core_DAO::executeQuery($sql);
+        while ($dao->fetch()) {
+            $roleOptions[$dao->value] = $dao->label;
+        }
+        $this->add('select',
+                'resource_role_id', ts("Select Resource Role"),
+                $roleOptions,
+                TRUE,
+                [
+                    'class' => 'crm-select2',
+                    'multiple' => FALSE,
+                    'placeholder' => ts('- select role -')
+        ]);
+        $this->add('select',
+                'host_role_id', ts("Select Host Role"),
+                $roleOptions,
+                TRUE,
+                [
+                    'class' => 'crm-select2',
+                    'multiple' => FALSE,
+                    'placeholder' => ts('- select role -')
+        ]);
+        $statusOptions = [];
+        $sql = "SELECT `id`,`label`,`name`
+                FROM `civicrm_participant_status_type`;";
+        $dao = CRM_Core_DAO::executeQuery($sql);
+        while ($dao->fetch()) {
+            $statusOptions[$dao->id] = $dao->label;
+        }
+        $this->add('select',
+                'resource_status_ids', ts("Select Resource Statuses"),
+                $statusOptions,
+                TRUE,
+                [
+                    'class' => 'crm-select2',
+                    'multiple' => true,
+                    'placeholder' => ts('- select status -')
+        ]);
+        $this->add('select',
+                'host_status_id', ts("Select Host Statuse"),
+                $statusOptions,
+                TRUE,
+                [
+                    'class' => 'crm-select2',
+                    'multiple' => FALSE,
+                    'placeholder' => ts('- select status -')
+        ]);
+
         $this->addButtons(array(
             array(
                 'type' => 'submit',
@@ -34,39 +100,37 @@ class CRM_ResourceManagement_Form_AdminResourceManagement extends CRM_Core_Form 
 
     public function postProcess() {
         $values = $this->exportValues();
-        $options = $this->getColorOptions();
-        CRM_Core_Session::setStatus(E::ts('You picked color "%1"', array(
-                    1 => $options[$values['favorite_color']],
-        )));
-        $sql = 'SELECT n.title, t.name, d.field_booking_dato_value, d.field_booking_dato_value2, a.field_ansvarlig_value, c.id
-            FROM `node` n
-            LEFT JOIN `field_data_field_lokale` l on l.entity_id=n.nid
-            LEFT JOIN `taxonomy_term_data` t on t.tid=l.field_lokale_tid
-            LEFT JOIN `field_data_field_booking_dato` d on d.entity_id = n.nid
-            LEFT JOIN `field_data_field_ansvarlig` a on a.entity_id = n.nid
-            LEFT JOIN `civicrm_contact` c on c.display_name LIKE a.field_ansvarlig_value
-            WHERE l.entity_id IS NOT NULL
-            LIMIT 10';
-        $dao = CRM_Core_DAO::executeQuery($sql);
-        $titles = "";
-        while ($dao->fetch()) {
-            $titles .= "{$dao->title} / {$dao->name}\r\n";
+        $elements = $this->getRenderableElementNames();
+        $settings = [];
+        $oldSettings = CRM_ResourceManagement_BAO_ResourceConfiguration::getAllConfigs();
+        foreach ($elements as $key) {
+            if (is_array($values[$key])) {
+                $values[$key] = implode(',', $values[$key]);
+            }
+            if (!isset($oldSettings[$key]) ||
+                    $values[$key] !== $oldSettings[$key]) {
+                $settings[$key] = $values[$key];
+            }
         }
-        parent::postProcess();
-    }
+        if (!empty($settings)) {
+            CRM_ResourceManagement_BAO_ResourceConfiguration::setConfigs($settings);
+        }
 
-    public function getColorOptions() {
-        $options = array(
-            '' => E::ts('- select -'),
-            '#f00' => E::ts('Red'),
-            '#0f0' => E::ts('Green'),
-            '#00f' => E::ts('Blue'),
-            '#f0f' => E::ts('Purple'),
-        );
-        foreach (array('1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e') as $f) {
-            $options["#{$f}{$f}{$f}"] = E::ts('Grey (%1)', array(1 => $f));
-        }
-        return $options;
+//        $sql = 'SELECT n.title, t.name, d.field_booking_dato_value, d.field_booking_dato_value2, a.field_ansvarlig_value, c.id
+//            FROM `node` n
+//            LEFT JOIN `field_data_field_lokale` l on l.entity_id=n.nid
+//            LEFT JOIN `taxonomy_term_data` t on t.tid=l.field_lokale_tid
+//            LEFT JOIN `field_data_field_booking_dato` d on d.entity_id = n.nid
+//            LEFT JOIN `field_data_field_ansvarlig` a on a.entity_id = n.nid
+//            LEFT JOIN `civicrm_contact` c on c.display_name LIKE a.field_ansvarlig_value
+//            WHERE l.entity_id IS NOT NULL
+//            LIMIT 10';
+//        $dao = CRM_Core_DAO::executeQuery($sql);
+//        $titles = "";
+//        while ($dao->fetch()) {
+//            $titles .= "{$dao->title} / {$dao->name}\r\n";
+//        }
+        parent::postProcess();
     }
 
     /**
@@ -88,6 +152,11 @@ class CRM_ResourceManagement_Form_AdminResourceManagement extends CRM_Core_Form 
             }
         }
         return $elementNames;
+    }
+
+    public function setDefaultValues() {
+        $settings = CRM_ResourceManagement_BAO_ResourceConfiguration::getAllConfigs();
+        return $settings;
     }
 
 }
