@@ -29,8 +29,9 @@ class CRM_ResourceManagement_Page_AJAX {
         }
         $start = CRM_Utils_Request::retrieve('start', 'String');
         $end = CRM_Utils_Request::retrieve('end', 'String');
-        $whereCondition .= " AND e.start_date >= '{$start}'";
-        $whereCondition .= " AND e.start_date <= '{$end}'";
+        $whereCondition .= " AND ((e.start_date BETWEEN '{$start}' AND '{$end}')";
+        $whereCondition .= " OR  (e.end_date BETWEEN '{$start}' AND '{$end}')";
+        $whereCondition .= " OR  (e.start_date <= '{$start}' AND e.end_date >= '{$end}'))";
 
         //Show/Hide Public Events
         if (!empty($settings['event_is_public'])) {
@@ -77,7 +78,7 @@ class CRM_ResourceManagement_Page_AJAX {
                         isset($resources[$pDao->contact_id]) &&
                         !isset($eventData['backgroundColor'])) {
                     $eventData['backgroundColor'] = "#{$resources[$pDao->contact_id]}";
-                    $eventData['textColor'] = CRM_EventCalendar_Page_ShowEvents::_getContrastTextColor($eventData['backgroundColor']);
+                    $eventData['textColor'] = self::_getContrastTextColor($eventData['backgroundColor']);
                 }
                 if ($pDao->role_id == $resourceRoleId) {
                     if (!empty($resource_names)) {
@@ -112,12 +113,15 @@ class CRM_ResourceManagement_Page_AJAX {
 
         if ($calendarId) {
             $settings['calendar_id'] = $calendarId;
-            $sql = "SELECT * FROM civicrm_resource_calendar WHERE `id` = {$calendarId};";
+            $sql = "SELECT c.*, t.label FROM civicrm_resource_calendar c
+                LEFT JOIN `civicrm_contact_type` t on t.name = c.calendar_type
+                WHERE c.`id` = {$calendarId};";
             $dao = CRM_Core_DAO::executeQuery($sql);
             while ($dao->fetch()) {
                 $s = (array) $dao;
                 $settings['calendar_title'] = $dao->calendar_title;
                 $settings['calendar_type'] = $dao->calendar_type;
+                $settings['calendar_type_label'] = $dao->label;
                 $settings['event_past'] = $dao->show_past_events;
                 $settings['event_end_date'] = $dao->show_end_date;
                 $settings['event_is_public'] = $dao->show_public_events;
@@ -163,4 +167,46 @@ class CRM_ResourceManagement_Page_AJAX {
         return $settings;
     }
 
+  /*
+   * Return contrast color on the basis the hex color passed
+   *
+   * Referred from https://stackoverflow.com/questions/1331591
+   */
+  function _getContrastTextColor($hexColor){
+    // hexColor RGB
+    $R1 = hexdec(substr($hexColor, 1, 2));
+    $G1 = hexdec(substr($hexColor, 3, 2));
+    $B1 = hexdec(substr($hexColor, 5, 2));
+
+    // Black RGB
+    $blackColor = "#000000";
+    $R2BlackColor = hexdec(substr($blackColor, 1, 2));
+    $G2BlackColor = hexdec(substr($blackColor, 3, 2));
+    $B2BlackColor = hexdec(substr($blackColor, 5, 2));
+
+    // Calc contrast ratio
+    $L1 = 0.2126 * pow($R1 / 255, 2.2) +
+          0.7152 * pow($G1 / 255, 2.2) +
+          0.0722 * pow($B1 / 255, 2.2);
+
+    $L2 = 0.2126 * pow($R2BlackColor / 255, 2.2) +
+          0.7152 * pow($G2BlackColor / 255, 2.2) +
+          0.0722 * pow($B2BlackColor / 255, 2.2);
+
+    $contrastRatio = 0;
+    if ($L1 > $L2) {
+      $contrastRatio = (int)(($L1 + 0.05) / ($L2 + 0.05));
+    } else {
+      $contrastRatio = (int)(($L2 + 0.05) / ($L1 + 0.05));
+    }
+
+    // If contrast is more than 5, return black color
+    if ($contrastRatio > 5) {
+      return '#000000';
+    } else {
+      // if not, return white color.
+      return '#FFFFFF';
+    }
+  }
+    
 }

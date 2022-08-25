@@ -1,8 +1,9 @@
 <?xml version="1.0"?>
 <extension key="resource-management" type="module">
   <file>resource_management</file>
-  <name>FIXME</name>
-  <description>FIXME</description>
+  <name>Resource Management</name>
+  <description>Add resources like rooms or other resources to events and 
+  show them in calendars.</description>
   <license>AGPL-3.0</license>
   <maintainer>
     <author>Niels Erik Andersen</author>

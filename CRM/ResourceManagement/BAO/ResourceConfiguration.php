@@ -55,19 +55,11 @@ class CRM_ResourceManagement_BAO_ResourceConfiguration extends CRM_ResourceManag
                     $config->save();
                 }
             } else {
-                $params = [
-                    'config_key' => $key,
-                    'config_value' => $value,
-                ];
-                $config->create($params);
+                $config->config_value = $value;
+                $config->create();
                 $config->save();
             }
         }
-        $result = [];
-        while ($config->fetch()) {
-            $result[$config->config_key] = $config->config_value;
-        }
-        return $result;
     }
 
 }

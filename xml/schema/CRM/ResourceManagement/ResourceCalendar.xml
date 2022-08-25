@@ -33,12 +33,6 @@
     <add>1.0</add>
   </field>
   <field>
-    <name>show_past_events</name>
-    <type>boolean</type>
-    <comment>Show Past Resources</comment>
-    <add>1.0</add>
-  </field>
-  <field>
     <name>show_end_date</name>
     <type>boolean</type>
     <comment>Show End Date</comment>
@@ -48,31 +42,6 @@
     <name>show_public_events</name>
     <type>boolean</type>
     <comment>Show Only Public or All</comment>
-    <add>1.0</add>
-  </field>
-  <field>
-    <name>events_by_month</name>
-    <type>boolean</type>
-    <comment>Use the Month param in the calendar</comment>
-    <add>1.0</add>
-  </field>
-
-  <field>
-    <name>event_timings</name>
-    <type>boolean</type>
-    <comment>Show the event timing</comment>
-    <add>1.0</add>
-  </field>
-  <field>
-    <name>events_from_month</name>
-    <type>int unsigned</type>
-    <comment>How many months to show events</comment>
-    <add>1.0</add>
-  </field>
-  <field>
-    <name>event_type_filters</name>
-    <type>boolean</type>
-    <comment>Whether to show event type filters</comment>
     <add>1.0</add>
   </field>
   <field>
@@ -88,23 +57,9 @@
     <add>1.0</add>
   </field>
   <field>
-    <name>recurring_event</name>
-    <type>boolean</type>
-    <comment>Show recurring events</comment>
-    <add>1.0</add>
-  </field>
-  <field>
-    <name>enrollment_status</name>
-    <type>boolean</type>
-    <comment>Show enrollment status</comment>
-    <add>1.0</add>
-  </field>
-  <field>
     <name>event_template</name>
     <type>int unsigned</type>
     <comment>Null or Resource template id's</comment>
     <add>1.0</add>
   </field>
-
-
 </table>

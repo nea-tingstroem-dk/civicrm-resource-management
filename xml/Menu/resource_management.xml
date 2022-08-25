@@ -2,7 +2,7 @@
 <menu>
   <item>
     <path>civicrm/admin/resource-calendars</path>
-    <page_callback>CRM_ResourceManagement_Page_ManageResouceCalendars</page_callback>
+    <page_callback>CRM_ResourceManagement_Page_ManageResourceCalendars</page_callback>
     <title>ManageResouceCalendars</title>
     <access_arguments>administer CiviCRM</access_arguments>
   </item>

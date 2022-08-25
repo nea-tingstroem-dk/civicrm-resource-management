@@ -1,7 +1,7 @@
 <?php
 use CRM_ResourceManagement_ExtensionUtil as E;
 
-class CRM_ResourceManagement_Page_ManageResouceCalendars extends CRM_Core_Page_Basic {
+class CRM_ResourceManagement_Page_ManageResourceCalendars extends CRM_Core_Page_Basic {
 
     static $_links = NULL;
 
@@ -39,6 +39,10 @@ class CRM_ResourceManagement_Page_ManageResouceCalendars extends CRM_Core_Page_B
         CRM_Utils_System::setTitle(E::ts('Manage Resource Calendars'));
 
         $resourceTypes = CRM_ResourceManagement_BAO_ResourceConfiguration::getConfig('resource_types');
+        if (!$resourceTypes) {
+            CRM_Core_Session::setStatus(E::ts('You need to configure Resource Management before use'));
+            CRM_Utils_System::redirect(CRM_Utils_System::url('civicrm/admin/resource-mamagement', 'reset=1'));
+        }
         $query = "SELECT * FROM `civicrm_contact_type`
                 WHERE id in ({$resourceTypes});";
         $dao = CRM_Core_DAO::executeQuery($query);
@@ -51,6 +55,7 @@ class CRM_ResourceManagement_Page_ManageResouceCalendars extends CRM_Core_Page_B
             $resourcetypes[] = $resourcetype;
         }
         $this->assign('resources', $resourcetypes);
+        $this->assign('rows', $this->getRows());
         return parent::run();
     }
 
@@ -66,4 +71,19 @@ class CRM_ResourceManagement_Page_ManageResouceCalendars extends CRM_Core_Page_B
         return 'civicrm/admin/resource-calendars';
     }
 
+    private function getRows() {
+        $rows = [];
+        $sql = "SELECT c.id, c.calendar_title, t.label 
+                FROM `civicrm_resource_calendar` c
+                LEFT JOIN `civicrm_contact_type` t on t.name = c.calendar_type;";
+        $dao = $dao = CRM_Core_DAO::executeQuery($sql);
+        while ($dao->fetch()) {
+            $rows[] = [
+                'id' => $dao->id,
+                'calendar_title' => $dao->calendar_title,
+                'calendar_type' => $dao->label
+            ];
+        }
+        return $rows;
+    }
 }

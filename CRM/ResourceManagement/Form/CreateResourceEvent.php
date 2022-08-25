@@ -139,19 +139,25 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
                 [
                     'time' => TRUE,
         ]);
-        // add form elements
-        $this->addButtons(array(
-            array(
+        $buttons = [
+            [
                 'type' => 'submit',
+                'subName' => 'submit',
                 'name' => E::ts('Submit'),
                 'isDefault' => TRUE,
-            ),
-//            array(
-//                'type' => 'cancel',
-//                'name' => E::ts('Cancel'),
-//                'isDefault' => FALSE,
-//            ),
-        ));
+            ]
+        ];
+        if ($this->_superUser && $this->_event_id) {
+            $buttons[] = [
+                'type' => 'submit',
+                'subName' => 'delete',
+                'name' => E::ts('Delete'),
+                'icon' => 'fa-trash',
+            ];
+        }
+
+
+        $this->addButtons($buttons);
 
         // export form elements
         $this->assign('elementNames', $this->getRenderableElementNames());
@@ -159,110 +165,120 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
     }
 
     public function postProcess() {
-        $values = $this->exportValues();
-        $resourceRole = (int) C::getConfig('resource_role_id');
-        $hostRole = (int) C::getConfig('host_role_id');
-        $statuses = explode(',', C::getConfig('resource_status_ids'));
-        $today = date('Y-m-d H:i:s');
-        if (!$this->_event_id) {
-            if (!is_array($values['resources'])) {
-                $values['resources'] = [$values['resources']];
-            }
-            if (!isset($values['responsible_contact'])) {
-                $values['responsible_contact'] = $this->_userId;
-            }
-            $params = [];
-            $params['start_date'] = $values['event_start_date'] ?? NULL;
-            $params['end_date'] = $values['event_end_date'] ?? NULL;
-            $params['has_waitlist'] = FALSE;
-            $params['is_map'] = FALSE;
-            if (isset($values['event_title'])) {
-                $params['title'] = $values['event_title'];
-            }
-            $params = array_merge(CRM_Event_BAO_Event::getTemplateDefaultValues($values['event_template']), $params);
-            $event = CRM_Event_BAO_Event::copy($values['event_template'], $params);
-            $event->is_template = 0;
-            $event->update();
+        $buttonName = $this->controller->getButtonName();
+        if (substr_compare($buttonName, 'submit', -6) === 0) {
+            $values = $this->exportValues();
+            $resourceRole = (int) C::getConfig('resource_role_id');
+            $hostRole = (int) C::getConfig('host_role_id');
+            $statuses = explode(',', C::getConfig('resource_status_ids'));
+            $today = date('Y-m-d H:i:s');
+            if (!$this->_event_id) {
+                if (!is_array($values['resources'])) {
+                    $values['resources'] = [$values['resources']];
+                }
+                if (!isset($values['responsible_contact'])) {
+                    $values['responsible_contact'] = $this->_userId;
+                }
+                $params = [];
+                $params['start_date'] = $values['event_start_date'] ?? NULL;
+                $params['end_date'] = $values['event_end_date'] ?? NULL;
+                $params['has_waitlist'] = FALSE;
+                $params['is_map'] = FALSE;
+                if (isset($values['event_title'])) {
+                    $params['title'] = $values['event_title'];
+                }
+                $params = array_merge(CRM_Event_BAO_Event::getTemplateDefaultValues($values['event_template']), $params);
+                $event = CRM_Event_BAO_Event::copy($values['event_template'], $params);
+                $event->is_template = 0;
+                $event->update();
 
-            foreach ($values['resources'] as $res_id) {
+                foreach ($values['resources'] as $res_id) {
+                    $params = [
+                        'register_date' => $today,
+                        'role_id' => $resourceRole,
+                        'contact_id' => $res_id,
+                        'event_id' => $event->id,
+                        'status_id' => $statuses[0],
+                    ];
+                    $participant = CRM_Event_BAO_Participant::create($params);
+                    $participant->save();
+                }
                 $params = [
                     'register_date' => $today,
-                    'role_id' => $resourceRole,
-                    'contact_id' => $res_id,
+                    'role_id' => $hostRole,
+                    'contact_id' => $values['responsible_contact'],
                     'event_id' => $event->id,
-                    'status_id' => $statuses[0],
+                    'status_id' => C::getConfig('host_status_id'),
                 ];
                 $participant = CRM_Event_BAO_Participant::create($params);
                 $participant->save();
-            }
-            $params = [
-                'register_date' => $today,
-                'role_id' => $hostRole,
-                'contact_id' => $values['responsible_contact'],
-                'event_id' => $event->id,
-                'status_id' => C::getConfig('host_status_id'),
-            ];
-            $participant = CRM_Event_BAO_Participant::create($params);
-            $participant->save();
-        } else if ($this->_action === 0) { // Update
-            $change = false;
-            $event = CRM_Event_BAO_Event::findById($this->_event_id);
-            if ($event->start_date !== $values['event_start_date']) {
-                $event->start_date = $values['event_start_date'];
-                $change = true;
-            }
-            if ($event->end_date !== $values['event_end_date']) {
-                $event->end_date = $values['event_end_date'];
-                $change = true;
-            }
-            if ($event->title !== $values['event_title']) {
-                $event->title = $values['event_title'];
-                $change = true;
-            }
-            if ($change) {
-                $event->save();
-            }
-            $resources = [];
-            $toDelete = [];
-            foreach ($values['resources'] as $res) {
-                $resources[(int) $res] = $res;
-            }
-            $participant = new CRM_Event_BAO_Participant();
-            $participant->event_id = $this->_event_id;
-            $participant->role_id = $resourceRole;
-            $participant->find();
-            while ($participant->fetch()) {
-                if (($key = array_search($participant->contact_id, $resources))) {
-                    unset($resources[$key]);
-                } else {
-                    $toDelete[] = $participant->id;
+            } else if ($this->_action === 0) { // Update
+                $change = false;
+                $event = CRM_Event_BAO_Event::findById($this->_event_id);
+                if ($event->start_date !== $values['event_start_date']) {
+                    $event->start_date = $values['event_start_date'];
+                    $change = true;
+                }
+                if ($event->end_date !== $values['event_end_date']) {
+                    $event->end_date = $values['event_end_date'];
+                    $change = true;
+                }
+                if ($event->title !== $values['event_title']) {
+                    $event->title = $values['event_title'];
+                    $change = true;
+                }
+                if ($change) {
+                    $event->save();
+                }
+                $resources = [];
+                $toDelete = [];
+                foreach ($values['resources'] as $res) {
+                    $resources[(int) $res] = $res;
+                }
+                $participant = new CRM_Event_BAO_Participant();
+                $participant->event_id = $this->_event_id;
+                $participant->role_id = $resourceRole;
+                $participant->find();
+                while ($participant->fetch()) {
+                    if (($key = array_search($participant->contact_id, $resources))) {
+                        unset($resources[$key]);
+                    } else {
+                        $toDelete[] = $participant->id;
+                    }
+                }
+                foreach ($resources as $res) {
+                    $params = [
+                        'register_date' => $today,
+                        'role_id' => $resourceRole,
+                        'contact_id' => $res,
+                        'event_id' => $event->id,
+                        'status_id' => $statuses[0],
+                    ];
+                    $participant = CRM_Event_BAO_Participant::create($params);
+                    $participant->save();
+                }
+                $host = new CRM_Event_BAO_Participant();
+                $host->event_id = $event->id;
+                $host->role_id = $hostRole;
+                $host->find();
+                while ($host->fetch()) {
+                    if ($host->contact_id != (int) $values['responsible_contact']) {
+                        $host->contact_id = (int) $values['responsible_contact'];
+                        $host->register_date = $today;
+                        $host->save();
+                    }
+                }
+                foreach ($toDelete as $id) {
+                    $d = CRM_Event_BAO_Participant::findById($id);
+                    $d->delete();
                 }
             }
-            foreach ($resources as $res) {
-                $params = [
-                    'register_date' => $today,
-                    'role_id' => $resourceRole,
-                    'contact_id' => $res,
-                    'event_id' => $event->id,
-                    'status_id' => $statuses[0],
-                ];
-                $participant = CRM_Event_BAO_Participant::create($params);
-                $participant->save();
-            }
-            $host = new CRM_Event_BAO_Participant();
-            $host->event_id = $event->id;
-            $host->role_id = $hostRole;
-            $host->find();
-            while ($host->fetch()) {
-                if ($host->contact_id != (int) $values['responsible_contact']) {
-                    $host->contact_id = (int) $values['responsible_contact'];
-                    $host->register_date = $today;
-                    $host->save();
-                }
-            }
-            foreach ($toDelete as $id) {
-                $d = CRM_Event_BAO_Participant::findById($id);
-                $d->delete();
+        } elseif (substr_compare($buttonName, 'delete', -6) === 0) {
+            if ($this->_event_id) {
+                $sql = "DELETE FROM `civicrm_participant` WHERE `event_id` = " . $this->_event_id;
+                CRM_CORE_DAO::executeQuery($sql);
+                $sql = "DELETE FROM `civicrm_event` WHERE `id` = " . $this->_event_id;
+                CRM_CORE_DAO::executeQuery($sql);
             }
         }
         parent::postProcess();
@@ -285,7 +301,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
             if ($this->_event_id) {
                 $sql .= " AND e.id != " . $this->_event_id;
             }
-            $sql . +" ORDER BY e.`start_date` ASC
+            $sql .= " ORDER BY e.`start_date` ASC
                     LIMIT 1;";
 
             $max_time = CRM_CORE_DAO::singleValueQuery($sql);

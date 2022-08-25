@@ -29,11 +29,11 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
     public function buildQuickForm() {
         CRM_Utils_System::setTitle(E::ts('Resource Calendars Settings'));
         $this->controller->_destination = CRM_Utils_System::url('civicrm/admin/resource-calendars', 'reset=1');
-        $this->action = CRM_Utils_Request::retrieve('action', 'Int') ?? null;
+        $this->action = CRM_Utils_Request::retrieve('action', 'String') ?? '';
 
         $this->add('hidden', 'calendar_id', $this->_calendar_id);
         $this->add('hidden', 'calendar_type', $this->_calendar_type);
-        if ($this->action == 'delete') {
+        if ($this->action === CRM_Core_Action::DELETE) {
             $descriptions['delete_warning'] = ts('Are you sure you want to delete this calendar?');
             $this->add('hidden', 'action', $this->action);
             $this->assign('descriptions', $descriptions);
@@ -102,7 +102,7 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
             }
         }
 
-        if ($submitted['action'] == CRM_Core_Action::ADD) {
+        if ($this->action == CRM_Core_Action::ADD) {
             $sql = "INSERT INTO civicrm_resource_calendar
                 (calendar_title, calendar_type,  
                 show_end_date, show_public_events, 
@@ -127,7 +127,7 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
             }
         }
 
-        if ($submitted['action'] == CRM_Core_Action::UPDATE) {
+        if ($this->action == CRM_Core_Action::UPDATE) {
             $sql = "UPDATE civicrm_resource_calendar
        SET calendar_title = '{$submitted['calendar_title']}', 
             show_end_date = {$submitted['show_end_date']}, 
