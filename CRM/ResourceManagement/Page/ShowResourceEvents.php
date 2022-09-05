@@ -29,7 +29,7 @@ class CRM_ResourceManagement_Page_ShowResourceEvents extends CRM_Core_Page {
         CRM_Utils_System::setTitle(ts($settings['calendar_title']));
 
         $resources = [];
-        foreach ($settings['resource_titles'] as $id => $title) {
+        foreach ($settings['resources'] as $id => $title) {
             $resources[] = [
                 'id' => $id,
                 'title' => $title

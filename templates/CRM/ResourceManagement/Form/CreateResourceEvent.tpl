@@ -1,5 +1,9 @@
 {* HEADER *}
 
+{if $error_message}
+    <br /><span class="description">{$error_message}</span>   
+{/if}
+
 {foreach from=$elementNames item=elementName}
     <div class="crm-section">
         <div class="label">{$form.$elementName.label}</div>

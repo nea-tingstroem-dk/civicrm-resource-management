@@ -124,6 +124,7 @@
         displayEventTime: showTime ? 1 : 0,
         firstDay: weekStartDay,
         timeFormat: use24HourFormat ? 'HH:mm' : 'hh(:mm)A',
+        height: "auto",
         header: {
           left: 'prev,next today',
           center: 'title',

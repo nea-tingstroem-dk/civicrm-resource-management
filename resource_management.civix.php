@@ -455,6 +455,11 @@ function _resource_management_civix_civicrm_entityTypes(&$entityTypes) {
       'class' => 'CRM_ResourceManagement_DAO_ResourceCalendar',
       'table' => 'civicrm_resource_calendar',
     ],
+    'CRM_ResourceManagement_DAO_ResourceCalendarColor' => [
+      'name' => 'ResourceCalendarColor',
+      'class' => 'CRM_ResourceManagement_DAO_ResourceCalendarColor',
+      'table' => 'civicrm_resource_calendar_color',
+    ],
     'CRM_ResourceManagement_DAO_ResourceCalendarParticipant' => [
       'name' => 'ResourceCalendarParticipant',
       'class' => 'CRM_ResourceManagement_DAO_ResourceCalendarParticipant',

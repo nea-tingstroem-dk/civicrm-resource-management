@@ -64,7 +64,7 @@ class CRM_ResourceManagement_Page_AJAX {
             foreach ($eventCalendarParams as $k) {
                 $eventData[$k] = $dao->$k;
             }
-            $pSql = "SELECT p.`contact_id`, c.display_name, p.role_id
+            $pSql = "SELECT p.`contact_id`, c.display_name, p.role_id, p.status_id
                 FROM `civicrm_participant` p
                 LEFT JOIN `civicrm_contact`c on c.id=p.contact_id
                 WHERE p.event_id ={$dao->id}
@@ -74,13 +74,9 @@ class CRM_ResourceManagement_Page_AJAX {
             $resource_names = '';
             $resp_name = '';
             while ($pDao->fetch()) {
-                if (!empty($resources) && 
-                        isset($resources[$pDao->contact_id]) &&
-                        !isset($eventData['backgroundColor'])) {
-                    $eventData['backgroundColor'] = "#{$resources[$pDao->contact_id]}";
-                    $eventData['textColor'] = self::_getContrastTextColor($eventData['backgroundColor']);
-                }
                 if ($pDao->role_id == $resourceRoleId) {
+                    $eventData['backgroundColor'] = "#{$settings['status_colors'][$pDao->status_id]}";
+                    $eventData['textColor'] = self::_getContrastTextColor($eventData['backgroundColor']);
                     if (!empty($resource_names)) {
                         $resource_names .= ", "; 
                     }
@@ -110,6 +106,9 @@ class CRM_ResourceManagement_Page_AJAX {
 
     public static function getResourceCalendarSettings($calendarId) {
         $settings = array();
+        $statuses = array();
+        $resources = array();
+        $status_labels = [];
 
         if ($calendarId) {
             $settings['calendar_id'] = $calendarId;
@@ -135,8 +134,6 @@ class CRM_ResourceManagement_Page_AJAX {
                 $settings['enrollment_status'] = $dao->enrollment_status;
                 $settings['event_template'] = $dao->event_template;
             }
-            $eventTypes = array();
-            $resources = array();
             $sql = "SELECT p.*,c.display_name 
                     FROM civicrm_resource_calendar_participant p
                     LEFT JOIN civicrm_contact c on c.id=p.contact_id
@@ -145,6 +142,24 @@ class CRM_ResourceManagement_Page_AJAX {
             while ($dao->fetch()) {
                 $resources[] = $dao->toArray();
             }
+            $sql = "SELECT p.*,c.display_name 
+                    FROM civicrm_resource_calendar_participant p
+                    LEFT JOIN civicrm_contact c on c.id=p.contact_id
+                    WHERE `resource_calendar_id` = {$calendarId};";
+            $dao = CRM_Core_DAO::executeQuery($sql);
+            while ($dao->fetch()) {
+                $resources[] = $dao->toArray();
+            }
+            $sql = "SELECT c.status_id, c.event_color, t.label
+                    FROM `civicrm_resource_calendar_color` c
+                    LEFT JOIN `civicrm_participant_status_type` t on t.id = c.status_id
+                    WHERE calendar_id = {$calendarId}";
+            $dao = CRM_Core_DAO::executeQuery($sql);
+            while ($dao->fetch()) {
+                $statuses[$dao->status_id] = $dao->event_color;
+                $status_labels[$dao->status_id] = $dao->label;
+            }
+             
         } elseif ($calendarId == 0) {
             $settings['calendar_title'] = 'Event Calendar';
             $settings['event_is_public'] = 1;
@@ -152,17 +167,13 @@ class CRM_ResourceManagement_Page_AJAX {
             $settings['enrollment_status'] = 1;
         }
 
-        if (!empty($eventTypes)) {
-            foreach ($eventTypes as $eventType) {
-                $settings['event_types'][$eventType['event_type']] = $eventType['event_color'];
-            }
-        }
         if (!empty($resources)) {
             foreach ($resources as $resource) {
-                $settings['resources'][$resource['contact_id']] = $resource['event_color'];
-                $settings['resource_titles'][$resource['contact_id']] = $resource['display_name'];
+                $settings['resources'][$resource['contact_id']] = $resource['display_name'];
             }
         }
+        $settings['status_colors'] = $statuses;
+        $settings['status_labels'] = $status_labels;
 
         return $settings;
     }

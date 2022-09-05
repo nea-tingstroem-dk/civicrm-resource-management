@@ -1,6 +1,7 @@
 <?php
 
 use CRM_ResourceManagement_ExtensionUtil as E;
+use CRM_ResourceManagement_BAO_ResourceConfiguration as C;
 
 /**
  * Form controller class
@@ -67,13 +68,30 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
             $dao = CRM_Core_DAO::executeQuery($query);
             $resource_list = [];
             while ($dao->fetch()) {
+                $resource_list[$dao->id] = $dao->display_name;
                 $id = $dao->id;
-                $type = $dao->display_name;
-                $this->addElement('checkbox', "resourceid_{$id}", $type, NULL,
-                        array('onclick' => "showhidecolorbox('{$id}')", 'id' => "event_{$id}"));
-                $this->addElement('text', "eventcolor_{$id}", "Color",
+            }
+            $this->add('select', 'resources', ts("Select Resource(s)"), $resource_list,
+                    TRUE, ['class' => 'crm-select2', 'multiple' => TRUE, 'placeholder' => ts('- select resource(s) -')]);
+
+            $statuses = C::getConfig('resource_status_ids');
+
+            $sql = "SELECT `id`,`name`,`label`
+                    FROM `civicrm_participant_status_type`
+                    WHERE `id` IN ({$statuses});";
+
+//            $query = "SELECT `id`, `display_name`  FROM `civicrm_contact` 
+//                            WHERE `contact_sub_type` LIKE '%" . $this->_calendar_type . "%' 
+//                            ORDER BY `display_name`  ASC;";
+            $dao = CRM_Core_DAO::executeQuery($sql);
+            while ($dao->fetch()) {
+                $id = $dao->id;
+                $type = $dao->label;
+                $this->addElement('checkbox', "statusid_{$id}", $type, NULL,
+                        array('onclick' => "showhidecolorbox('{$id}')", 'id' => "statusid_{$id}"));
+                $this->addElement('text', "eventcolorid_{$id}", "Color",
                         array(
-                            'onchange' => "updatecolor('eventcolor_{$id}', this.value);",
+                            'onchange' => "updatecolor('eventcolorid_{$id}', this.value);",
                             'class' => 'color',
                             'id' => "eventcolorid_{$id}",
                 ));
@@ -116,15 +134,7 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
                 {$submitted['time_format_24_hour']},
                 {$submitted['event_template']})";
             $dao = CRM_Core_DAO::executeQuery($sql);
-            $cfId = CRM_Core_DAO::singleValueQuery('SELECT LAST_INSERT_ID()');
-            foreach ($submitted as $key => $value) {
-                if ("resourceid" == substr($key, 0, 10)) {
-                    $id = explode("_", $key)[1];
-                    $sql = "INSERT INTO civicrm_resource_calendar_participant(resource_calendar_id, contact_id, event_color)
-                                VALUES ({$cfId}, {$id}, '{$submitted['eventcolor_' . $id]}');";
-                    $dao = CRM_Core_DAO::executeQuery($sql);
-                }
-            }
+            $this->_calendar_id = CRM_Core_DAO::singleValueQuery('SELECT LAST_INSERT_ID()');
         }
 
         if ($this->action == CRM_Core_Action::UPDATE) {
@@ -138,16 +148,25 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
        WHERE `id` = {$this->_calendar_id};";
             $dao = CRM_Core_DAO::executeQuery($sql);
             //delete current event type records to update with new ones
-            $sql = "DELETE FROM civicrm_resource_calendar_participant WHERE `resource_calendar_id` = {$submitted['calendar_id']};";
-            $dao = CRM_Core_DAO::executeQuery($sql);
-            //insert new event type records
-            foreach ($submitted as $key => $value) {
-                if ("resourceid" == substr($key, 0, 10)) {
-                    $id = explode("_", $key)[1];
-                    $sql = "INSERT INTO civicrm_resource_calendar_participant(resource_calendar_id, contact_id, event_color)
-                                VALUES ({$this->_calendar_id}, {$id}, '{$submitted['eventcolor_' . $id]}');";
+        }
+        $sql = "DELETE FROM civicrm_resource_calendar_participant WHERE `resource_calendar_id` = {$submitted['calendar_id']};";
+        $dao = CRM_Core_DAO::executeQuery($sql);
+        $sql = "DELETE FROM civicrm_resource_calendar_color 
+            WHERE `calendar_id` = {$this->_calendar_id};";
+        $dao = CRM_Core_DAO::executeQuery($sql);
+        //insert new event type records
+        foreach ($submitted as $key => $value) {
+            if ("resources" == $key) {
+                foreach ($value as $id) {
+                    $sql = "INSERT INTO civicrm_resource_calendar_participant(resource_calendar_id, contact_id)
+                             VALUES ({$this->_calendar_id}, {$id});";
                     $dao = CRM_Core_DAO::executeQuery($sql);
                 }
+            } else if ("statusid" == substr($key, 0, 8)) {
+                $id = explode("_", $key)[1];
+                $sql = "INSERT INTO civicrm_resource_calendar_color(calendar_id, status_id, event_color)
+                            VALUES ({$this->_calendar_id}, {$id}, '{$submitted['eventcolorid_' . $id]}');";
+                $dao = CRM_Core_DAO::executeQuery($sql);
             }
         }
 
@@ -196,13 +215,15 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
             }
             $sql = "SELECT * FROM civicrm_resource_calendar_participant WHERE resource_calendar_id = {$this->_calendar_id};";
             $dao = CRM_Core_DAO::executeQuery($sql);
-            $existing = array();
+            $defaults['resources'] = [];
             while ($dao->fetch()) {
-                $existing[] = $dao->toArray();
+                $defaults['resources'][] = $dao->contact_id;
             }
-            foreach ($existing as $name => $value) {
-                $defaults['resourceid_' . $value['contact_id']] = 1;
-                $defaults['eventcolor_' . $value['contact_id']] = $value['event_color'];
+            $sql = "SELECT * FROM civicrm_resource_calendar_color WHERE calendar_id = {$this->_calendar_id};";
+            $dao = CRM_Core_DAO::executeQuery($sql);
+            while ($dao->fetch()) {
+                $defaults['statusid_' . $dao->status_id] = 1;
+                $defaults['eventcolorid_' . $dao->status_id] = $dao->event_color;
             }
             return $defaults;
         }

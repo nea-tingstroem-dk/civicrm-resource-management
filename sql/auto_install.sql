@@ -19,6 +19,7 @@ SET FOREIGN_KEY_CHECKS=0;
 
 DROP TABLE IF EXISTS `civicrm_resource_configuration`;
 DROP TABLE IF EXISTS `civicrm_resource_calendar_participant`;
+DROP TABLE IF EXISTS `civicrm_resource_calendar_color`;
 DROP TABLE IF EXISTS `civicrm_resource_calendar`;
 
 SET FOREIGN_KEY_CHECKS=1;
@@ -39,19 +40,29 @@ CREATE TABLE `civicrm_resource_calendar` (
   `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'Unique ResourceCalendar ID',
   `calendar_title` varchar(255) COMMENT 'Calendar Title',
   `calendar_type` varchar(64) COMMENT 'Null or resource name',
-  `show_past_events` tinyint COMMENT 'Show Past Resources',
   `show_end_date` tinyint COMMENT 'Show End Date',
   `show_public_events` tinyint COMMENT 'Show Only Public or All',
-  `events_by_month` tinyint COMMENT 'Use the Month param in the calendar',
-  `event_timings` tinyint COMMENT 'Show the event timing',
-  `events_from_month` int unsigned COMMENT 'How many months to show events',
-  `event_type_filters` tinyint COMMENT 'Whether to show event type filters',
   `week_begins_from_day` tinyint COMMENT 'Show week begins on',
   `time_format_24_hour` tinyint COMMENT 'Use 24 hour format',
-  `recurring_event` tinyint COMMENT 'Show recurring events',
-  `enrollment_status` tinyint COMMENT 'Show enrollment status',
   `event_template` int unsigned COMMENT 'Null or Resource template id\'s',
   PRIMARY KEY (`id`)
+)
+ENGINE=InnoDB;
+
+-- /*******************************************************
+-- *
+-- * civicrm_resource_calendar_color
+-- *
+-- * FIXME
+-- *
+-- *******************************************************/
+CREATE TABLE `civicrm_resource_calendar_color` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'Unique ResourceCalendarColor ID',
+  `calendar_id` int unsigned COMMENT 'FK to ResourceCalendar',
+  `status_id` int unsigned COMMENT 'Resource participant status ID',
+  `event_color` varchar(255) COMMENT 'Hex code for event type display color',
+  PRIMARY KEY (`id`),
+  CONSTRAINT FK_civicrm_resource_calendar_color_calendar_id FOREIGN KEY (`calendar_id`) REFERENCES `civicrm_resource_calendar`(`id`) ON DELETE CASCADE
 )
 ENGINE=InnoDB;
 

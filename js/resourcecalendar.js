@@ -1,6 +1,6 @@
-function showhidecolorbox(event_id) {
-  var n = "eventcolorid_" + event_id;
-  var m = "event_" + event_id;
+function showhidecolorbox(status_id) {
+  var n = "eventcolorid_" + status_id;
+  var m = "statusid_" + status_id;
   if(!cj("#"+m).is( ':checked')) {
     cj("#"+n).parents('.crm-section').hide();
   }
@@ -14,10 +14,10 @@ CRM.$(function($) {
     $('input[name="'+label+'"]').val( color );
   }
 
-  $('input[id^=event_]').each(function(){
-    var event_id = $(this).prop('id').replace('event_', '');
-    var n = "eventcolorid_" + event_id;
-    var m = "event_" + event_id;
+  $('input[id^=statusid_]').each(function(){
+    var id = $(this).prop('id').replace('statusid_', '');
+    var n = "eventcolorid_" + id;
+    var m = "statusid_" + id;
     if(!$("#"+m).is( ':checked')) {
       $("#"+n).parents('.crm-section').hide();
     }
