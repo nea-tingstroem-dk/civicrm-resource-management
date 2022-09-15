@@ -21,7 +21,7 @@
   <compatibility>
     <ver>5.0</ver>
   </compatibility>
-  <comments>This is a new, undeveloped module</comments>
+  <comments>Booking and management of resources like conference rooms etc.</comments>
   <classloader>
     <psr4 prefix="Civi\" path="Civi"/>
   </classloader>

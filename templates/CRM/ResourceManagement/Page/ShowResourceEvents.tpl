@@ -75,9 +75,10 @@
               alert(ts('Wait for data load'))
               return false;
           }
-          var allDay = "1";
+          var allDay = 1;
           if (start.hasTime()) {
-            allDay = "0";
+            allDay = 0;
+            
           }
           $el = cj('#calendar');
           CRM.loadForm(CRM.url('civicrm/book-resource', {
@@ -85,7 +86,7 @@
               filter: cj('#resource_selector')[0].value,
               start: moment(start).format("YYYY-MM-DD HH:mm:ss"),
               end: moment(end).format("YYYY-MM-DD HH:mm:ss"),
-              allDay: allDay}),
+              allday: allDay}),
               {
                   cancelButton: '.cancel.crm-form-submit'
               })
@@ -124,7 +125,8 @@
         displayEventTime: showTime ? 1 : 0,
         firstDay: weekStartDay,
         timeFormat: use24HourFormat ? 'HH:mm' : 'hh(:mm)A',
-        height: "auto",
+        height: '50%',
+        stickyHeaderDates: true,
         header: {
           left: 'prev,next today',
           center: 'title',

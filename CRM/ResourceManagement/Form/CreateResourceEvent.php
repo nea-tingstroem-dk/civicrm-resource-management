@@ -54,7 +54,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
             $allDay = CRM_Utils_Request::retrieve('allday', 'Integer');
             $start = CRM_Utils_Request::retrieve('start', 'String');
             $end = CRM_Utils_Request::retrieve('end', 'String');
-            if ($allDay == "1") {
+            if ($allDay) {
                 $this->_all_day = true;
             } else {
                 $this->_all_day = false;
