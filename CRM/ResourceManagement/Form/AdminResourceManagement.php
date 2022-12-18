@@ -11,7 +11,7 @@ class CRM_ResourceManagement_Form_AdminResourceManagement extends CRM_Core_Form 
 
     public function buildQuickForm() {
         CRM_Utils_System::setTitle(E::ts('Resource Management Settings'));
-
+        $descriptions = [];
         $contactTypeOptions = [];
         $query = 'SELECT * FROM `civicrm_contact_type`
                 WHERE `parent_id` is not null';
@@ -95,6 +95,7 @@ class CRM_ResourceManagement_Form_AdminResourceManagement extends CRM_Core_Form 
 
         // export form elements
         $this->assign('elementNames', $this->getRenderableElementNames());
+        $this->assign('descriptions', $descriptions);
         parent::buildQuickForm();
     }
 

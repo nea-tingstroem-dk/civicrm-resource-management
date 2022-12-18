@@ -55,7 +55,7 @@ class CRM_ResourceManagement_Page_ManageResourceCalendars extends CRM_Core_Page_
             $resourcetypes[] = $resourcetype;
         }
         $this->assign('resources', $resourcetypes);
-        $this->assign('rows', $this->getRows());
+        $this->assign('rows', $this->getCalendarRows());
         return parent::run();
     }
 
@@ -71,7 +71,7 @@ class CRM_ResourceManagement_Page_ManageResourceCalendars extends CRM_Core_Page_
         return 'civicrm/admin/resource-calendars';
     }
 
-    private function getRows() {
+    private function getCalendarRows() {
         $rows = [];
         $sql = "SELECT c.id, c.calendar_title, t.label 
                 FROM `civicrm_resource_calendar` c

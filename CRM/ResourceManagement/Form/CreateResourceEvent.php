@@ -187,10 +187,6 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
                 'icon' => 'fa-trash',
             ];
         }
-        $buttons[] = [
-            'type' => 'cancel',
-            'name' => E::ts('Cancel'),
-        ];
 
         $this->addButtons($buttons);
 
