@@ -18,6 +18,7 @@
 SET FOREIGN_KEY_CHECKS=0;
 
 DROP TABLE IF EXISTS `civicrm_resource_configuration`;
+DROP TABLE IF EXISTS `civicrm_resource_calendar_settings`;
 DROP TABLE IF EXISTS `civicrm_resource_calendar_participant`;
 DROP TABLE IF EXISTS `civicrm_resource_calendar_color`;
 DROP TABLE IF EXISTS `civicrm_resource_calendar`;
@@ -81,6 +82,24 @@ CREATE TABLE `civicrm_resource_calendar_participant` (
   PRIMARY KEY (`id`),
   CONSTRAINT FK_civicrm_resource_calendar_participant_resource_calendar_id FOREIGN KEY (`resource_calendar_id`) REFERENCES `civicrm_resource_calendar`(`id`) ON DELETE CASCADE,
   CONSTRAINT FK_civicrm_resource_calendar_participant_contact_id FOREIGN KEY (`contact_id`) REFERENCES `civicrm_contact`(`id`) ON DELETE CASCADE
+)
+ENGINE=InnoDB;
+
+-- /*******************************************************
+-- *
+-- * civicrm_resource_calendar_settings
+-- *
+-- * FIXME
+-- *
+-- *******************************************************/
+CREATE TABLE `civicrm_resource_calendar_settings` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'Unique ResourceCalendarSettings ID',
+  `calendar_id` int unsigned COMMENT 'FK to ResourceCalendar',
+  `config_key` varchar(20) NOT NULL COMMENT 'Configuration key',
+  `config_value` varchar(256) COMMENT 'Configuration value',
+  PRIMARY KEY (`id`),
+  INDEX `index_config_key`(config_key),
+  CONSTRAINT FK_civicrm_resource_calendar_settings_calendar_id FOREIGN KEY (`calendar_id`) REFERENCES `civicrm_resource_calendar`(`id`) ON DELETE CASCADE
 )
 ENGINE=InnoDB;
 
