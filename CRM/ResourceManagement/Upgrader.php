@@ -22,6 +22,7 @@ class CRM_ResourceManagement_Upgrader extends CRM_ResourceManagement_Upgrader_Ba
                             LEFT JOIN `civicrm_option_value` v on v.option_group_id = g.id
                             WHERE g.name = 'visibility' AND v.name = 'public';";
         $visibilityId = CRM_Core_DAO::singleValueQuery($visibility);
+        $weight = 100;
         foreach ($statusValues as $name => $class) {
             $partitianStatus = new CRM_Event_BAO_ParticipantStatusType();
             $partitianStatus->name = $name;
@@ -33,6 +34,7 @@ class CRM_ResourceManagement_Upgrader extends CRM_ResourceManagement_Upgrader_Ba
                 $partitianStatus->is_active = true;
                 $partitianStatus->is_counted = false;
                 $partitianStatus->visibility_id = $visibilityId;
+                $partitianStatus->weight = $weight++;
                 $partitianStatus->add();
                 $partitianStatus->save();
             }
