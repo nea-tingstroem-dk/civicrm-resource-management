@@ -50,15 +50,15 @@ class CRM_ResourceManagement_Form_AdminResourceManagement extends CRM_Core_Form 
                     'multiple' => FALSE,
                     'placeholder' => ts('- select role -')
         ]);
-        $this->add('select',
-                'host_role_id', ts("Select Host Role"),
-                $roleOptions,
-                TRUE,
-                [
-                    'class' => 'crm-select2',
-                    'multiple' => FALSE,
-                    'placeholder' => ts('- select role -')
-        ]);
+//        $this->add('select',
+//                'host_role_id', ts("Select Host Role"),
+//                $roleOptions,
+//                TRUE,
+//                [
+//                    'class' => 'crm-select2',
+//                    'multiple' => FALSE,
+//                    'placeholder' => ts('- select role -')
+//        ]);
         $statusOptions = [];
         $sql = "SELECT `id`,`label`,`name`
                 FROM `civicrm_participant_status_type`;";
@@ -75,15 +75,15 @@ class CRM_ResourceManagement_Form_AdminResourceManagement extends CRM_Core_Form 
                     'multiple' => true,
                     'placeholder' => ts('- select status -')
         ]);
-        $this->add('select',
-                'host_status_id', ts("Select Host Status"),
-                $statusOptions,
-                TRUE,
-                [
-                    'class' => 'crm-select2',
-                    'multiple' => FALSE,
-                    'placeholder' => ts('- select status -')
-        ]);
+//        $this->add('select',
+//                'host_status_id', ts("Select Host Status"),
+//                $statusOptions,
+//                TRUE,
+//                [
+//                    'class' => 'crm-select2',
+//                    'multiple' => FALSE,
+//                    'placeholder' => ts('- select status -')
+//        ]);
 
         $this->addButtons(array(
             array(

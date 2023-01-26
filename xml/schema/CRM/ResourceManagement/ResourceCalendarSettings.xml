@@ -39,9 +39,12 @@
     <required>true</required>
     <comment>Configuration key</comment>
   </field>
+  
   <index>
-      <name>index_config_key</name>
+      <name>index_calendar_id_config_key</name>
+      <fieldName>calendar_id</fieldName>
       <fieldName>config_key</fieldName>
+      <unique>true</unique>
   </index>
   <field>
     <name>config_value</name>

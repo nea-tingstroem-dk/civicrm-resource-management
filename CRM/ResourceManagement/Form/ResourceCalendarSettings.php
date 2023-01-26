@@ -74,6 +74,24 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
             $this->add('select', 'resources', ts("Select Resource(s)"), $resource_list,
                     FALSE, ['class' => 'crm-select2', 'multiple' => TRUE, 'placeholder' => ts('- select resource(s) -')]);
 
+            $statusOptions = [];
+            $sql = "SELECT `id`,`label`,`name`
+                FROM `civicrm_participant_status_type`;";
+            $dao = CRM_Core_DAO::executeQuery($sql);
+            while ($dao->fetch()) {
+                $statusOptions[$dao->id] = $dao->label;
+            }
+
+            $this->add('select',
+                    '@host_status_id', ts("Select Host Default Status"),
+                    $statusOptions,
+                    TRUE,
+                    [
+                        'class' => 'crm-select2',
+                        'multiple' => FALSE,
+                        'placeholder' => ts('- select status -')
+            ]);
+
             $statuses = C::getConfig('resource_status_ids');
 
             $sql = "SELECT `id`,`name`,`label`
@@ -113,10 +131,15 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
 
     public function postProcess() {
         $submitted = $this->exportValues();
+        $settings = [];
         $this->_calendar_type = $submitted['calendar_type'];
         foreach ($submitted as $key => $value) {
             if (!$value && $key != 'calendar_title' && $key != 'calendar_type') {
                 $submitted[$key] = 0;
+            }
+            if (substr($key, 0, 1) === '@')
+            {
+                $settings[$key] = $value;
             }
         }
         if ((int) $this->action == CRM_Core_Action::DELETE) {
@@ -128,6 +151,10 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
             $sql = "DELETE FROM civicrm_resource_calendar 
             WHERE `id` = {$this->_calendar_id};";
             $dao = CRM_Core_DAO::executeQuery($sql);
+            $sql = "DELETE FROM civicrm_resource_calendar_settings 
+            WHERE `calendar_id` = {$this->_calendar_id};";
+            $dao = CRM_Core_DAO::executeQuery($sql);
+            
             CRM_Core_Session::setStatus(E::ts('The Calendar has been deleted.'), E::ts('Deleted'), 'success');
         } else {
 
@@ -150,12 +177,12 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
 
             if ((int) $this->action == CRM_Core_Action::UPDATE) {
                 $sql = "UPDATE civicrm_resource_calendar
-       SET calendar_title = '{$submitted['calendar_title']}', 
-            show_end_date = {$submitted['show_end_date']}, 
-            show_public_events = {$submitted['show_public_events']}, 
-            week_begins_from_day = {$submitted['week_begins_from_day']}, 
-            time_format_24_hour = {$submitted['time_format_24_hour']}, 
-            event_template = {$submitted['event_template']}
+                        SET calendar_title = '{$submitted['calendar_title']}', 
+                             show_end_date = {$submitted['show_end_date']}, 
+                             show_public_events = {$submitted['show_public_events']}, 
+                             week_begins_from_day = {$submitted['week_begins_from_day']}, 
+                             time_format_24_hour = {$submitted['time_format_24_hour']}, 
+                             event_template = {$submitted['event_template']}
        WHERE `id` = {$this->_calendar_id};";
                 $dao = CRM_Core_DAO::executeQuery($sql);
                 //delete current event type records to update with new ones
@@ -183,13 +210,18 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
                             VALUES ({$this->_calendar_id}, {$id}, '{$submitted['eventcolorid_' . $id]}');";
                     $dao = CRM_Core_DAO::executeQuery($sql);
                 }
+                foreach ($settings as $key => $value)
+                {
+                    $setting = new CRM_ResourceManagement_DAO_ResourceCalendarSettings();
+                    $setting->calendar_id = $this->_calendar_id;
+                    $setting->config_key = $key;
+                    $setting->find();
+                    if (!$setting->N || $setting->config_value !== $value) {
+                        $setting->config_value = $value;
+                        $setting->save();
+                    } 
+                }
             }
-
-            if ($submitted['action'] == CRM_Core_Action::DELETE) {
-                $sql = "DELETE FROM civicrm_resource_calendar WHERE `id` = {$submitted['calendar_id']};";
-                $dao = CRM_Core_DAO::executeQuery($sql);
-            }
-
             CRM_Core_Session::setStatus(ts('The Calendar has been saved.'), ts('Saved'), 'success');
         }
         parent::postProcess();
@@ -241,6 +273,14 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
                 $defaults['statusid_' . $dao->status_id] = 1;
                 $defaults['eventcolorid_' . $dao->status_id] = $dao->event_color;
             }
+            $settings = new CRM_ResourceManagement_DAO_ResourceCalendarSettings();
+            $settings->calendar_id = $this->_calendar_id;
+            $settings->find();
+            while ($settings->fetch()){
+                $defaults[$settings->config_key] = $settings->config_value;
+            }
+                
+                   
             return $defaults;
         }
     }
