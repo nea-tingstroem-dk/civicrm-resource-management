@@ -5,7 +5,7 @@ use CRM_ResourceManagement_ExtensionUtil as E;
 /**
  * Collection of upgrade steps.
  */
-class CRM_ResourceManagement_Upgrader extends CRM_ResourceManagement_Upgrader_Base {
+class CRM_ResourceManagement_Upgrader extends CRM_Extension_Upgrader_Base {
     // By convention, functions that look like "function upgrade_NNNN()" are
     // upgrade tasks. They are executed in order (like Drupal's hook_update_N).
 
@@ -21,7 +21,7 @@ class CRM_ResourceManagement_Upgrader extends CRM_ResourceManagement_Upgrader_Ba
         $visibilityQuery = "SELECT v.id FROM `civicrm_option_group` g
                             LEFT JOIN `civicrm_option_value` v on v.option_group_id = g.id
                             WHERE g.name = 'visibility' AND v.name = 'public';";
-        $visibilityId = CRM_Core_DAO::singleValueQuery($visibility);
+        $visibilityId = CRM_Core_DAO::singleValueQuery($visibilityQuery);
         $weight = 100;
         foreach ($statusValues as $name => $class) {
             $partitianStatus = new CRM_Event_BAO_ParticipantStatusType();
