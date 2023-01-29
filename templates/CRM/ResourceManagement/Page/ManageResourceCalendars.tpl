@@ -24,7 +24,7 @@
                     {foreach from=$rows item=row}
                         <tr id="calendar-{$row.id}" class="crm-entity {cycle values="odd-row,even-row"} {$row.class}{if NOT $row.is_active} disabled{/if} ">
                             <td class="crm-calendar-title" data-field="calendar_title">{$row.calendar_title}</td>
-                            <td class="crm-calendar-title" data-field="calendar_type">{$row.calendar_type}</td>
+                            <td class="crm-calendar-title" data-field="calendar_type">{$row.calendar_label}</td>
                             <td class="crm-calendar-id" data-field="id">{$row.id}</td>
                             <td>{$row.action|replace:'xx':$row.id}</td>
                         </tr>

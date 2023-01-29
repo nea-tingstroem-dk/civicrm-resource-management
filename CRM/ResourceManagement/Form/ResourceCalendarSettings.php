@@ -74,6 +74,27 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
             $this->add('select', 'resources', ts("Select Resource(s)"), $resource_list,
                     FALSE, ['class' => 'crm-select2', 'multiple' => TRUE, 'placeholder' => ts('- select resource(s) -')]);
 
+            $roleOptions = [];
+            $sql = "SELECT `id`,`option_group_id`,`label`,`value`,`name`
+                FROM `civicrm_option_value`
+                WHERE option_group_id = 
+                (SELECT id FROM `civicrm_option_group` 
+                WHERE name = 'participant_role');";
+            $dao = CRM_Core_DAO::executeQuery($sql);
+            while ($dao->fetch()) {
+                $roleOptions[$dao->value] = $dao->label;
+            }
+
+            $this->add('select',
+                    '@host_role_id', ts("Select Host Role"),
+                    $roleOptions,
+                    TRUE,
+                    [
+                        'class' => 'crm-select2',
+                        'multiple' => FALSE,
+                        'placeholder' => ts('- select role -')
+            ]);
+
             $statusOptions = [];
             $sql = "SELECT `id`,`label`,`name`
                 FROM `civicrm_participant_status_type`;";
@@ -137,9 +158,8 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
             if (!$value && $key != 'calendar_title' && $key != 'calendar_type') {
                 $submitted[$key] = 0;
             }
-            if (substr($key, 0, 1) === '@')
-            {
-                $settings[$key] = $value;
+            if (substr($key, 0, 1) === '@') {
+                $settings[substr($key, 1)] = $value;
             }
         }
         if ((int) $this->action == CRM_Core_Action::DELETE) {
@@ -154,7 +174,7 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
             $sql = "DELETE FROM civicrm_resource_calendar_settings 
             WHERE `calendar_id` = {$this->_calendar_id};";
             $dao = CRM_Core_DAO::executeQuery($sql);
-            
+
             CRM_Core_Session::setStatus(E::ts('The Calendar has been deleted.'), E::ts('Deleted'), 'success');
         } else {
 
@@ -198,17 +218,16 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
                     $dao = CRM_Core_DAO::executeQuery($sql);
                 }
             }
-                foreach ($settings as $key => $value)
-                {
-                    $setting = new CRM_ResourceManagement_DAO_ResourceCalendarSettings();
-                    $setting->calendar_id = $this->_calendar_id;
-                    $setting->config_key = $key;
-                    $setting->find(true);
-                    if (!$setting->N || $setting->config_value !== $value) {
-                        $setting->config_value = $value;
-                        $setting->save();
-                    } 
+            foreach ($settings as $key => $value) {
+                $setting = new CRM_ResourceManagement_DAO_ResourceCalendarSettings();
+                $setting->calendar_id = $this->_calendar_id;
+                $setting->config_key = $key;
+                $setting->find(true);
+                if (!$setting->N || $setting->config_value !== $value) {
+                    $setting->config_value = $value;
+                    $setting->save();
                 }
+            }
             CRM_Core_Session::setStatus(ts('The Calendar has been saved.'), ts('Saved'), 'success');
         }
         parent::postProcess();
@@ -263,11 +282,11 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
             $settings = new CRM_ResourceManagement_DAO_ResourceCalendarSettings();
             $settings->calendar_id = $this->_calendar_id;
             $settings->find();
-            while ($settings->fetch()){
-                $defaults[$settings->config_key] = $settings->config_value;
+            while ($settings->fetch()) {
+                $defaults['@' . $settings->config_key] = $settings->config_value;
             }
-                
-                   
+
+
             return $defaults;
         }
     }

@@ -62,7 +62,8 @@
 //        }
     });
             $('#CreateResourceEvent').on('submit', (function (event) {
-    if (event.originalEvent.submitter.classList.contains('validate')) {
+    if (event.originalEvent.submitter.classList.contains('validate') &&
+        !event.originalEvent.submitter.name.endsWith('submit_delete')) {
     var emptyFields = '';
             var z = $('.required');
             for (let i = 0; i < z.length; i++) {

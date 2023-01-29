@@ -41,7 +41,7 @@ class CRM_ResourceManagement_Page_ShowResourceEvents extends CRM_Core_Page {
         $this->assign('displayEventEnd', $settings['event_end_date']);
 
         //Check weekBegin settings from calendar configuration
-        if (isset($settings['week_begins_from_day']) && $settings['week_begins_from_day'] == 1) {
+        if (isset($settings['week_begins_day']) && $settings['week_begins_day'] == 1) {
             //Get existing setting for weekday from civicrm start & set into event calendar.
             $weekBegins = Civi::settings()->get('weekBegins');
         }

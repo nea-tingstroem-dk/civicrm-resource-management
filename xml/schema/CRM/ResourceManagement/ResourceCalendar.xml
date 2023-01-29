@@ -29,37 +29,7 @@
   <field>
     <name>calendar_type</name>
     <type>varchar(64)</type>
-    <comment>Null or resource name</comment>
-    <add>1.0</add>
-  </field>
-  <field>
-    <name>show_end_date</name>
-    <type>boolean</type>
-    <comment>Show End Date</comment>
-    <add>1.0</add>
-  </field>
-  <field>
-    <name>show_public_events</name>
-    <type>boolean</type>
-    <comment>Show Only Public or All</comment>
-    <add>1.0</add>
-  </field>
-  <field>
-    <name>week_begins_from_day</name>
-    <type>boolean</type>
-    <comment>Show week begins on</comment>
-    <add>1.0</add>
-  </field>
-  <field>
-    <name>time_format_24_hour</name>
-    <type>boolean</type>
-    <comment>Use 24 hour format</comment>
-    <add>1.0</add>
-  </field>
-  <field>
-    <name>event_template</name>
-    <type>int unsigned</type>
-    <comment>Null or Resource template id's</comment>
+    <comment>Null or calendar type name</comment>
     <add>1.0</add>
   </field>
 </table>

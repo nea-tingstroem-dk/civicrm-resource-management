@@ -2,6 +2,7 @@
 
 use CRM_ResourceManagement_ExtensionUtil as E;
 use CRM_ResourceManagement_BAO_ResourceConfiguration as C;
+use CRM_ResourceManagement_BAO_ResourceCalendarSettings as RCS;
 
 /**
  * Form controller class
@@ -23,8 +24,14 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
     private $_authUser = false;
     private $_event_id = 0;
     private $_filter = false;
+    private $_suppressValidate = false;
 
     public function preProcess() {
+        $buttonName = $this->controller->getButtonName();
+        if (substr_compare($buttonName, 'delete', -6) === 0) {
+            $this->_suppressValidate = true;
+        }
+
         parent::preProcess();
         $getContactId = (int) CRM_Core_Session::singleton()->getLoggedInContactID();
         $user = civicrm_api3('Contact', 'get', [
@@ -72,6 +79,13 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
             }
         }
     }
+    
+    public function validate(): bool {
+        if ($this->_suppressValidate) {
+            return true;
+        }
+        return parent::validate();
+    }
 
     public function buildQuickForm() {
         CRM_Core_Resources::singleton()->addScriptFile('resource-management', 'js/moment.js', 5);
@@ -118,6 +132,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
             $resource_options[$id] = $res['name'];
         }
         $this->add('hidden', 'resource_source', json_encode($resources));
+        $this->add('hidden', 'host_role_id', $settings['host_role_id']);
         $filter = $this->_filter;
         if ($filter) {
             $this->add('hidden', 'min_start', $resources[$filter]['min_start']);
@@ -139,6 +154,23 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
             
             
             $this->addEntityRef('responsible_contact', ts('Select responsible contact'), NULL, TRUE);
+            $statusOptions = [];
+            $sql = "SELECT `id`,`label`,`name`
+                FROM `civicrm_participant_status_type`;";
+            $dao = CRM_Core_DAO::executeQuery($sql);
+            while ($dao->fetch()) {
+                $statusOptions[$dao->id] = $dao->label;
+            }
+
+            $this->add('select',
+                    'host_status_id', ts("Select Host Status"),
+                    $statusOptions,
+                    TRUE,
+                    [
+                        'class' => 'crm-select2',
+                        'multiple' => FALSE,
+                        'placeholder' => ts('- select status -')
+            ]);
 
             if (!$this->_event_id) {
                 $eventTemplates = CRM_ResourceManagement_Form_ResourceCalendarSettings::getEventTemplates();
@@ -149,14 +181,19 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
             $this->add('text', 'event_title', ts('Event Title'), NULL, TRUE);
         } else {
             $this->add('hidden', 'respoensible_contact', $this->_userId);
+            $this->add('hidden', 'host_status_id', $settings['host_status_id']);
             $this->add('static', 'user_info', ts('Responsible'),
                     $this->_userExternalId . ' ' . $this->_userName);
             if (!$this->_event_id) {
                 $this->add('hidden', 'event_template', $settings['event_template']);
+                $template = new CRM_Event_BAO_Event();
+                $template->id = $settings['event_template'];
+                $template->find(true);
+                
                 $this->add('static', 'event_template_title', ts('Event type'),
-                        ts('Private event'));
+                        $template->template_title);
             }
-            $this->add('static', 'event_title', ts('Event Title'), ts('Private Event'));
+            $this->add('static', 'event_title', ts('Event Title'), $template->title);
         }
 
         $this->add('datepicker', 'event_start_date', ts('Start Date'),
@@ -200,7 +237,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
         if (substr_compare($buttonName, 'submit', -6) === 0) {
             $values = $this->exportValues();
             $resourceRole = (int) C::getConfig('resource_role_id');
-            $hostRole = (int) C::getConfig('host_role_id');
+            $hostRole = (int) $values['host_role_id'];
             $statuses = explode(',', C::getConfig('resource_status_ids'));
             $today = date('Y-m-d H:i:s');
             if (!$this->_event_id) {
@@ -239,7 +276,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
                     'role_id' => $hostRole,
                     'contact_id' => $values['responsible_contact'],
                     'event_id' => $event->id,
-                    'status_id' => C::getConfig('host_status_id'),
+                    'status_id' => $values['host_status_id'],
                 ];
                 $participant = CRM_Event_BAO_Participant::create($params);
                 $participant->save();
@@ -389,12 +426,13 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
 
     public function setDefaultValues() {
         $defaults = [];
+        $calendarSettings = RCS::getAllSettings($this->_calendar_id);
         if ($this->_event_id) {
             $event = CRM_Event_BAO_Event::findById($this->_event_id);
             $defaults['event_title'] = $event->title;
             $defaults['event_start_date'] = $event->start_date;
             $defaults['event_end_date'] = $event->end_date;
-            $hostRole = C::getConfig('host_role_id');
+            $hostRole =$calendarSettings['host_role_id'];
             $resourceRole = C::getConfig('resource_role_id');
             $query = "SELECT role_id, contact_id, status_id
                         FROM `civicrm_participant` 
@@ -408,6 +446,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
                     $defaults['resource_status'] = $dao->status_id;
                 } else if ($dao->role_id === $hostRole) {
                     $defaults['responsible_contact'] = $dao->contact_id;
+                    $defaults['host_status_id'] = $dao->status_id;
                 }
             }
             $defaults['resources'] = $resources;

@@ -1,4 +1,5 @@
 <?php
+
 use CRM_ResourceManagement_ExtensionUtil as E;
 
 class CRM_ResourceManagement_Page_ManageResourceCalendars extends CRM_Core_Page_Basic {
@@ -7,6 +8,15 @@ class CRM_ResourceManagement_Page_ManageResourceCalendars extends CRM_Core_Page_
 
     public function getBAOName() {
         return 'CRM_ResourceManagement_BAO_ResourceCalendar';
+    }
+
+    public function assign($var, $value = NULL) {
+        if ($var ==='rows' && is_array($value)) {
+            foreach ($value as $i => $row) {
+                $value[$i]['calendar_label'] = CRM_Contact_BAO_ContactType::getLabel($row['calendar_type']);
+            }
+        }
+        parent::assign($var, $value);
     }
 
     public function &links() {

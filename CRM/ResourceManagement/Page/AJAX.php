@@ -51,7 +51,7 @@ class CRM_ResourceManagement_Page_AJAX {
         $dao = CRM_Core_DAO::executeQuery($query);
         $eventCalendarParams = array('title' => 'title', 'start' => 'start', 'end' => 'end', 'url' => 'url');
         $resourceRoleId = C::getConfig('resource_role_id');
-        $responsibleRoleId = C::getConfig('host_role_id');
+        $responsibleRoleId = $settings['host_role_id'];
 
         while ($dao->fetch()) {
             $eventData = array();
@@ -105,12 +105,13 @@ class CRM_ResourceManagement_Page_AJAX {
     }
 
     public static function getResourceCalendarSettings($calendarId) {
-        $settings = array();
+        $settings = [];
         $statuses = array();
         $resources = array();
         $status_labels = [];
 
         if ($calendarId) {
+            $settings = CRM_ResourceManagement_BAO_ResourceCalendarSettings::getAllSettings($calendarId);
             $settings['calendar_id'] = $calendarId;
             $sql = "SELECT c.*, t.label FROM civicrm_resource_calendar c
                 LEFT JOIN `civicrm_contact_type` t on t.name = c.calendar_type
@@ -120,19 +121,6 @@ class CRM_ResourceManagement_Page_AJAX {
                 $s = (array) $dao;
                 $settings['calendar_title'] = $dao->calendar_title;
                 $settings['calendar_type'] = $dao->calendar_type;
-                $settings['calendar_type_label'] = $dao->label;
-                $settings['event_past'] = $dao->show_past_events;
-                $settings['event_end_date'] = $dao->show_end_date;
-                $settings['event_is_public'] = $dao->show_public_events;
-                $settings['event_month'] = $dao->events_by_month;
-                $settings['event_from_month'] = $dao->events_from_month;
-                $settings['event_time'] = $dao->event_timings;
-                $settings['event_event_type_filter'] = $dao->event_type_filters;
-                $settings['time_format_24_hour'] = $dao->time_format_24_hour;
-                $settings['week_begins_from_day'] = $dao->week_begins_from_day;
-                $settings['recurring_event'] = $dao->recurring_event;
-                $settings['enrollment_status'] = $dao->enrollment_status;
-                $settings['event_template'] = $dao->event_template;
             }
             $sql = "SELECT p.*,c.display_name 
                     FROM civicrm_resource_calendar_participant p
@@ -183,7 +171,7 @@ class CRM_ResourceManagement_Page_AJAX {
    *
    * Referred from https://stackoverflow.com/questions/1331591
    */
-  function _getContrastTextColor($hexColor){
+  static function _getContrastTextColor($hexColor){
     // hexColor RGB
     $R1 = hexdec(substr($hexColor, 1, 2));
     $G1 = hexdec(substr($hexColor, 3, 2));

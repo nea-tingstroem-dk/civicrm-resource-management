@@ -75,15 +75,6 @@ class CRM_ResourceManagement_Form_AdminResourceManagement extends CRM_Core_Form 
                     'multiple' => true,
                     'placeholder' => ts('- select status -')
         ]);
-//        $this->add('select',
-//                'host_status_id', ts("Select Host Status"),
-//                $statusOptions,
-//                TRUE,
-//                [
-//                    'class' => 'crm-select2',
-//                    'multiple' => FALSE,
-//                    'placeholder' => ts('- select status -')
-//        ]);
 
         $this->addButtons(array(
             array(

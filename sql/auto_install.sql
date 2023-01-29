@@ -40,12 +40,7 @@ SET FOREIGN_KEY_CHECKS=1;
 CREATE TABLE `civicrm_resource_calendar` (
   `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'Unique ResourceCalendar ID',
   `calendar_title` varchar(255) COMMENT 'Calendar Title',
-  `calendar_type` varchar(64) COMMENT 'Null or resource name',
-  `show_end_date` tinyint COMMENT 'Show End Date',
-  `show_public_events` tinyint COMMENT 'Show Only Public or All',
-  `week_begins_from_day` tinyint COMMENT 'Show week begins on',
-  `time_format_24_hour` tinyint COMMENT 'Use 24 hour format',
-  `event_template` int unsigned COMMENT 'Null or Resource template id\'s',
+  `calendar_type` varchar(64) COMMENT 'Null or calendar type',
   PRIMARY KEY (`id`)
 )
 ENGINE=InnoDB;
@@ -98,7 +93,7 @@ CREATE TABLE `civicrm_resource_calendar_settings` (
   `config_key` varchar(20) NOT NULL COMMENT 'Configuration key',
   `config_value` varchar(256) COMMENT 'Configuration value',
   PRIMARY KEY (`id`),
-  INDEX `index_config_key`(config_key),
+  UNIQUE INDEX `index_calendar_id_config_key`(calendar_id, config_key),
   CONSTRAINT FK_civicrm_resource_calendar_settings_calendar_id FOREIGN KEY (`calendar_id`) REFERENCES `civicrm_resource_calendar`(`id`) ON DELETE CASCADE
 )
 ENGINE=InnoDB;
