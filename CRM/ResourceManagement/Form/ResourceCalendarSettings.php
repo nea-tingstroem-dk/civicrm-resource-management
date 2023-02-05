@@ -6,7 +6,7 @@ use CRM_ResourceManagement_BAO_ResourceConfiguration as C;
 /**
  * Form controller class
  *
- * @see https://docs.civicrm.org/dev/en/latest/framework/quickform/
+ * cs_see https://docs.civicrm.org/dev/en/latest/framework/quickform/
  */
 class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form {
 
@@ -47,20 +47,6 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
             $this->add('hidden', 'action', $this->action);
             $this->add('text', 'calendar_title', ts('Calendar Title'));
             $descriptions['calendar_title'] = ts('Event calendar title.');
-            $this->add('advcheckbox', '@show_end_date', ts('Show End Date?'));
-            $descriptions['@show_end_date'] = ts('Show the event with start and end dates on the calendar.');
-            $this->add('advcheckbox', '@show_public_events', ts('Show Public Events?'));
-            $descriptions['@show_public_events'] = ts('Show only public events, or all events.');
-            $this->add('advcheckbox', '@week_begins_day', ts('Week begins on'));
-            $descriptions['@week_begins_day'] = ts('Use weekBegin settings from CiviCRM. You can override settings at Administer > Localization > Date Formats.');
-            $this->add('advcheckbox', '@time_format_24_hour', ts('24 hour time format'));
-            $descriptions['@time_format_24_hour'] = ts('Use 24 hour time format - default is AM/PM format.');
-
-            $eventTemplates = self::getEventTemplates();
-
-            $this->add('select', '@event_template', ts("Select Event template"), $eventTemplates,
-                    FALSE, ['class' => 'crm-select2', 'multiple' => FALSE,
-                'placeholder' => ts('- select template -')]);
 
             $query = "SELECT `id`, `display_name`  FROM `civicrm_contact` 
                             WHERE `contact_sub_type` LIKE '%" . $this->_calendar_type . "%' 
@@ -72,68 +58,92 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
                 $id = $dao->id;
             }
             $this->add('select', 'resources', ts("Select Resource(s)"), $resource_list,
-                    FALSE, ['class' => 'crm-select2', 'multiple' => TRUE, 'placeholder' => ts('- select resource(s) -')]);
+                    FALSE, ['class' => 'crm-select2', 'multiple' => TRUE,
+                'placeholder' => ts('- select resource(s) -')]);
 
-            $roleOptions = [];
-            $sql = "SELECT `id`,`option_group_id`,`label`,`value`,`name`
+            if ($this->action === CRM_Core_Action::UPDATE) {
+
+                $eventTemplates = self::getEventTemplates();
+
+                $calendarResources = $this->getCalendarResources();
+                foreach ($calendarResources as $res_id) {
+                    $res = CRM_Contact_BAO_Contact::findById($res_id);
+                    $this->add('select', "cs_event_template_{$res_id}",
+                            ts("Select Default Event template for ") . $res->display_name, $eventTemplates,
+                            FALSE, ['class' => 'crm-select2', 'multiple' => FALSE,
+                        'placeholder' => ts('- select template(s) -')]);
+                }
+
+                $this->add('advcheckbox', 'cs_show_end_date', ts('Show End Date?'));
+                $descriptions['cs_show_end_date'] = ts('Show the event with start and end dates on the calendar.');
+                $this->add('advcheckbox', 'cs_show_public_events', ts('Show Public Events?'));
+                $descriptions['cs_show_public_events'] = ts('Show only public events, or all events.');
+                $this->add('advcheckbox', 'cs_week_begins_day', ts('Week begins on'));
+                $descriptions['cs_week_begins_day'] = ts('Use weekBegin settings from CiviCRM. You can override settings at Administer > Localization > Date Formats.');
+                $this->add('advcheckbox', 'cs_time_format_24_hour', ts('24 hour time format'));
+                $descriptions['cs_time_format_24_hour'] = ts('Use 24 hour time format - default is AM/PM format.');
+
+                $roleOptions = [];
+                $sql = "SELECT `id`,`option_group_id`,`label`,`value`,`name`
                 FROM `civicrm_option_value`
                 WHERE option_group_id = 
                 (SELECT id FROM `civicrm_option_group` 
                 WHERE name = 'participant_role');";
-            $dao = CRM_Core_DAO::executeQuery($sql);
-            while ($dao->fetch()) {
-                $roleOptions[$dao->value] = $dao->label;
-            }
+                $dao = CRM_Core_DAO::executeQuery($sql);
+                while ($dao->fetch()) {
+                    $roleOptions[$dao->value] = $dao->label;
+                }
 
-            $this->add('select',
-                    '@host_role_id', ts("Select Host Role"),
-                    $roleOptions,
-                    TRUE,
-                    [
-                        'class' => 'crm-select2',
-                        'multiple' => FALSE,
-                        'placeholder' => ts('- select role -')
-            ]);
+                $this->add('select',
+                        'cs_host_role_id', ts("Select Host Role"),
+                        $roleOptions,
+                        TRUE,
+                        [
+                            'class' => 'crm-select2',
+                            'multiple' => FALSE,
+                            'placeholder' => ts('- select role -')
+                ]);
 
-            $statusOptions = [];
-            $sql = "SELECT `id`,`label`,`name`
+                $statusOptions = [];
+                $sql = "SELECT `id`,`label`,`name`
                 FROM `civicrm_participant_status_type`;";
-            $dao = CRM_Core_DAO::executeQuery($sql);
-            while ($dao->fetch()) {
-                $statusOptions[$dao->id] = $dao->label;
-            }
+                $dao = CRM_Core_DAO::executeQuery($sql);
+                while ($dao->fetch()) {
+                    $statusOptions[$dao->id] = $dao->label;
+                }
 
-            $this->add('select',
-                    '@host_status_id', ts("Select Host Default Status"),
-                    $statusOptions,
-                    TRUE,
-                    [
-                        'class' => 'crm-select2',
-                        'multiple' => FALSE,
-                        'placeholder' => ts('- select status -')
-            ]);
+                $this->add('select',
+                        'cs_host_status_id', ts("Select Host Default Status"),
+                        $statusOptions,
+                        TRUE,
+                        [
+                            'class' => 'crm-select2',
+                            'multiple' => FALSE,
+                            'placeholder' => ts('- select status -')
+                ]);
 
-            $statuses = C::getConfig('resource_status_ids');
+                $statuses = C::getConfig('resource_status_ids');
 
-            $sql = "SELECT `id`,`name`,`label`
+                $sql = "SELECT `id`,`name`,`label`
                     FROM `civicrm_participant_status_type`
                     WHERE `id` IN ({$statuses});";
 
 //            $query = "SELECT `id`, `display_name`  FROM `civicrm_contact` 
 //                            WHERE `contact_sub_type` LIKE '%" . $this->_calendar_type . "%' 
 //                            ORDER BY `display_name`  ASC;";
-            $dao = CRM_Core_DAO::executeQuery($sql);
-            while ($dao->fetch()) {
-                $id = $dao->id;
-                $type = $dao->label;
-                $this->addElement('checkbox', "statusid_{$id}", $type, NULL,
-                        array('onclick' => "showhidecolorbox('{$id}')", 'id' => "statusid_{$id}"));
-                $this->addElement('text', "eventcolorid_{$id}", "Color",
-                        array(
-                            'onchange' => "updatecolor('eventcolorid_{$id}', this.value);",
-                            'class' => 'color',
-                            'id' => "eventcolorid_{$id}",
-                ));
+                $dao = CRM_Core_DAO::executeQuery($sql);
+                while ($dao->fetch()) {
+                    $id = $dao->id;
+                    $type = $dao->label;
+                    $this->addElement('checkbox', "statusid_{$id}", $type, NULL,
+                            array('onclick' => "showhidecolorbox('{$id}')", 'id' => "statusid_{$id}"));
+                    $this->addElement('text', "eventcolorid_{$id}", "Color",
+                            array(
+                                'onchange' => "updatecolor('eventcolorid_{$id}', this.value);",
+                                'class' => 'color',
+                                'id' => "eventcolorid_{$id}",
+                    ));
+                }
             }
         }
 
@@ -158,8 +168,10 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
             if (!$value && $key != 'calendar_title' && $key != 'calendar_type') {
                 $submitted[$key] = 0;
             }
-            if (substr($key, 0, 1) === '@') {
-                $settings[substr($key, 1)] = $value;
+        }
+        foreach ($this->_submitValues as $key => $value) {
+            if (substr($key, 0, 3) === 'cs_') {
+                $settings[substr($key, 3)] = $value;
             }
         }
         if ((int) $this->action == CRM_Core_Action::DELETE) {
@@ -230,13 +242,16 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
             }
             CRM_Core_Session::setStatus(ts('The Calendar has been saved.'), ts('Saved'), 'success');
         }
+        if ((int) $this->action == CRM_Core_Action::ADD) {
+            CRM_Utils_System::redirect(CRM_Utils_System::url('civicrm/resource-calendarsettings', "action=update&id={$this->_calendar_id}"));
+        }
         parent::postProcess();
     }
 
     /**
      * Get the fields/elements defined in this form.
      *
-     * @return array (string)
+     * cs_return array (string)
      */
     public function getRenderableElementNames() {
         // The _elements list includes some items which should not be
@@ -256,7 +271,7 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
     /**
      * Set defaults for form.
      *
-     * @see CRM_Core_Form::setDefaultValues()
+     * cs_see CRM_Core_Form::setDefaultValues()
      */
     public function setDefaultValues() {
         if ($this->_calendar_id && ( (int) $this->action != CRM_Core_Action::DELETE)) {
@@ -267,12 +282,7 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
             if ($dao->fetch()) {
                 $defaults = $dao->toArray();
             }
-            $sql = "SELECT * FROM civicrm_resource_calendar_participant WHERE resource_calendar_id = {$this->_calendar_id};";
-            $dao = CRM_Core_DAO::executeQuery($sql);
-            $defaults['resources'] = [];
-            while ($dao->fetch()) {
-                $defaults['resources'][] = $dao->contact_id;
-            }
+            $defaults['resources'] = $this->getCalendarResources();
             $sql = "SELECT * FROM civicrm_resource_calendar_color WHERE calendar_id = {$this->_calendar_id};";
             $dao = CRM_Core_DAO::executeQuery($sql);
             while ($dao->fetch()) {
@@ -283,7 +293,7 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
             $settings->calendar_id = $this->_calendar_id;
             $settings->find();
             while ($settings->fetch()) {
-                $defaults['@' . $settings->config_key] = $settings->config_value;
+                $defaults['cs_' . $settings->config_key] = $settings->config_value;
             }
 
 
@@ -302,6 +312,17 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
             $eventTemplates[$dao->id] = $dao->template_title;
         }
         return $eventTemplates;
+    }
+
+    public function getCalendarResources() {
+        $sql = "SELECT * FROM civicrm_resource_calendar_participant WHERE resource_calendar_id = {$this->_calendar_id};";
+        $resources = [];
+        $dao = CRM_Core_DAO::executeQuery($sql);
+        $defaults['resources'] = [];
+        while ($dao->fetch()) {
+            $resources[] = $dao->contact_id;
+        }
+        return $resources;
     }
 
 }
