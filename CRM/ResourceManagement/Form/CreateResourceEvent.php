@@ -25,6 +25,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
     private $_event_id = 0;
     private $_filter = false;
     private $_suppressValidate = false;
+    private $_calendarSettings = [];
 
     public function preProcess() {
         $buttonName = $this->controller->getButtonName();
@@ -46,6 +47,8 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
         $this->_superUser = CRM_Core_Permission::check('edit all events', $getContactId);
         $this->_authUser = CRM_Core_Permission::check('access CiviEvent', $getContactId);
         $this->_calendar_id = CRM_Utils_Request::retrieve('calendar_id', 'Integer');
+        $this->_calendarSettings = CRM_ResourceManagement_Page_AJAX::getResourceCalendarSettings($this->_calendar_id);
+
         $this->_event_id = CRM_Utils_Request::retrieve('event_id', 'Integer');
         if ($this->_event_id) {
             $event = new CRM_Event_BAO_Event();
@@ -124,7 +127,6 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
             CRM_Utils_System::setTitle(E::ts('Create Resource Event'));
         }
 
-        $settings = CRM_ResourceManagement_Page_AJAX::getResourceCalendarSettings($this->_calendar_id);
 
         $resources = $this->getResources($this->_calendar_id);
         $resource_options = [];
@@ -132,7 +134,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
             $resource_options[$id] = $res['name'];
         }
         $this->add('hidden', 'resource_source', json_encode($resources));
-        $this->add('hidden', 'host_role_id', $settings['host_role_id']);
+        $this->add('hidden', 'host_role_id', $this->_calendarSettings['host_role_id']);
         $filter = $this->_filter;
         if ($filter) {
             $this->add('hidden', 'min_start', $resources[$filter]['min_start']);
@@ -143,7 +145,9 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
             $this->add('hidden', 'min_start', $this->_min_start);
             $this->add('hidden', 'max_end', $this->_max_end);
             $this->add('select', 'resources', ts("Select Resource(s)"), $resource_options,
-                    TRUE, ['class' => 'crm-select2', 'multiple' => TRUE, 'placeholder' => ts('- select resource(s) -')]);
+                    TRUE, ['class' => 'crm-select2', 
+                        'multiple' => $this->_superUser, 
+                        'placeholder' => ts('- select resource(s) -')]);
         }
 
         if ($this->_superUser) {
@@ -184,15 +188,12 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
             $this->add('hidden', 'host_status_id', $settings['host_status_id']);
             $this->add('static', 'user_info', ts('Responsible'),
                     $this->_userExternalId . ' ' . $this->_userName);
-            if (!$this->_event_id) {
-                $this->add('hidden', 'event_template', $settings['event_template']);
-                $template = new CRM_Event_BAO_Event();
-                $template->id = $settings['event_template'];
-                $template->find(true);
-                
-                $this->add('static', 'event_template_title', ts('Event type'),
-                        $template->template_title);
-            }
+//            if (!$this->_event_id) {
+//                $this->add('hidden', 'event_template', $settings['event_template']);
+//                $template = new CRM_Event_BAO_Event();
+//                $template->id = $settings['event_template'];
+//                $template->find(true);
+//            }
             $this->add('static', 'event_title', ts('Event Title'), $template->title);
         }
 
@@ -235,18 +236,33 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
     public function postProcess() {
         $buttonName = $this->controller->getButtonName();
         if (substr_compare($buttonName, 'submit', -6) === 0) {
-            $values = $this->exportValues();
+            $values = $this->_submitValues;
             $resourceRole = (int) C::getConfig('resource_role_id');
             $hostRole = (int) $values['host_role_id'];
+            if (empty($values['host_status_id'])) {
+                $values['host_status_id'] = (int) $this->_calendarSettings['host_status_id'];
+            }
             $statuses = explode(',', C::getConfig('resource_status_ids'));
             $today = date('Y-m-d H:i:s');
             if (!$this->_event_id) {
                 if (!is_array($values['resources'])) {
+                    $resource_id = $values['resources'];
                     $values['resources'] = [$values['resources']];
                 }
                 if (!isset($values['responsible_contact'])) {
                     $values['responsible_contact'] = $this->_userId;
                 }
+                $template_id = 0;
+                if (isset($values['event_template'])) {
+                    $template_id = $values['event_template'];
+                } else {
+                    $key = 'event_template_' . $resource_id;
+                    $template_id = $this->_calendarSettings[$key];
+                }
+                $template = new CRM_Event_BAO_Event();
+                $template->id = $template_id;
+                $template->find(true);
+
                 $params = [];
                 $params['start_date'] = $values['event_start_date'] ?? NULL;
                 $params['end_date'] = $values['event_end_date'] ?? NULL;
@@ -255,8 +271,8 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
                 if (isset($values['event_title'])) {
                     $params['title'] = $values['event_title'];
                 }
-                $params = array_merge(CRM_Event_BAO_Event::getTemplateDefaultValues($values['event_template']), $params);
-                $event = CRM_Event_BAO_Event::copy($values['event_template'], $params);
+                $params = array_merge(CRM_Event_BAO_Event::getTemplateDefaultValues($template_id), $params);
+                $event = CRM_Event_BAO_Event::copy($template_id, $params);
                 $event->is_template = 0;
                 $event->update();
 
