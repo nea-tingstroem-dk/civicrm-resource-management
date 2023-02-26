@@ -218,6 +218,7 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
                         
                     } else {
                         foreach ($value as $id) {
+                            $p = new CRM_ResourceManagement_BAO_ResoureCalendarParticipant();
                             $sql = "INSERT INTO civicrm_resource_calendar_participant(resource_calendar_id, contact_id)
                              VALUES ({$this->_calendar_id}, {$id});";
                             $dao = CRM_Core_DAO::executeQuery($sql);

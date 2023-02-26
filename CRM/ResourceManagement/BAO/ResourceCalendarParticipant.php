@@ -1,7 +1,7 @@
 <?php
 use CRM_ResourceManagement_ExtensionUtil as E;
 
-class CRM_ResourceManagement_BAO_ResoureCalendarParticipant extends CRM_ResourceManagement_DAO_ResourceCalendarParticipant {
+//class CRM_ResourceManagement_BAO_ResoureCalendarParticipant extends CRM_ResourceManagement_DAO_ResourceCalendarParticipant {
 
   /**
    * Create a new ResoureCalendarParticipant based on array-data
@@ -23,4 +23,4 @@ class CRM_ResourceManagement_BAO_ResoureCalendarParticipant extends CRM_Resource
     return $instance;
   } */
 
-}
+//}

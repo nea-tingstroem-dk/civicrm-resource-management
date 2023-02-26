@@ -19,13 +19,19 @@
   <version>1.0</version>
   <develStage>alpha</develStage>
   <compatibility>
-    <ver>5.0</ver>
+    <ver>5.38</ver>
   </compatibility>
   <comments>Booking and management of resources like conference rooms etc.</comments>
   <classloader>
     <psr4 prefix="Civi\" path="Civi"/>
+    <psr0 prefix="CRM_" path="."/>
   </classloader>
   <civix>
     <namespace>CRM/ResourceManagement</namespace>
+    <format>22.12.1</format>
   </civix>
+  <mixins>
+    <mixin>menu-xml@1.0.0</mixin>
+  </mixins>
+  <upgrader>CRM_ResourceManagement_Upgrader</upgrader>
 </extension>
