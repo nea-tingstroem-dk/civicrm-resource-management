@@ -35,7 +35,6 @@ class CRM_ResourceManagement_Upgrader extends CRM_Extension_Upgrader_Base {
                 $partitianStatus->is_counted = false;
                 $partitianStatus->visibility_id = $visibilityId;
                 $partitianStatus->weight = $weight++;
-                $partitianStatus->add();
                 $partitianStatus->save();
             }
         }
