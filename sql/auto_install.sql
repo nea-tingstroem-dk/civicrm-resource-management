@@ -40,7 +40,7 @@ SET FOREIGN_KEY_CHECKS=1;
 CREATE TABLE `civicrm_resource_calendar` (
   `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'Unique ResourceCalendar ID',
   `calendar_title` varchar(255) COMMENT 'Calendar Title',
-  `calendar_type` varchar(64) COMMENT 'Null or calendar type',
+  `calendar_type` varchar(64) COMMENT 'Null or calendar type name',
   PRIMARY KEY (`id`)
 )
 ENGINE=InnoDB;
