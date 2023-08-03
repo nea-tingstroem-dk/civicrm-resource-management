@@ -130,9 +130,14 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
 
         $resources = $this->getResources($this->_calendar_id);
         $resource_options = [];
+        $priceSets = [];
         foreach ($resources as $id => $res) {
             $resource_options[$id] = $res['name'];
+            $eventId = $this->_calendarSettings['event_template_' . $id];
+            $priceSetId = CRM_Price_BAO_PriceSet::getFor('civicrm_event', $eventId);
+            $priceSets[$id] = CRM_Price_BAO_PriceSet::getSetDetail($priceSetId);
         }
+
         $this->add('hidden', 'resource_source', json_encode($resources));
         $this->add('hidden', 'host_role_id', $this->_calendarSettings['host_role_id']);
         $filter = $this->_filter;
@@ -176,7 +181,6 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
             ]);
 
             if (!$this->_eventId) {
-                $eventTemplates = CRM_ResourceManagement_Form_ResourceCalendarSettings::getEventTemplates();
                 $this->add('select', 'event_template', ts('Select template for event'),
                         $eventTemplates, TRUE, ['class' => 'crm-select2', 'multiple' => false,
                     'placeholder' => ts('- select template -')]);
@@ -208,9 +212,42 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
                 [
                     'time' => TRUE,
         ]);
-        // export form elements
-        $this->assign('elementNames', $this->getRenderableElementNames());
- 
+
+        $priceFieldGroups = [];
+        $groupTrees = [];
+        $elementGroups = [];
+        $public = (int) CRM_Price_BAO_PriceField::getVisibilityOptionID('public');
+        $baseElements = $this->getRenderableElementNames();
+        $elements = $baseElements;
+        foreach ($priceSets as $resId => $ps) {
+            $psId = array_keys($ps)[0];
+            $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
+            $this->add('static',
+                    'res_' . $resId . '_pre_help',
+                    ts('Price info'),
+                    $ps[$psId]['help_pre']);
+            foreach ($ps[$psId]['fields'] as  $pfId => $pField) {
+                $eId = 'pf_'. $resId . '_' . $psId . '_' . $pfId;
+                $pField['elementId'] = $eId;
+                CRM_Price_BAO_PriceField::addQuickFormElement($this,
+                        $eId,
+                        $pfId,
+                        FALSE,
+                );
+            }
+            $allSoFar = $this->getRenderableElementNames();
+            $groupFields = array_diff($allSoFar, $elements);
+            $priceFieldGroups['group_'. $resId] = $groupFields;
+            $elementGroups[] = 'group_'. $resId;
+            $groupTrees[$resId] = $groupTree;
+            $elements = $allSoFar;
+        }
+        $this->assign('elementNames', $baseElements);
+        $this->assign('elementGroups', $elementGroups);
+        $this->assign('elementPrices', $priceFieldGroups);
+        $this->assign('groupTrees', $groupTrees);
+        $this->assign('AdminFld', $this->_superUser);
+
         $buttons = [
             [
                 'type' => 'submit',
@@ -228,9 +265,10 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
             ];
         }
 
+
         $this->addButtons($buttons);
 
-       parent::buildQuickForm();
+        parent::buildQuickForm();
     }
 
     public function postProcess() {
@@ -480,7 +518,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
         if ($this->_superUser) {
             $defaults['event_title'] = '';
         } else {
-            $defaults['event_title'] = ts("Private Event");           
+            $defaults['event_title'] = ts("Private Event");
         }
         return $defaults;
     }
