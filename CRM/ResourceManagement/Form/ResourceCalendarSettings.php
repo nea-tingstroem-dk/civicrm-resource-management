@@ -128,9 +128,6 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
                     FROM `civicrm_participant_status_type`
                     WHERE `id` IN ({$statuses});";
 
-//            $query = "SELECT `id`, `display_name`  FROM `civicrm_contact` 
-//                            WHERE `contact_sub_type` LIKE '%" . $this->_calendar_type . "%' 
-//                            ORDER BY `display_name`  ASC;";
                 $dao = CRM_Core_DAO::executeQuery($sql);
                 while ($dao->fetch()) {
                     $id = $dao->id;

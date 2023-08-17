@@ -12,6 +12,7 @@
     </div>
 {/foreach}
 
+<div class="crm-block-crm-form-block">
 {foreach from=$groupTrees key="resId" item="priceSets"}
     <div class="crm-section hidden" id="grp_{$resId}">
         {foreach from=$priceSets key="psId" item="priceSet"}
@@ -85,8 +86,7 @@
         {/foreach}
     </div>
 {/foreach}
-
-
+</div>
 {* FOOTER *}
 <div class="crm-submit-buttons">
     {include file="CRM/common/formButtons.tpl" location="bottom"}
@@ -106,14 +106,13 @@
             $('#grp_'+key).hide();
         }
         if ($(this).val()) {
-          $('#grp_'+$(this).val()).show();
-          for (id of $(this).val()) {
-            let obj = resources[id];
-            let min = Date.parse(obj.min_start);
-            let max = Date.parse(obj.max_end);
-            min_start = Math.max(min, min_start);
-            max_end = Math.min(max, max_end);
-          }
+          let res_id = $(this).val();
+          $('#grp_'+res_id).show();
+          let obj = resources[res_id];
+          let min = Date.parse(obj.min_start);
+          let max = Date.parse(obj.max_end);
+          min_start = Math.max(min, min_start);
+          max_end = Math.min(max, max_end);
         } else {
           for (key in resources) {
             let obj = resources[key];
@@ -181,8 +180,18 @@
                 thisOne.val(0);
                 thisOne.trigger('click');
               });
+          };
+          if ($(this)[0].name.endsWith('edit_event')) {
+              event.preventDefault();
+              var url = $('input[name=edit_url]').val().replaceAll('&amp;', '&');
+              $(location).attr('href', url);
           }
         });
-      $('#resources').change();
+      var id = $('input[name=resources]').val();
+      if (id) {
+        $('#grp_'+id).show();
+      } else {
+        $('#resources').change();
+      }
     });
     </script>{/literal}

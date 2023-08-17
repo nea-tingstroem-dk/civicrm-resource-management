@@ -23,6 +23,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
     private $_superUser = false;
     private $_authUser = false;
     private $_eventId = 0;
+    private $_event = NULL;
     private $_filter = false;
     private $_suppressValidate = false;
     private $_calendarSettings = [];
@@ -51,14 +52,25 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
 
         $this->_eventId = CRM_Utils_Request::retrieve('event_id', 'Integer');
         if ($this->_eventId) {
-            $event = new CRM_Event_BAO_Event();
-            $event->id = $this->_eventId;
-            if (!$event->find(TRUE)) {
-                CRM_Core_Session::setStatus(E::ts('Event does not exist'));
-                CRM_Utils_System::redirect(CRM_Utils_System::url('civicrm/admin/resource-calendars', 'reset=1'));
-            }
-            $this->_start_time = strtotime($event->start_date);
-            $this->_end_time = strtotime($event->end_date);
+            $this->add('hidden', 'event_id', $this->_eventId);
+            $events = \Civi\Api4\Event::get(FALSE)
+                    ->addSelect('id', 'title', 'start_date', 'end_date',
+                            'pr.contact_id', 'pr.role_id', 'pr.status_id',
+                            'res.display_name',
+                            'ph.contact_id', 'ph.role_id', 'ph.status_id',
+                            'host.display_name')
+                    ->addJoin('Participant AS pr', 'INNER', ['id', '=', 'pr.event_id'], ['pr.role_id', '=', 5])
+                    ->addJoin('Contact AS res', 'LEFT', ['pr.contact_id', '=', 'res.id'])
+                    ->addJoin('Participant AS ph', 'LEFT', ['id', '=', 'ph.event_id'], ['ph.role_id', '=', 3])
+                    ->addJoin('Contact AS host', 'LEFT', ['host.id', '=', 'ph.contact_id'])
+                    ->setHaving([
+                        ['id', '=', $this->_eventId],
+                    ])
+                    ->setLimit(0)
+                    ->execute();
+            $this->_event = $events[0];
+            $this->_start_time = strtotime($this->_event['start_date']);
+            $this->_end_time = strtotime($this->_event['end_date']);
         } else {
             $this->_filter = CRM_Utils_Request::retrieve('filter', 'Integer');
             $allDay = CRM_Utils_Request::retrieve('allday', 'Integer');
@@ -97,14 +109,11 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
         $endTime = date('Y-m-d H:i:s', $this->_end_time);
         $this->add('hidden', 'end_date', $endTime);
         $this->add('hidden', 'calendar_id', $this->_calendar_id);
-        $duration = $this->_end_time - $this->_start_time;
+        $duration = ($this->_end_time - $this->_start_time) / (60 * 60 * 24);
         $this->add('hidden', 'duration', $duration);
         $this->controller->_destination = CRM_Utils_System::url('civicrm/showresourceevents',
                         ['id' => $this->_calendar_id]);
         $this->add('hidden', 'start_time', $startTime);
-        if ($this->_eventId) {
-            $this->add('hidden', 'event_id', $this->_eventId);
-        }
         if ($this->_start_time <= time()) {
             if ($this->_eventId) {
                 $this->assign('error_message', E::ts('You cannot change event that has started'));
@@ -121,24 +130,29 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
             parent::buildQuickForm();
             return;
         }
+        $resources = $this->getResources($this->_calendar_id);
+        $resource_options = [];
+        $priceSets = [];
+        foreach ($resources as $id => $res) {
+            $resource_options[$id] = $res['name'];
+        }
+        $this->add('hidden', 'resource_source', json_encode($resources));
+        if ($this->_eventId) {
+            $this->add('static', 'res_label', ts('Resource'), $this->_event['res.display_name']);
+            $this->add('hidden', 'resources', "{$this->_event['pr.contact_id']}");
+            $this->add('hidden', 'edit_url', 'civicrm/event/manage/settings?reset=1&action=update&id=' . $this->_eventId);
+        } else {
+            $this->add('select', 'resources', ts("Select Resource"), $resource_options,
+                    TRUE, ['class' => 'crm-select2',
+                'multiple' => false,
+                'placeholder' => ts('- select resource -')]);
+        }
         if ($this->_eventId) {
             CRM_Utils_System::setTitle(E::ts('Edit Resource Event'));
         } else {
             CRM_Utils_System::setTitle(E::ts('Create Resource Event'));
         }
 
-
-        $resources = $this->getResources($this->_calendar_id);
-        $resource_options = [];
-        $priceSets = [];
-        foreach ($resources as $id => $res) {
-            $resource_options[$id] = $res['name'];
-            $eventId = $this->_calendarSettings['event_template_' . $id];
-            $priceSetId = CRM_Price_BAO_PriceSet::getFor('civicrm_event', $eventId);
-            $priceSets[$id] = CRM_Price_BAO_PriceSet::getSetDetail($priceSetId);
-        }
-
-        $this->add('hidden', 'resource_source', json_encode($resources));
         $this->add('hidden', 'host_role_id', $this->_calendarSettings['host_role_id']);
         $filter = $this->_filter;
         if ($filter) {
@@ -149,14 +163,20 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
         } else {
             $this->add('hidden', 'min_start', $this->_min_start);
             $this->add('hidden', 'max_end', $this->_max_end);
-            $this->add('select', 'resources', ts("Select Resource(s)"), $resource_options,
-                    TRUE, ['class' => 'crm-select2',
-                'multiple' => $this->_superUser,
-                'placeholder' => ts('- select resource(s) -')]);
         }
 
         if ($this->_superUser) {
-            $statusses = $settings['status_labels'];
+            $resStatuses = C::getConfig('resource_status_ids');
+            $statusses = [];
+
+            $sql = "SELECT `id`,`name`,`label`
+                    FROM `civicrm_participant_status_type`
+                    WHERE `id` IN ({$resStatuses});";
+
+            $dao = CRM_Core_DAO::executeQuery($sql);
+            while ($dao->fetch()) {
+                $statusses[$dao->id] = $dao->label;
+            }
             $this->add('select', 'resource_status', ts('Select Resource Status'),
                     $statusses, FALSE, ['class' => 'crm-select2', 'multiple' => false,
                 'placeholder' => ts('- select status -')]);
@@ -179,11 +199,8 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
                         'multiple' => FALSE,
                         'placeholder' => ts('- select status -')
             ]);
-
             if (!$this->_eventId) {
-                $this->add('select', 'event_template', ts('Select template for event'),
-                        $eventTemplates, TRUE, ['class' => 'crm-select2', 'multiple' => false,
-                    'placeholder' => ts('- select template -')]);
+                $this->add('select', 'event_template', ts('Select template for event'), ['' => ts('- select -')] + $eventTemplates, FALSE, ['class' => 'crm-select2 huge']);
             }
             $this->add('text', 'event_title', ts('Event Title'), NULL, TRUE);
         } else {
@@ -213,21 +230,19 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
                     'time' => TRUE,
         ]);
 
-        $priceFieldGroups = [];
         $groupTrees = [];
-        $elementGroups = [];
-        $public = (int) CRM_Price_BAO_PriceField::getVisibilityOptionID('public');
         $baseElements = $this->getRenderableElementNames();
-        $elements = $baseElements;
-        foreach ($priceSets as $resId => $ps) {
-            $psId = array_keys($ps)[0];
+        $public = (int) CRM_Price_BAO_PriceField::getVisibilityOptionID('public');
+        if ($this->_eventId) {
+            $psId = CRM_Price_BAO_PriceSet::getFor('civicrm_event', $this->_eventId);
+            $resId = $this->_event['pr.contact_id'];
             $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
             $this->add('static',
                     'res_' . $resId . '_pre_help',
                     ts('Price info'),
-                    $ps[$psId]['help_pre']);
-            foreach ($ps[$psId]['fields'] as  $pfId => $pField) {
-                $eId = 'pf_'. $resId . '_' . $psId . '_' . $pfId;
+                    $groupTree['help_pre']);
+            foreach ($groupTree[$psId]['fields'] as $pfId => $pField) {
+                $eId = 'pf_' . $resId . '_' . $psId . '_' . $pfId;
                 $pField['elementId'] = $eId;
                 CRM_Price_BAO_PriceField::addQuickFormElement($this,
                         $eId,
@@ -235,18 +250,80 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
                         FALSE,
                 );
             }
-            $allSoFar = $this->getRenderableElementNames();
-            $groupFields = array_diff($allSoFar, $elements);
-            $priceFieldGroups['group_'. $resId] = $groupFields;
-            $elementGroups[] = 'group_'. $resId;
+            $elementGroups[] = 'group_' . $resId;
             $groupTrees[$resId] = $groupTree;
-            $elements = $allSoFar;
+        } else {
+            $eventTemplates = \Civi\Api4\Event::get(FALSE)
+                    ->addWhere('is_template', '=', TRUE)
+                    ->addWhere('is_active', '=', TRUE)
+                    ->execute()
+                    ->indexBy('id')
+                    ->column('template_title');
+            $templatePricesets = [];
+            foreach ($eventTemplates as $eId => $title) {
+                $psId = CRM_Price_BAO_PriceSet::getFor('civicrm_event', $eId);
+                if ($psId) {
+                    $templatePricesets[$eId] = $psId;
+                }
+            }
+            $resouceTemplates = [];
+            if ($this->_superUser) {
+                foreach ($templatePricesets as $tId => $psId) {
+                    if (!$psId) {
+                        continue;
+                    }
+                    $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
+                    $this->add('static',
+                            'res_' . $resId . '_pre_help',
+                            ts('Price info'),
+                            $ps[$psId]['help_pre']);
+                    foreach ($groupTree[$psId]['fields'] as $pfId => $pField) {
+                        $eId = 'pf_' . $resId . '_' . $psId . '_' . $pfId;
+                        $pField['elementId'] = $eId;
+                        CRM_Price_BAO_PriceField::addQuickFormElement($this,
+                                $eId,
+                                $pfId,
+                                FALSE,
+                        );
+                    }
+                    $elementGroups[] = 'group_' . $resId;
+                    $groupTrees[$resId] = $groupTree;
+                    $elements = $allSoFar;
+                }
+            } else {
+                $templateIds = [];
+                foreach ($resources as $resId => $res) {
+                    $templateIds[$res['template_id']] = $resId;
+                }
+                foreach ($templatePricesets as $tId => $psId) {
+                    if (!$psId || !array_key_exists($tId, $templateIds)) {
+                        continue;
+                    }
+                    $resId = $templateIds[$tId];
+                    $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
+                    $this->add('static',
+                            'res_' . $resId . '_pre_help',
+                            ts('Price info'),
+                            $ps[$psId]['help_pre']);
+                    foreach ($groupTree[$psId]['fields'] as $pfId => $pField) {
+                        $eId = 'pf_' . $resId . '_' . $psId . '_' . $pfId;
+                        $pField['elementId'] = $eId;
+                        CRM_Price_BAO_PriceField::addQuickFormElement($this,
+                                $eId,
+                                $pfId,
+                                FALSE,
+                        );
+                    }
+                    $elementGroups[] = 'group_' . $resId;
+                    $groupTrees[$resId] = $groupTree;
+                }
+            }
         }
         $this->assign('elementNames', $baseElements);
-        $this->assign('elementGroups', $elementGroups);
-        $this->assign('elementPrices', $priceFieldGroups);
+//        $this->assign('elementGroups', $elementGroups);
+//        $this->assign('elementPrices', $priceFieldGroups);
         $this->assign('groupTrees', $groupTrees);
-        $this->assign('AdminFld', $this->_superUser);
+        $this->assign('adminFld', $this->_superUser);
 
         $buttons = [
             [
@@ -263,6 +340,12 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
                 'name' => E::ts('Delete'),
                 'icon' => 'fa-trash',
             ];
+            $buttons[] = [
+                'type' => 'submit',
+                'subName' => 'edit_event',
+                'name' => E::ts('Edit Event'),
+                'icon' => 'fa-pencil',
+            ];
         }
 
 
@@ -273,7 +356,10 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
 
     public function postProcess() {
         $buttonName = $this->controller->getButtonName();
-        if (substr_compare($buttonName, 'submit', -6) === 0) {
+        if (substr_compare($buttonName, 'edit_event', -10) === 0) {
+            CRM_Utils_System::redirect(CRM_Utils_System::url('civicrm/event/manage/settings',
+                            'reset=1&action=update&id=' . $this->_eventId));
+        } else if (substr_compare($buttonName, 'submit', -6) === 0) {
             $values = $this->_submitValues;
             $resourceRole = (int) C::getConfig('resource_role_id');
             $hostRole = (int) $values['host_role_id'];
@@ -334,6 +420,36 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
                 ];
                 $participant = CRM_Event_BAO_Participant::create($params);
                 $participant->save();
+                $psId = CRM_Price_BAO_PriceSet::getFor('civicrm_event', $event->id);
+                $resId = $values['responsible_contact'];
+                $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
+                $params = [];
+                foreach ($groupTree[$psId]['fields'] as $pfId => $pField) {
+                    $eId = 'pf_' . $resource_id . '_' . $psId . '_' . $pfId;
+                    $val = $values[$eId];
+                    if ($val) {
+                       $optionsKey = array_key_first($pField['options']);
+                       $qty = (float) $val;
+                       $unitPrice = (float) $pField['options'][$optionsKey]['amount'];
+                       $lineItem = [
+                           'price_field_id' => $pfId,
+                           'price_field_value_id' => $optionsKey,
+                           'label' => $pField['label'],
+                           'title' => $pField['name'],
+                           'qty' => $qty,
+                           'unit_price' => $unitPrice,
+                           'line_total' => $qty * $unitPrice,
+                           'partipiciant_count' => 0,
+                           'html_type' => $pField['html_type'],
+                           'financial_type_id' => (int) $pField['options'][$optionsKey]['financial_type_id'],
+                           'tax_amount' => 0,
+                           'non_deductible_amount' => '0.00'
+                       ];
+                       $params[$optionsKey] = $lineItem;
+                    }
+                }
+                CRM_Price_BAO_LineItem::processPriceSet($participant->id, 
+                        [$psId => $params], null, 'civicrm_participant');
             } else if ($this->_action === 0) { // Update
                 $change = false;
                 $event = CRM_Event_BAO_Event::findById($this->_eventId);
@@ -455,6 +571,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
                 'min_start' => $min_time,
                 'max_end' => $max_time,
                 'event_title' => $template->title,
+                'template_id' => $template_id,
             ];
             $options[$dao->contact_id] = $resource;
         }
@@ -484,41 +601,37 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
 
     public function setDefaultValues() {
         $defaults = [];
+        if ($this->_superUser) {
+            $defaults['event_title'] = '';
+        } else {
+            $defaults['event_title'] = ts("Private Event");
+        }
         $calendarSettings = RCS::getAllSettings($this->_calendar_id);
         if ($this->_eventId) {
-            $event = CRM_Event_BAO_Event::findById($this->_eventId);
-            $defaults['event_title'] = $event->title;
-            $defaults['event_start_date'] = $event->start_date;
-            $defaults['event_end_date'] = $event->end_date;
+            $defaults['event_title'] = $this->_event['title'];
+            $defaults['event_start_date'] = $this->_event['start_date'];
+            $defaults['event_end_date'] = $this->_event['end_date'];
             $hostRole = $calendarSettings['host_role_id'];
             $resourceRole = C::getConfig('resource_role_id');
-            $query = "SELECT role_id, contact_id, status_id
-                        FROM `civicrm_participant` 
-                        WHERE event_id = {$this->_eventId}
-                            AND role_id in ({$hostRole},{$resourceRole})";
-            $dao = CRM_Core_DAO::executeQuery($query);
-            $resources = [];
-            while ($dao->fetch()) {
-                if ($dao->role_id === $resourceRole) {
-                    $resources[] = $dao->contact_id;
-                    $defaults['resource_status'] = $dao->status_id;
-                } else if ($dao->role_id === $hostRole) {
-                    $defaults['responsible_contact'] = $dao->contact_id;
-                    $defaults['host_status_id'] = $dao->status_id;
+            $resourceId = $this->_event['pr.contact_id'];
+            $defaults['resource_status'] = $this->_event['pr.status_id'];
+            $hostId = $defaults['responsible_contact'] = $this->_event['ph.contact_id'];
+            $defaults['host_status_id'] = $this->_event['ph.status_id'];
+            $lineItems = CRM_Price_BAO_LineItem::getLineItems($hostId, 'participant');
+            foreach ($lineItems as $key => $value) {
+                //pf_4728_49_84
+                if ($value['html_type'] === 'Select') {
+                    $defaults["pf_{$resourceId}_{$value['price_set_id']}_{$value['price_field_id']}"] = $value['price_field_value_id'];
+                } else {
+                    $defaults["pf_{$resourceId}_{$value['price_set_id']}_{$value['price_field_id']}"] = $value['qty'];
                 }
             }
-            $defaults['resources'] = $resources;
         } else {
             $defaults['event_start_date'] = date('Y-m-d H:i:s', $this->_start_time);
             $defaults['event_end_date'] = date('Y-m-d H:i:s', $this->_end_time);
             if (!$this->_filter) {
                 $defaults['resources'] = $this->_filter;
             }
-        }
-        if ($this->_superUser) {
-            $defaults['event_title'] = '';
-        } else {
-            $defaults['event_title'] = ts("Private Event");
         }
         return $defaults;
     }
