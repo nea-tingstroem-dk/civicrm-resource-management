@@ -60,6 +60,25 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
             $this->add('select', 'resources', ts("Select Resource(s)"), $resource_list,
                     FALSE, ['class' => 'crm-select2', 'multiple' => TRUE,
                 'placeholder' => ts('- select resource(s) -')]);
+            $options = \Civi\Api4\OptionGroup::get(FALSE)
+                    ->addSelect('ov.value', 'ov.label')
+                    ->addJoin('OptionValue AS ov', 'LEFT', ['id', '=', 'ov.option_group_id'])
+                    ->addWhere('name', '=', 'participant_role')
+                    ->addOrderBy('ov.label', 'ASC')
+                    ->execute();
+            $roleOptions = [];
+            foreach ($options as $option) {
+                $roleOptions[$option['ov.value']] = $option['ov.label'];
+            }
+            $this->add('select',
+                    'cs_resource_role_id', ts("Select Resource Role"),
+                    $roleOptions,
+                    TRUE,
+                    [
+                        'class' => 'crm-select2',
+                        'multiple' => FALSE,
+                        'placeholder' => ts('- select role -')
+            ]);
 
             if ($this->action === CRM_Core_Action::UPDATE) {
 
@@ -158,7 +177,7 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
     }
 
     public function postProcess() {
-        $submitted = $this->exportValues();
+        $submitted = $this->_submitValues;
         $settings = [];
         $this->_calendar_type = $submitted['calendar_type'];
         foreach ($submitted as $key => $value) {

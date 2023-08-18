@@ -31,34 +31,6 @@ class CRM_ResourceManagement_Form_AdminResourceManagement extends CRM_Core_Form 
                     'multiple' => TRUE,
                     'placeholder' => ts('- select type(s) -')
         ]);
-        $roleOptions = [];
-        $sql = "SELECT `id`,`option_group_id`,`label`,`value`,`name`
-                FROM `civicrm_option_value`
-                WHERE option_group_id = 
-                (SELECT id FROM `civicrm_option_group` 
-                WHERE name = 'participant_role');";
-        $dao = CRM_Core_DAO::executeQuery($sql);
-        while ($dao->fetch()) {
-            $roleOptions[$dao->value] = $dao->label;
-        }
-        $this->add('select',
-                'resource_role_id', ts("Select Resource Role"),
-                $roleOptions,
-                TRUE,
-                [
-                    'class' => 'crm-select2',
-                    'multiple' => FALSE,
-                    'placeholder' => ts('- select role -')
-        ]);
-//        $this->add('select',
-//                'host_role_id', ts("Select Host Role"),
-//                $roleOptions,
-//                TRUE,
-//                [
-//                    'class' => 'crm-select2',
-//                    'multiple' => FALSE,
-//                    'placeholder' => ts('- select role -')
-//        ]);
         $statusOptions = [];
         $sql = "SELECT `id`,`label`,`name`
                 FROM `civicrm_participant_status_type`;";

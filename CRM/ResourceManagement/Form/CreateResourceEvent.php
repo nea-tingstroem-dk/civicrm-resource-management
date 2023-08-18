@@ -400,23 +400,23 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
                 $params['is_map'] = FALSE;
                 if (isset($values['event_title'])) {
                     $params['title'] = $values['event_title'];
+                } else {
+                    $params['title'] = $template->title; // to avoid it is using template_title
                 }
                 $params = array_merge(CRM_Event_BAO_Event::getTemplateDefaultValues($template_id), $params);
                 $event = CRM_Event_BAO_Event::copy($template_id, $params);
                 $event->is_template = 0;
                 $event->update();
 
-                foreach ($values['resources'] as $res_id) {
-                    $params = [
-                        'register_date' => $today,
-                        'role_id' => $resourceRole,
-                        'contact_id' => $res_id,
-                        'event_id' => $event->id,
-                        'status_id' => isset($values['resource_status']) ? $values['resource_status'] : $statuses[0],
-                    ];
-                    $participant = CRM_Event_BAO_Participant::create($params);
-                    $participant->save();
-                }
+                $params = [
+                    'register_date' => $today,
+                    'role_id' => $resourceRole,
+                    'contact_id' => $values['resources'],
+                    'event_id' => $event->id,
+                    'status_id' => isset($values['resource_status']) ? $values['resource_status'] : $statuses[0],
+                ];
+                $participant = CRM_Event_BAO_Participant::create($params);
+                $participant->save();
                 $params = [
                     'register_date' => $today,
                     'role_id' => $hostRole,
