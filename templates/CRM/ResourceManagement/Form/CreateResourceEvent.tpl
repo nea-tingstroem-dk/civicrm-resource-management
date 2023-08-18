@@ -12,15 +12,14 @@
     </div>
 {/foreach}
 
-<div class="crm-block-crm-form-block">
-{foreach from=$groupTrees key="resId" item="priceSets"}
-    <div class="crm-section hidden" id="grp_{$resId}">
+{foreach from=$groupTrees key="eventId" item="priceSets"}
+    <div class="crm-section hidden" id="grp_{$eventId}" name="pricegroup">
         {foreach from=$priceSets key="psId" item="priceSet"}
             <div class="messages help">{$priceSet.help_pre}</div>
             {foreach from=$priceSet.fields key="fieldId" item="element"}
                 {* Skip 'Admin' visibility price fields WHEN this tpl is used in online registration unless user has administer CiviCRM permission. *}
                 {if $element.visibility EQ 'public' || ($element.visibility EQ 'admin' && $adminFld EQ true)}
-                    {assign var="element_name" value="pf_"|cat:$resId|cat:"_"|cat:$psId|cat:"_"|cat:$fieldId}
+                    {assign var="element_name" value="pf_"|cat:$eventId|cat:"_"|cat:$psId|cat:"_"|cat:$fieldId}
                     {if ($element.html_type eq 'CheckBox' || $element.html_type == 'Radio') && $element.options_per_line}
                       <div class="label">{$form.$element_name.label}</div>
                       <div class="content {$element.name}-content">
@@ -86,7 +85,7 @@
         {/foreach}
     </div>
 {/foreach}
-</div>
+
 {* FOOTER *}
 <div class="crm-submit-buttons">
     {include file="CRM/common/formButtons.tpl" location="bottom"}
@@ -94,78 +93,87 @@
 
 {literal}<script type="text/javascript">
     CRM.$(function ($) {
-      const start_str = $('input[name=start_date]').val();
-      const end_str = $('input[name=end_date]').val();
-      const resources = JSON.parse($('input[name=resource_source]').val());
-      const start_date = new Date(Date.parse(start_str));
-      const end_date = new Date(Date.parse(end_str));
-      $('#resources').change(function () {
-        let min_start = Date.now();
-        let max_end = start_date;
-        for (key in resources) {
-            $('#grp_'+key).hide();
-        }
-        if ($(this).val()) {
-          let res_id = $(this).val();
-          $('#grp_'+res_id).show();
-          let obj = resources[res_id];
-          let min = Date.parse(obj.min_start);
-          let max = Date.parse(obj.max_end);
-          min_start = Math.max(min, min_start);
-          max_end = Math.min(max, max_end);
-        } else {
-          for (key in resources) {
-            let obj = resources[key];
-            let min = Date.parse(obj.min_start);
-            let max = Date.parse(obj.max_end);
-            min_start = Math.max(min, min_start);
-            max_end = Math.min(max, max_end);
-          }
-        }
-        let startPick = CRM.$('#event_start_date');
-      });
-      $('#event_start_date').change(function () {
-        if (moment($(this).val()).diff($('input[name=min_start]').val(), 'seconds') < 0) {
-          alert(ts('Erliest start is ' + $('input[name=min_start]').val()));
-          $('#event_start_date').val($('input[name=min_start]').val()).trigger('change');
-          return;
-        }
-        const start = new Date($(this).val());
-        var seconds = parseInt($('input[name=duration]').val());
-        const end_date_dur = moment(start).add(seconds, 's');
-//        if (end_date_dur.diff($('input[name=max_end'), 'seconds') > 0) {
-//          ('#event_end_date').val($('input[name=max_end')).trigger('change');
-//        } else {
-//          $('#event_end_date').val(end_date_dur.format("YYYY-MM-DD HH:mm:ss")).trigger('change');
-//        }
-      });
-      $('#CreateResourceEvent').on('submit', (function (event) {
-        if (event.originalEvent.submitter.classList.contains('validate') &&
-                !event.originalEvent.submitter.name.endsWith('submit_delete')) {
-          var emptyFields = '';
-          var z = $('.required');
-          for (let i = 0; i < z.length; i++) {
-            if (!z[i].value) {
-              var lab = $('label[for="' + z[i].id + '"]').text();
-              if (lab) {
-                emptyFields += (emptyFields ? ' "' : '"') + lab.replace('*', '').trim() + '"';
-              }
+        const start_str = $('input[name=start_date]').val();
+        const end_str = $('input[name=end_date]').val();
+        const resources = JSON.parse($('input[name=resource_source]').val());
+        const start_date = new Date(Date.parse(start_str));
+        const end_date = new Date(Date.parse(end_str));
+        $('#resources').change(function () {
+            let min_start = Date.now();
+            let max_end = start_date;
+            let res_id = $(this).val();
+            if (res_id !== '') {
+                $.each($("div[name='pricegroup'"), function(k, el){
+                    $("#"+el.id).hide();
+                });
+                var tId = resources[res_id].template_id;
+                $('#event_template').val(tId);
+                $('#event_template').change();
+                $('#grp_'+tId).show();
+                let obj = resources[res_id];
+                let min = Date.parse(obj.min_start);
+                let max = Date.parse(obj.max_end);
+                min_start = Math.max(min, min_start);
+                max_end = Math.min(max, max_end);
+            } else {
+                for (key in resources) {
+                    let obj = resources[key];
+                    let min = Date.parse(obj.min_start);
+                    let max = Date.parse(obj.max_end);
+                    min_start = Math.max(min, min_start);
+                    max_end = Math.min(max, max_end);
+                }
             }
-            ;
+            let startPick = CRM.$('#event_start_date');
+        });
+        $('#event_template').change(function () {
+            $.each($("div[name='pricegroup'"), function(k, el){
+                $("#"+el.id).hide();
+            });
+            $('#grp_' + $(this).val()).show();
+        });
+        $('#event_start_date').change(function () {
+          if (moment($(this).val()).diff($('input[name=min_start]').val(), 'seconds') < 0) {
+            alert(ts('Erliest start is ' + $('input[name=min_start]').val()));
+            $('#event_start_date').val($('input[name=min_start]').val()).trigger('change');
+            return;
           }
-          if (emptyFields) {
-            event.preventDefault();
-            alert(ts('Please fill fields: ' + emptyFields, ts('Missing values')));
+          const start = new Date($(this).val());
+          var seconds = parseInt($('input[name=duration]').val());
+          const end_date_dur = moment(start).add(seconds, 's');
+  //        if (end_date_dur.diff($('input[name=max_end'), 'seconds') > 0) {
+  //          ('#event_end_date').val($('input[name=max_end')).trigger('change');
+  //        } else {
+  //          $('#event_end_date').val(end_date_dur.format("YYYY-MM-DD HH:mm:ss")).trigger('change');
+  //        }
+        });
+        $('#CreateResourceEvent').on('submit', (function (event) {
+          if (event.originalEvent.submitter.classList.contains('validate') &&
+                  !event.originalEvent.submitter.name.endsWith('submit_delete')) {
+            var emptyFields = '';
+            var z = $('.required');
+            for (let i = 0; i < z.length; i++) {
+              if (!z[i].value) {
+                var lab = $('label[for="' + z[i].id + '"]').text();
+                if (lab) {
+                  emptyFields += (emptyFields ? ' "' : '"') + lab.replace('*', '').trim() + '"';
+                }
+              }
+              ;
+            }
+            if (emptyFields) {
+              event.preventDefault();
+              alert(ts('Please fill fields: ' + emptyFields, ts('Missing values')));
+            }
           }
-        }
-      }));
-      $('#event_end_date').change(function () {
-        if (moment($(this).val()).diff($('input[name=max_end]').val(), 'seconds') > 0) {
-          alert(ts('Latest end is ' + $('input[name=max_end]').val()));
-          $('#event_end_date').val($('input[name=max_end]').val()).trigger('change');
-          return;
-        }
-      });
+        }));
+        $('#event_end_date').change(function () {
+          if (moment($(this).val()).diff($('input[name=max_end]').val(), 'seconds') > 0) {
+            alert(ts('Latest end is ' + $('input[name=max_end]').val()));
+            $('#event_end_date').val($('input[name=max_end]').val()).trigger('change');
+            return;
+          }
+        });
         $('button').click(function (event) {
           if ($(this)[0].name.endsWith('delete') && $(this).val() == "1") {
             event.preventDefault();
@@ -187,11 +195,12 @@
               $(location).attr('href', url);
           }
         });
-      var id = $('input[name=resources]').val();
-      if (id) {
-        $('#grp_'+id).show();
-      } else {
-        $('#resources').change();
-      }
+        var id = $('input[name=resources]').val();
+        if (id) {
+          var tId = resources[id].template_id;
+          $('#grp_'+tId).show();
+        } else {
+          $('#resources').change();
+        }
     });
-    </script>{/literal}
+</script>{/literal}
