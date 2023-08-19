@@ -200,15 +200,15 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
                         'placeholder' => ts('- select status -')
             ]);
             if (!$this->_eventId) {
-            $eventTemplates = \Civi\Api4\Event::get(FALSE)
-                    ->addWhere('is_template', '=', TRUE)
-                    ->addWhere('is_active', '=', TRUE)
-                    ->execute()
-                    ->indexBy('id')
-                    ->column('template_title');
-                $this->add('select', 
-                        'event_template', 
-                        ts('Select template for event'), 
+                $eventTemplates = \Civi\Api4\Event::get(FALSE)
+                        ->addWhere('is_template', '=', TRUE)
+                        ->addWhere('is_active', '=', TRUE)
+                        ->execute()
+                        ->indexBy('id')
+                        ->column('template_title');
+                $this->add('select',
+                        'event_template',
+                        ts('Select template for event'),
                         ['' => ts('- select -')] + $eventTemplates, FALSE, ['class' => 'crm-select2 huge']);
             }
             $this->add('text', 'event_title', ts('Event Title'), NULL, TRUE);
@@ -244,24 +244,26 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
         $public = (int) CRM_Price_BAO_PriceField::getVisibilityOptionID('public');
         if ($this->_eventId) {
             $psId = CRM_Price_BAO_PriceSet::getFor('civicrm_event', $this->_eventId);
-            $eventId = $this->_eventId;
-            $resId = $this->_event['pr.contact_id'];
-            $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
-            $this->add('static',
-                    'res_' . $eventId . '_pre_help',
-                    ts('Price info'),
-                    $groupTree['help_pre']);
-            foreach ($groupTree[$psId]['fields'] as $pfId => $pField) {
-                $eId = 'pf_' . $eventId . '_' . $psId . '_' . $pfId;
-                $pField['elementId'] = $eId;
-                CRM_Price_BAO_PriceField::addQuickFormElement($this,
-                        $eId,
-                        $pfId,
-                        FALSE,
-                );
+            if ($psId) {
+                $eventId = $this->_eventId;
+                $resId = $this->_event['pr.contact_id'];
+                $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
+                $this->add('static',
+                        'res_' . $eventId . '_pre_help',
+                        ts('Price info'),
+                        $groupTree['help_pre']);
+                foreach ($groupTree[$psId]['fields'] as $pfId => $pField) {
+                    $eId = 'pf_' . $eventId . '_' . $psId . '_' . $pfId;
+                    $pField['elementId'] = $eId;
+                    CRM_Price_BAO_PriceField::addQuickFormElement($this,
+                            $eId,
+                            $pfId,
+                            FALSE,
+                    );
+                }
+                $elementGroups[] = 'group_' . $eventId;
+                $groupTrees[$eventId] = $groupTree;
             }
-            $elementGroups[] = 'group_' . $eventId;
-            $groupTrees[$eventId] = $groupTree;
         } else {
             $eventTemplates = \Civi\Api4\Event::get(FALSE)
                     ->addWhere('is_template', '=', TRUE)
@@ -276,56 +278,25 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
                     $templatePricesets[$eId] = $psId;
                 }
             }
-            $resouceTemplates = [];
-            if ($this->_superUser) {
-                foreach ($templatePricesets as $tId => $psId) {
-                    if (!$psId) {
-                        continue;
-                    }
-                    $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
-                    $this->add('static',
-                            'res_' . $tId . '_pre_help',
-                            ts('Price info'),
-                            $ps[$psId]['help_pre']);
-                    foreach ($groupTree[$psId]['fields'] as $pfId => $pField) {
-                        $eId = 'pf_' . $tId . '_' . $psId . '_' . $pfId;
-                        $pField['elementId'] = $eId;
-                        CRM_Price_BAO_PriceField::addQuickFormElement($this,
-                                $eId,
-                                $pfId,
-                                FALSE,
-                        );
-                    }
-                    $elementGroups[] = 'group_' . $tId;
-                    $groupTrees[$tId] = $groupTree;
+            foreach ($resources as $resId => $res) {
+                $tId = $res['template_id'];
+                $psId = $templatePricesets[$tId];
+                $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
+                $this->add('static',
+                        'res_' . $tId . '_pre_help',
+                        ts('Price info'),
+                        $ps[$psId]['help_pre']);
+                foreach ($groupTree[$psId]['fields'] as $pfId => $pField) {
+                    $eId = 'pf_' . $tId . '_' . $psId . '_' . $pfId;
+                    $pField['elementId'] = $eId;
+                    CRM_Price_BAO_PriceField::addQuickFormElement($this,
+                            $eId,
+                            $pfId,
+                            FALSE,
+                    );
                 }
-            } else {
-                $templateIds = [];
-                foreach ($resources as $resId => $res) {
-                    $templateIds[$res['template_id']] = $resId;
-                }
-                foreach ($templatePricesets as $tId => $psId) {
-                    if (!$psId || !array_key_exists($tId, $templateIds)) {
-                        continue;
-                    }
-                    $resId = $templateIds[$tId];
-                    $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
-                    $this->add('static',
-                            'res_' . $tId . '_pre_help',
-                            ts('Price info'),
-                            $ps[$psId]['help_pre']);
-                    foreach ($groupTree[$psId]['fields'] as $pfId => $pField) {
-                        $eId = 'pf_' . $tId . '_' . $psId . '_' . $pfId;
-                        $pField['elementId'] = $eId;
-                        CRM_Price_BAO_PriceField::addQuickFormElement($this,
-                                $eId,
-                                $pfId,
-                                FALSE,
-                        );
-                    }
-                    $elementGroups[] = 'group_' . $tId;
-                    $groupTrees[$tId] = $groupTree;
-                }
+                $elementGroups[] = 'group_' . $tId;
+                $groupTrees[$tId] = $groupTree;
             }
         }
         $this->assign('elementNames', $baseElements);
@@ -434,29 +405,29 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
                     $eId = 'pf_' . $resource_id . '_' . $psId . '_' . $pfId;
                     $val = $values[$eId];
                     if ($val) {
-                       $optionsKey = array_key_first($pField['options']);
-                       $qty = (float) $val;
-                       $unitPrice = (float) $pField['options'][$optionsKey]['amount'];
-                       $lineItem = [
-                           'price_field_id' => $pfId,
-                           'price_field_value_id' => $optionsKey,
-                           'label' => $pField['label'],
-                           'title' => $pField['name'],
-                           'qty' => $qty,
-                           'unit_price' => $unitPrice,
-                           'line_total' => $qty * $unitPrice,
-                           'partipiciant_count' => 0,
-                           'html_type' => $pField['html_type'],
-                           'financial_type_id' => (int) $pField['options'][$optionsKey]['financial_type_id'],
-                           'tax_amount' => 0,
-                           'non_deductible_amount' => '0.00'
-                       ];
-                       $params[$optionsKey] = $lineItem;
+                        $optionsKey = array_key_first($pField['options']);
+                        $qty = (float) $val;
+                        $unitPrice = (float) $pField['options'][$optionsKey]['amount'];
+                        $lineItem = [
+                            'price_field_id' => $pfId,
+                            'price_field_value_id' => $optionsKey,
+                            'label' => $pField['label'],
+                            'title' => $pField['name'],
+                            'qty' => $qty,
+                            'unit_price' => $unitPrice,
+                            'line_total' => $qty * $unitPrice,
+                            'partipiciant_count' => 0,
+                            'html_type' => $pField['html_type'],
+                            'financial_type_id' => (int) $pField['options'][$optionsKey]['financial_type_id'],
+                            'tax_amount' => 0,
+                            'non_deductible_amount' => '0.00'
+                        ];
+                        $params[$optionsKey] = $lineItem;
                     }
                 }
                 if (!empty($params)) {
-                CRM_Price_BAO_LineItem::processPriceSet($participant->id, 
-                        [$psId => $params], null, 'civicrm_participant');
+                    CRM_Price_BAO_LineItem::processPriceSet($participant->id,
+                            [$psId => $params], null, 'civicrm_participant');
                 }
             } else if ($this->_action === 0) { // Update
                 $change = false;
@@ -476,45 +447,34 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
                 if ($change) {
                     $event->save();
                 }
-                $resources = [];
-                $toDelete = [];
-                foreach ($values['resources'] as $res) {
-                    $resources[(int) $res] = $res;
-                }
                 $participant = new CRM_Event_BAO_Participant();
                 $participant->event_id = $this->_eventId;
                 $participant->role_id = $resourceRole;
                 $participant->find();
                 while ($participant->fetch()) {
-                    if (($key = array_search($participant->contact_id, $resources))) {
-                        unset($resources[$key]);
+                    if ($participant->contact_id === $values['resources']) {
                         if ($participant->status_id != $values['resource_status']) {
                             $participant->status_id = $values['resource_status'];
                             $participant->save();
                         }
-                    } else {
-                        $toDelete[] = $participant->id;
-                    }
-                }
-                foreach ($resources as $res) {
-                    $params = [
-                        'register_date' => $today,
-                        'role_id' => $resourceRole,
-                        'contact_id' => $res,
-                        'event_id' => $event->id,
-                        'status_id' => isset($values['resource_status']) ? $values['resource_status'] : $statuses[0],
-                    ];
-                    $participant = CRM_Event_BAO_Participant::create($params);
-                    $participant->save();
+                    } 
                 }
                 $host = new CRM_Event_BAO_Participant();
                 $host->event_id = $event->id;
                 $host->role_id = $hostRole;
                 $host->find();
                 while ($host->fetch()) {
+                    $change = FALSE;
                     if ($host->contact_id != (int) $values['responsible_contact']) {
                         $host->contact_id = (int) $values['responsible_contact'];
+                        $change = TRUE;
                         $host->register_date = $today;
+                    }
+                    if ($host->status_id != (int) $values['host_status']) {
+                        $host->status_id = $values['host_status'];
+                        $change = TRUE;
+                    }
+                    if ($change) {
                         $host->save();
                     }
                 }

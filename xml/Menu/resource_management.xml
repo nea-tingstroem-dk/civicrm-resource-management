@@ -25,6 +25,12 @@
     <access_arguments>access CiviEvent</access_arguments>
   </item>
   <item>
+    <path>civicrm/ajax/event-pricefields</path>
+    <page_callback>CRM_ResourceManagement_Page_AJAX::getPricefieldsForEvent</page_callback>
+    <title>AJAX</title>s
+    <access_arguments>access CiviEvent</access_arguments>
+  </item>
+  <item>
     <path>civicrm/book-resource</path>
     <page_callback>CRM_ResourceManagement_Form_CreateResourceEvent</page_callback>
     <title>CreateResourceEvent</title>

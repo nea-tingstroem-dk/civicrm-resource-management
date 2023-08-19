@@ -41,9 +41,9 @@ class CRM_ResourceManagement_Page_AJAX {
         $responsibleRoleId = $settings['host_role_id'];
 
         $eventsGet = \Civi\Api4\Event::get(FALSE)
-                ->addSelect('id', 'title', 'start_date', 'end_date', 
-                        'ph.contact_id', 'pr.contact_id', 'pr.status_id', 
-                        'res.display_name', 
+                ->addSelect('id', 'title', 'start_date', 'end_date',
+                        'ph.contact_id', 'pr.contact_id', 'pr.status_id',
+                        'res.display_name',
                         'host.display_name')
                 ->addJoin('Participant AS pr', 'INNER', ['id', '=', 'pr.event_id'])
                 ->addJoin('Participant AS ph', 'LEFT', ['id', '=', 'ph.event_id'], ['ph.role_id', '=', $responsibleRoleId])
@@ -68,8 +68,8 @@ class CRM_ResourceManagement_Page_AJAX {
             $eventsGet->addWhere('e.is_public', '=', 1);
         }
 
-        $eventCalendarParams = array('title' => 'title', 
-            'start_date' => 'start', 
+        $eventCalendarParams = array('title' => 'title',
+            'start_date' => 'start',
             'end_date' => 'end');
         $events = [];
         $eventsArray = $eventsGet->execute();
@@ -87,12 +87,23 @@ class CRM_ResourceManagement_Page_AJAX {
             $color = $settings['status_colors'][$event['pr.status_id']];
             $eventData['backgroundColor'] = "#{$color}";
             $eventData['textColor'] = self::_getContrastTextColor($eventData['backgroundColor']);
-            $eventData['title'] .= "\n" . $event['res.display_name'] . 
+            $eventData['title'] .= "\n" . $event['res.display_name'] .
                     "\n" . $event['host.display_name'];
 
             $events[] = $eventData;
         }
         CRM_Utils_JSON::output($events);
+    }
+
+    public static function getPricefieldsForEvent() {
+        $eId = CRM_Utils_Request::retrieve('event_id', 'Integer');
+        $psId = CRM_Price_BAO_PriceSet::getFor('civicrm_event', $eId);
+        $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
+        $result = [];
+        foreach ($groupTree[$psId]['fields'] as $pfId => $pField) {
+            $result[$pfId] = $pField['label'];
+        }
+        CRM_Utils_JSON::output($result);
     }
 
     public static function getResourceCalendarSettings($calendarId) {

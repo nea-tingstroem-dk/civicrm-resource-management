@@ -37,7 +37,7 @@ SET FOREIGN_KEY_CHECKS=1;
 -- * FIXME
 -- *
 -- *******************************************************/
-CREATE TABLE `civicrm_resource_calendar` (
+CREATE TABLE IF NOT EXISTS `civicrm_resource_calendar` (
   `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'Unique ResourceCalendar ID',
   `calendar_title` varchar(255) COMMENT 'Calendar Title',
   `calendar_type` varchar(64) COMMENT 'Null or calendar type name',
@@ -52,7 +52,7 @@ ENGINE=InnoDB;
 -- * FIXME
 -- *
 -- *******************************************************/
-CREATE TABLE `civicrm_resource_calendar_color` (
+CREATE TABLE IF NOT EXISTS `civicrm_resource_calendar_color` (
   `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'Unique ResourceCalendarColor ID',
   `calendar_id` int unsigned COMMENT 'FK to ResourceCalendar',
   `status_id` int unsigned COMMENT 'Resource participant status ID',
@@ -69,7 +69,7 @@ ENGINE=InnoDB;
 -- * FIXME
 -- *
 -- *******************************************************/
-CREATE TABLE `civicrm_resource_calendar_participant` (
+CREATE TABLE IF NOT EXISTS `civicrm_resource_calendar_participant` (
   `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'Unique ResourceCalendarParticipant ID',
   `resource_calendar_id` int unsigned COMMENT 'FK to Resource Calendar',
   `contact_id` int unsigned COMMENT 'FK to Contact',
@@ -87,7 +87,7 @@ ENGINE=InnoDB;
 -- * FIXME
 -- *
 -- *******************************************************/
-CREATE TABLE `civicrm_resource_calendar_settings` (
+CREATE TABLE IF NOT EXISTS `civicrm_resource_calendar_settings` (
   `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'Unique ResourceCalendarSettings ID',
   `calendar_id` int unsigned COMMENT 'FK to ResourceCalendar',
   `config_key` varchar(20) NOT NULL COMMENT 'Configuration key',
@@ -105,7 +105,7 @@ ENGINE=InnoDB;
 -- * FIXME
 -- *
 -- *******************************************************/
-CREATE TABLE `civicrm_resource_configuration` (
+CREATE TABLE IF NOT EXISTS `civicrm_resource_configuration` (
   `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'Unique ResourceConfiguration ID',
   `config_key` varchar(20) NOT NULL COMMENT 'Configuration key',
   `config_value` varchar(256) COMMENT 'Configuration value',
