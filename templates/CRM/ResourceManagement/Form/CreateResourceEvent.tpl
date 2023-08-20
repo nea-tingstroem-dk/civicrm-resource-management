@@ -98,6 +98,24 @@
         const resources = JSON.parse($('input[name=resource_source]').val());
         const start_date = new Date(Date.parse(start_str));
         const end_date = new Date(Date.parse(end_str));
+        function calculate() {
+            let res_id = $('input[name=resources]').val();
+            let start = new Date($('#event_start_date').val());
+            let end = new Date($('#event_end_date').val());
+            let ms = end.getTime()-start.getTime();
+            let interval = $('input[name=price_period_'+res_id+']').val();
+            let factor = parseFloat($('input[name=price_factor_'+res_id+']').val());
+            var dur = 0.0;
+            if (interval === 'days') {
+                dur = ms/ (1000 * 3600 * 24);
+            } else {
+                dur = ms / (1000 * 3600);
+            }
+            var qty = Math.floor((dur + factor - 0.0001) / factor) * factor;
+            let field = $('input[name=price_field_'+res_id+']').val();
+            $('#'+field).val(qty);
+            $('#'+field).change();
+        };
         $('#resources').change(function () {
             let min_start = Date.now();
             let max_end = start_date;
@@ -140,12 +158,7 @@
           }
           const start = new Date($(this).val());
           var seconds = parseInt($('input[name=duration]').val());
-          const end_date_dur = moment(start).add(seconds, 's');
-  //        if (end_date_dur.diff($('input[name=max_end'), 'seconds') > 0) {
-  //          ('#event_end_date').val($('input[name=max_end')).trigger('change');
-  //        } else {
-  //          $('#event_end_date').val(end_date_dur.format("YYYY-MM-DD HH:mm:ss")).trigger('change');
-  //        }
+          calculate();
         });
         $('#CreateResourceEvent').on('submit', (function (event) {
           if (event.originalEvent.submitter.classList.contains('validate') &&
@@ -171,8 +184,8 @@
           if (moment($(this).val()).diff($('input[name=max_end]').val(), 'seconds') > 0) {
             alert(ts('Latest end is ' + $('input[name=max_end]').val()));
             $('#event_end_date').val($('input[name=max_end]').val()).trigger('change');
-            return;
           }
+          calculate();
         });
         $('button').click(function (event) {
           if ($(this)[0].name.endsWith('delete') && $(this).val() == "1") {
@@ -195,12 +208,17 @@
               $(location).attr('href', url);
           }
         });
-        var id = $('input[name=resources]').val();
-        if (id) {
-          var tId = resources[id].template_id;
-          $('#grp_'+tId).show();
+        var eId = $("[name=event_id]").val();
+        if (eId) {
+            $('#grp_'+eId).show();
         } else {
-          $('#resources').change();
+            var id = $('input[name=resources]').val();
+            if (id) {
+              var tId = resources[id].template_id;
+              $('#grp_'+tId).show();
+            } else {
+              $('#resources').change();
+            }
         }
     });
 </script>{/literal}

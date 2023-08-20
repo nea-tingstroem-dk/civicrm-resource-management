@@ -42,9 +42,11 @@ class CRM_ResourceManagement_Page_AJAX {
 
         $eventsGet = \Civi\Api4\Event::get(FALSE)
                 ->addSelect('id', 'title', 'start_date', 'end_date',
-                        'ph.contact_id', 'pr.contact_id', 'pr.status_id',
+                        'ph.contact_id', 'ph.status_id:label',
+                        'pr.contact_id', 'pr.status_id',
                         'res.display_name',
-                        'host.display_name')
+                        'host.display_name',
+                        'host.external_identifier')
                 ->addJoin('Participant AS pr', 'INNER', ['id', '=', 'pr.event_id'])
                 ->addJoin('Participant AS ph', 'LEFT', ['id', '=', 'ph.event_id'], ['ph.role_id', '=', $responsibleRoleId])
                 ->addJoin('Contact AS res', 'LEFT', ['pr.contact_id', '=', 'res.id'])
@@ -88,7 +90,11 @@ class CRM_ResourceManagement_Page_AJAX {
             $eventData['backgroundColor'] = "#{$color}";
             $eventData['textColor'] = self::_getContrastTextColor($eventData['backgroundColor']);
             $eventData['title'] .= "\n" . $event['res.display_name'] .
-                    "\n" . $event['host.display_name'];
+                    "\n" . $event['host.external_identifier'] . ' ' . 
+                    $event['host.display_name'];
+            if ($superUser) {
+                $eventData['title'] .= "\n" . $event['ph.status_id:label'];
+            }
 
             $events[] = $eventData;
         }

@@ -57,7 +57,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
                     ->addSelect('id', 'title', 'start_date', 'end_date',
                             'pr.contact_id', 'pr.role_id', 'pr.status_id',
                             'res.display_name',
-                            'ph.contact_id', 'ph.role_id', 'ph.status_id',
+                            'ph.id', 'ph.contact_id', 'ph.role_id', 'ph.status_id',
                             'host.display_name')
                     ->addJoin('Participant AS pr', 'INNER', ['id', '=', 'pr.event_id'], ['pr.role_id', '=', 5])
                     ->addJoin('Contact AS res', 'LEFT', ['pr.contact_id', '=', 'res.id'])
@@ -138,6 +138,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
         }
         $this->add('hidden', 'resource_source', json_encode($resources));
         if ($this->_eventId) {
+            $this->add('hidden', 'event_id', $this->_eventId);
             $this->add('static', 'res_label', ts('Resource'), $this->_event['res.display_name']);
             $this->add('hidden', 'resources', "{$this->_event['pr.contact_id']}");
             $this->add('hidden', 'edit_url', 'civicrm/event/manage/settings?reset=1&action=update&id=' . $this->_eventId);
@@ -263,6 +264,15 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
                 }
                 $elementGroups[] = 'group_' . $eventId;
                 $groupTrees[$eventId] = $groupTree;
+                if (isset($this->_calendarSettings["price_calc_{$resId}"]) &&
+                    isset($this->_calendarSettings["price_field_{$resId}"]) &&
+                    isset($this->_calendarSettings["price_qty_{$resId}"])) {
+                    $this->add('hidden', "price_field_{$resId}", 
+                            'pf_' . $eventId . '_' . $psId . '_' . $this->_calendarSettings["price_field_{$resId}"]);
+                    $calcParms = explode('_', $this->_calendarSettings["price_qty_{$resId}"]);
+                    $this->add('hidden', "price_period_{$resId}", $calcParms[0]);
+                    $this->add('hidden', "price_factor_{$resId}", $calcParms[1]);
+                }
             }
         } else {
             $eventTemplates = \Civi\Api4\Event::get(FALSE)
@@ -294,6 +304,14 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
                             $pfId,
                             FALSE,
                     );
+                }
+                if (isset($this->_calendarSettings["price_calc_{$resId}"]) &&
+                    isset($this->_calendarSettings["price_field_{$resId}"]) &&
+                    isset($this->_calendarSettings["price_qty_{$resId}"])) {
+                    $this->add('hidden', "price_field_{$resId}", $this->_calendarSettings["price_field_{$resId}"]);
+                    $calcParms = explode('_', $this->_calendarSettings["price_qty_{$resId}"]);
+                    $this->add('hidden', "price_period_{$resId}", $calcParms[0]);
+                    $this->add('hidden', "price_factor_{$resId}", $calcParms[1]);
                 }
                 $elementGroups[] = 'group_' . $tId;
                 $groupTrees[$tId] = $groupTree;
@@ -402,7 +420,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
                 $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
                 $params = [];
                 foreach ($groupTree[$psId]['fields'] as $pfId => $pField) {
-                    $eId = 'pf_' . $resource_id . '_' . $psId . '_' . $pfId;
+                    $eId = 'pf_' . $template_id . '_' . $psId . '_' . $pfId;
                     $val = $values[$eId];
                     if ($val) {
                         $optionsKey = array_key_first($pField['options']);
@@ -470,8 +488,8 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
                         $change = TRUE;
                         $host->register_date = $today;
                     }
-                    if ($host->status_id != (int) $values['host_status']) {
-                        $host->status_id = $values['host_status'];
+                    if ((int) $host->status_id != (int) $values['host_status_id']) {
+                        $host->status_id = $values['host_status_id'];
                         $change = TRUE;
                     }
                     if ($change) {
@@ -482,6 +500,38 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
                     $d = CRM_Event_BAO_Participant::findById($id);
                     $d->delete();
                 }
+                $psId = CRM_Price_BAO_PriceSet::getFor('civicrm_event', $event->id);
+                $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
+                $params = [];
+                foreach ($groupTree[$psId]['fields'] as $pfId => $pField) {
+                    $eId = 'pf_' . $this->_eventId . '_' . $psId . '_' . $pfId;
+                    $val = $values[$eId];
+                    if ($val) {
+                        $optionsKey = array_key_first($pField['options']);
+                        $qty = (float) $val;
+                        $unitPrice = (float) $pField['options'][$optionsKey]['amount'];
+                        $lineItem = [
+                            'price_field_id' => $pfId,
+                            'price_field_value_id' => $optionsKey,
+                            'label' => $pField['label'],
+                            'title' => $pField['name'],
+                            'qty' => $qty,
+                            'unit_price' => $unitPrice,
+                            'line_total' => $qty * $unitPrice,
+                            'partipiciant_count' => 0,
+                            'html_type' => $pField['html_type'],
+                            'financial_type_id' => (int) $pField['options'][$optionsKey]['financial_type_id'],
+                            'tax_amount' => 0,
+                            'non_deductible_amount' => '0.00'
+                        ];
+                        $params[$optionsKey] = $lineItem;
+                    }
+                }
+                if (!empty($params)) {
+                    CRM_Price_BAO_LineItem::processPriceSet($participant->id,
+                            [$psId => $params], null, 'civicrm_participant');
+                }
+                
             }
         } elseif (substr_compare($buttonName, 'delete', -6) === 0) {
             if ($this->_eventId) {
@@ -585,13 +635,13 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
             $defaults['resource_status'] = $this->_event['pr.status_id'];
             $hostId = $defaults['responsible_contact'] = $this->_event['ph.contact_id'];
             $defaults['host_status_id'] = $this->_event['ph.status_id'];
-            $lineItems = CRM_Price_BAO_LineItem::getLineItems($hostId, 'participant');
+            $lineItems = CRM_Price_BAO_LineItem::getLineItems($this->_event['ph.id'], 'participant');
             foreach ($lineItems as $key => $value) {
                 //pf_4728_49_84
                 if ($value['html_type'] === 'Select') {
-                    $defaults["pf_{$resourceId}_{$value['price_set_id']}_{$value['price_field_id']}"] = $value['price_field_value_id'];
+                    $defaults["pf_{$this->_eventId}_{$value['price_set_id']}_{$value['price_field_id']}"] = $value['price_field_value_id'];
                 } else {
-                    $defaults["pf_{$resourceId}_{$value['price_set_id']}_{$value['price_field_id']}"] = $value['qty'];
+                    $defaults["pf_{$this->_eventId}_{$value['price_set_id']}_{$value['price_field_id']}"] = $value['qty'];
                 }
             }
         } else {
