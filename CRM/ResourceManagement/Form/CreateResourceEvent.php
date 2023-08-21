@@ -308,7 +308,8 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
                 if (isset($this->_calendarSettings["price_calc_{$resId}"]) &&
                     isset($this->_calendarSettings["price_field_{$resId}"]) &&
                     isset($this->_calendarSettings["price_qty_{$resId}"])) {
-                    $this->add('hidden', "price_field_{$resId}", $this->_calendarSettings["price_field_{$resId}"]);
+                    $this->add('hidden', "price_field_{$resId}", 
+                            'pf_' . $tId . '_' . $psId . '_' . $this->_calendarSettings["price_field_{$resId}"]);
                     $calcParms = explode('_', $this->_calendarSettings["price_qty_{$resId}"]);
                     $this->add('hidden', "price_period_{$resId}", $calcParms[0]);
                     $this->add('hidden', "price_factor_{$resId}", $calcParms[1]);

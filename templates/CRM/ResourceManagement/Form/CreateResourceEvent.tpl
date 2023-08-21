@@ -99,7 +99,10 @@
         const start_date = new Date(Date.parse(start_str));
         const end_date = new Date(Date.parse(end_str));
         function calculate() {
-            let res_id = $('input[name=resources]').val();
+            var res_id = $('input[name=resources]').val();
+            if (!res_id) {
+                res_id = $('#resources').val();
+            }
             let start = new Date($('#event_start_date').val());
             let end = new Date($('#event_end_date').val());
             let ms = end.getTime()-start.getTime();
@@ -143,6 +146,7 @@
                 }
             }
             let startPick = CRM.$('#event_start_date');
+            calculate();
         });
         $('#event_template').change(function () {
             $.each($("div[name='pricegroup'"), function(k, el){
