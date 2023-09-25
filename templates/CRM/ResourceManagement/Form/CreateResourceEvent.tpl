@@ -96,6 +96,7 @@
         const start_str = $('input[name=start_date]').val();
         const end_str = $('input[name=end_date]').val();
         const resources = JSON.parse($('input[name=resource_source]').val());
+        const event_titles = JSON.parse($('input[name=event_titles]').val());
         const start_date = new Date(Date.parse(start_str));
         const end_date = new Date(Date.parse(end_str));
         function calculate() {
@@ -106,8 +107,19 @@
             let start = new Date($('#event_start_date').val());
             let end = new Date($('#event_end_date').val());
             let ms = end.getTime()-start.getTime();
-            let interval = $('input[name=price_period_'+res_id+']').val();
-            let factor = parseFloat($('input[name=price_factor_'+res_id+']').val());
+            var interval='';
+            var factor = 0.0;
+            var field = '';
+            if ($('input[name=common_templates]').val()) {
+                let tId = $('#event_template').val();
+                interval = $('input[name=price_period_t'+tId+']').val();
+                factor = parseFloat($('input[name=price_factor_t'+tId+']').val());
+                field = $('input[name=price_field_t'+tId+']').val();
+            } else {
+                interval = $('input[name=price_period_'+res_id+']').val();
+                factor = parseFloat($('input[name=price_factor_'+res_id+']').val());
+                field = $('input[name=price_field_'+res_id+']').val();
+            }
             var dur = 0.0;
             if (interval === 'days') {
                 dur = ms/ (1000 * 3600 * 24);
@@ -115,7 +127,6 @@
                 dur = ms / (1000 * 3600);
             }
             var qty = Math.floor((dur + factor - 0.0001) / factor) * factor;
-            let field = $('input[name=price_field_'+res_id+']').val();
             $('#'+field).val(qty);
             $('#'+field).change();
         };
@@ -152,7 +163,10 @@
             $.each($("div[name='pricegroup'"), function(k, el){
                 $("#"+el.id).hide();
             });
-            $('#grp_' + $(this).val()).show();
+            let tId = $(this).val();
+            $('#grp_' + tId).show();
+            $('#event_title').val(event_titles[tId]);
+            calculate();
         });
         $('#event_start_date').change(function () {
           if (moment($(this).val()).diff($('input[name=min_start]').val(), 'seconds') < 0) {

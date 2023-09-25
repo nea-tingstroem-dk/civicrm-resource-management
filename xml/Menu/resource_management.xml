@@ -10,7 +10,7 @@
     <path>civicrm/resource-calendarsettings</path>
     <page_callback>CRM_ResourceManagement_Form_ResourceCalendarSettings</page_callback>
     <title>ResourceCalendarSettings</title>
-    <access_arguments>access CiviCRM</access_arguments>
+    <access_arguments>administer CiviCRM</access_arguments>
   </item>
   <item>
     <path>civicrm/showresourceevents</path>

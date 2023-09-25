@@ -5,8 +5,15 @@
     {if $groupName NE $elementGroup}
         {if $groupName EQ 'none'}
         </div>
-    {else}
-        <div id="{$groupName}" >
+        {else}
+            {if $group_labels.$groupName}
+                <div id="{$groupName}" style="border:1px solid gray; margin-bottom: 10px; padding-top: 10px" >
+                <div class="crm-section">
+                    <span class="content">{$group_labels.$groupName}</span> 
+                </div>
+            {else}
+            <div id="{$groupName}" style="border:1px solid gray; margin-bottom: 10px; padding-top: 10px" >
+            {/if}
         {/if}
     {/if}
     {assign var="elementGroup" value="`$groupName`"}
@@ -46,8 +53,11 @@
           let groupId = id.replace('cs_price_calc', 'group');
           let fieldId = id.replace('cs_price_calc', 'cs_price_field');
           if (value) {
-            let tempId = id.replace('cs_price_calc', 'cs_event_template');
-            let templateId = $('#' + tempId).val();
+            let templateId = id.replace('cs_price_calc_t', '');
+            if (isNaN(templateId)) {
+                let tempId = id.replace('cs_price_calc', 'cs_event_template');
+                templateId = $('#' + tempId).val();
+            }
             $.ajax({
               url: 'civicrm/ajax/event-pricefields?event_id=' + templateId,
               type: "GET",
