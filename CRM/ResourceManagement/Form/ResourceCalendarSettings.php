@@ -103,7 +103,8 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
                 $eventTemplates = self::getEventTemplates();
 
                 $calendarResources = $this->getCalendarResources();
-                if (isset($this->_calendar_settings['cs_common_templates'])) {
+                $commonTemplates = $this->_calendar_settings['cs_common_templates'] === "1";
+                if ( $commonTemplates ) {
                     $this->add('select', "cs_event_templates",
                             ts("Select Default Event template(s) for ") . $res->display_name, $eventTemplates,
                             FALSE, ['class' => 'crm-select2', 'multiple' => TRUE,
