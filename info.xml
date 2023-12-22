@@ -19,7 +19,7 @@
   <version>1.0</version>
   <develStage>alpha</develStage>
   <compatibility>
-    <ver>5.38</ver>
+    <ver>5.45</ver>
   </compatibility>
   <comments>Booking and management of resources like conference rooms etc.</comments>
   <classloader>
@@ -28,10 +28,12 @@
   </classloader>
   <civix>
     <namespace>CRM/ResourceManagement</namespace>
-    <format>22.12.1</format>
+    <format>23.02.1</format>
   </civix>
   <mixins>
     <mixin>menu-xml@1.0.0</mixin>
+    <mixin>smarty-v2@1.0.1</mixin>
+    <mixin>entity-types-php@1.0.0</mixin>
   </mixins>
   <upgrader>CRM_ResourceManagement_Upgrader</upgrader>
 </extension>

@@ -79,40 +79,22 @@ class CRM_ResourceManagement_ExtensionUtil {
 
 use CRM_ResourceManagement_ExtensionUtil as E;
 
-function _resource_management_civix_mixin_polyfill() {
-  if (!class_exists('CRM_Extension_MixInfo')) {
-    $polyfill = __DIR__ . '/mixin/polyfill.php';
-    (require $polyfill)(E::LONG_NAME, E::SHORT_NAME, E::path());
-  }
-}
-
 /**
  * (Delegated) Implements hook_civicrm_config().
  *
  * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_config
  */
-function _resource_management_civix_civicrm_config(&$config = NULL) {
+function _resource_management_civix_civicrm_config($config = NULL) {
   static $configured = FALSE;
   if ($configured) {
     return;
   }
   $configured = TRUE;
 
-  $template = CRM_Core_Smarty::singleton();
-
   $extRoot = __DIR__ . DIRECTORY_SEPARATOR;
-  $extDir = $extRoot . 'templates';
-
-  if (is_array($template->template_dir)) {
-    array_unshift($template->template_dir, $extDir);
-  }
-  else {
-    $template->template_dir = [$extDir, $template->template_dir];
-  }
-
   $include_path = $extRoot . PATH_SEPARATOR . get_include_path();
   set_include_path($include_path);
-  _resource_management_civix_mixin_polyfill();
+  // Based on <compatibility>, this does not currently require mixin/polyfill.php.
 }
 
 /**
@@ -122,7 +104,7 @@ function _resource_management_civix_civicrm_config(&$config = NULL) {
  */
 function _resource_management_civix_civicrm_install() {
   _resource_management_civix_civicrm_config();
-  _resource_management_civix_mixin_polyfill();
+  // Based on <compatibility>, this does not currently require mixin/polyfill.php.
 }
 
 /**
@@ -132,7 +114,7 @@ function _resource_management_civix_civicrm_install() {
  */
 function _resource_management_civix_civicrm_enable(): void {
   _resource_management_civix_civicrm_config();
-  _resource_management_civix_mixin_polyfill();
+  // Based on <compatibility>, this does not currently require mixin/polyfill.php.
 }
 
 /**
@@ -151,8 +133,8 @@ function _resource_management_civix_insert_navigation_menu(&$menu, $path, $item)
   if (empty($path)) {
     $menu[] = [
       'attributes' => array_merge([
-        'label'      => CRM_Utils_Array::value('name', $item),
-        'active'     => 1,
+        'label' => $item['name'] ?? NULL,
+        'active' => 1,
       ], $item),
     ];
     return TRUE;
@@ -215,41 +197,4 @@ function _resource_management_civix_fixNavigationMenuItems(&$nodes, &$maxNavID, 
       _resource_management_civix_fixNavigationMenuItems($nodes[$origKey]['child'], $maxNavID, $nodes[$origKey]['attributes']['navID']);
     }
   }
-}
-
-/**
- * (Delegated) Implements hook_civicrm_entityTypes().
- *
- * Find any *.entityType.php files, merge their content, and return.
- *
- * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_entityTypes
- */
-function _resource_management_civix_civicrm_entityTypes(&$entityTypes) {
-  $entityTypes = array_merge($entityTypes, [
-    'CRM_ResourceManagement_DAO_ResourceCalendar' => [
-      'name' => 'ResourceCalendar',
-      'class' => 'CRM_ResourceManagement_DAO_ResourceCalendar',
-      'table' => 'civicrm_resource_calendar',
-    ],
-    'CRM_ResourceManagement_DAO_ResourceCalendarColor' => [
-      'name' => 'ResourceCalendarColor',
-      'class' => 'CRM_ResourceManagement_DAO_ResourceCalendarColor',
-      'table' => 'civicrm_resource_calendar_color',
-    ],
-    'CRM_ResourceManagement_DAO_ResourceCalendarParticipant' => [
-      'name' => 'ResourceCalendarParticipant',
-      'class' => 'CRM_ResourceManagement_DAO_ResourceCalendarParticipant',
-      'table' => 'civicrm_resource_calendar_participant',
-    ],
-    'CRM_ResourceManagement_DAO_ResourceCalendarSettings' => [
-      'name' => 'ResourceCalendarSettings',
-      'class' => 'CRM_ResourceManagement_DAO_ResourceCalendarSettings',
-      'table' => 'civicrm_resource_calendar_settings',
-    ],
-    'CRM_ResourceManagement_DAO_ResourceConfiguration' => [
-      'name' => 'ResourceConfiguration',
-      'class' => 'CRM_ResourceManagement_DAO_ResourceConfiguration',
-      'table' => 'civicrm_resource_configuration',
-    ],
-  ]);
 }

@@ -32,17 +32,6 @@ function resource_management_civicrm_enable() {
   _resource_management_civix_civicrm_enable();
 }
 
-/**
- * Implements hook_civicrm_entityTypes().
- *
- * Declare entity types provided by this module.
- *
- * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_entityTypes
- */
-function resource_management_civicrm_entityTypes(&$entityTypes) {
-  _resource_management_civix_civicrm_entityTypes($entityTypes);
-}
-
 // --- Functions below this ship commented out. Uncomment as required. ---
 
 /**
