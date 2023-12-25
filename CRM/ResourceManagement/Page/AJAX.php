@@ -37,7 +37,7 @@ class CRM_ResourceManagement_Page_AJAX {
             $whereCondition .= " AND e.is_public = 1";
         }
 
-        $resourceRoleId = C::getConfig('resource_role_id');
+        $resourceRoleId = $settings['resource_role_id'];
         $responsibleRoleId = $settings['host_role_id'];
 
         $eventsGet = \Civi\Api4\Event::get(FALSE)

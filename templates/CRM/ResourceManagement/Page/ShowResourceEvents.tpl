@@ -6,7 +6,7 @@
         {/foreach}
     </select>
 {/if}
-<div id="calendar"></div>
+<div id="calendar"  ></div>
 {literal}
 <script type="text/javascript">
     if (typeof (jQuery) !== 'function') {
@@ -125,7 +125,7 @@
         displayEventTime: showTime ? 1 : 0,
         firstDay: weekStartDay,
         timeFormat: use24HourFormat ? 'HH:mm' : 'hh(:mm)A',
-        height: '50%',
+        aspectRatio: 2.5,
         stickyHeaderDates: true,
         header: {
           left: 'prev,next today',
