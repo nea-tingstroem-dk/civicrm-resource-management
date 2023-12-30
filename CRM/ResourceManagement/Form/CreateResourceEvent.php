@@ -310,7 +310,8 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
           $templatePricesets[$eId] = $psId;
         }
       }
-      if ($this->_calendarSettings['common_templates']) {
+      if ($this->_calendarSettings['common_templates'] &&
+        isset($this->_calendarSettings['event_templates'])) {
         foreach ($this->_calendarSettings['event_templates'] as $tId) {
           $psId = $templatePricesets[$tId];
           if (!$psId) {
@@ -345,20 +346,22 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
       } else {
         foreach ($resources as $resId => $res) {
           $tId = $res['template_id'];
-          $psId = $templatePricesets[$tId];
-          $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
-          $this->add('static',
-            'res_' . $tId . '_pre_help',
-            ts('Price info'),
-            $ps[$psId]['help_pre']);
-          foreach ($groupTree[$psId]['fields'] as $pfId => $pField) {
-            $eId = 'pf_' . $tId . '_' . $psId . '_' . $pfId;
-            $pField['elementId'] = $eId;
-            CRM_Price_BAO_PriceField::addQuickFormElement($this,
-              $eId,
-              $pfId,
-              FALSE,
-            );
+          if (!is_null($tId)) {
+            $psId = $templatePricesets[$tId];
+            $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
+            $this->add('static',
+              'res_' . $tId . '_pre_help',
+              ts('Price info'),
+              $ps[$psId]['help_pre']);
+            foreach ($groupTree[$psId]['fields'] as $pfId => $pField) {
+              $eId = 'pf_' . $tId . '_' . $psId . '_' . $pfId;
+              $pField['elementId'] = $eId;
+              CRM_Price_BAO_PriceField::addQuickFormElement($this,
+                $eId,
+                $pfId,
+                FALSE,
+              );
+            }
           }
           if (isset($this->_calendarSettings["price_calc_{$resId}"]) &&
             isset($this->_calendarSettings["price_field_{$resId}"]) &&
@@ -649,19 +652,22 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
       if (!$this->_min_start || $this->_min_start < $min_time) {
         $this->_min_start = $min_time;
       }
-      $template_id = $this->_calendarSettings['event_template_' . $dao->contact_id];
+      $template_id = $this->_calendarSettings['event_template_' . $dao->contact_id] ?? NULL;
+      $title = "";
       if (!empty($template_id)) {
         $template = CRM_Event_BAO_Event::findById($template_id);
-
-        $resource = [
-          'name' => $dao->name,
-          'min_start' => $min_time,
-          'max_end' => $max_time,
-          'event_title' => $template->title,
-          'template_id' => $template_id,
-        ];
-        $options[$dao->contact_id] = $resource;
+        $title = $template->title;
       }
+
+
+      $resource = [
+        'name' => $dao->name,
+        'min_start' => $min_time,
+        'max_end' => $max_time,
+        'event_title' => $title,
+        'template_id' => $template_id,
+      ];
+      $options[$dao->contact_id] = $resource;
     }
     return $options;
   }

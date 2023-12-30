@@ -1,6 +1,8 @@
 {if $resources == TRUE}
     <select id="resource_selector" class="crm-form-select crm-select2 crm-action-menu fa-plus">
-        <option value="0">{ts}All{/ts}</option>
+        {if (count($resources) gt 1)}
+          <option value="0">{ts}All{/ts}</option>
+        {/if}
         {foreach from=$resources item=resource}
             <option value="{$resource.id}">{$resource.title}</option>
         {/foreach}
@@ -81,9 +83,13 @@
             
           }
           $el = cj('#calendar');
+          $filter = cj('#resource_selector')[0].value;
+          if (typeof $filter === "string" && $filter.length === 0) {
+            $filter = cj('#resource_selector').children().first().val();
+          }
           CRM.loadForm(CRM.url('civicrm/book-resource', {
               calendar_id: calendarId, 
-              filter: cj('#resource_selector')[0].value,
+              filter: $filter,
               start: moment(start).format("YYYY-MM-DD HH:mm:ss"),
               end: moment(end).format("YYYY-MM-DD HH:mm:ss"),
               allday: allDay}),
