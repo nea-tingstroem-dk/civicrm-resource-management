@@ -44,6 +44,15 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
 
     $elementGroups = [];
     $group_labels = [];
+    $statusOptions = [];
+
+    $sql = "SELECT `id`,`label`,`name`
+                FROM `civicrm_participant_status_type`;";
+    $dao = CRM_Core_DAO::executeQuery($sql);
+    while ($dao->fetch()) {
+      $statusOptions[$dao->id] = $dao->label;
+    }
+
     $this->add('hidden', 'calendar_id', $this->_calendar_id);
     $this->add('hidden', 'calendar_type', $this->_calendar_type);
     if ($this->action === CRM_Core_Action::DELETE) {
@@ -94,6 +103,19 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
           'multiple' => FALSE,
           'placeholder' => ts('- select role -')
       ]);
+      $elementGroups['cs_resource_role_id'] = 'none';
+
+      $this->add('select',
+        'cs_resource_status_id', ts("Select Resource Default Status"),
+        $statusOptions,
+        TRUE,
+        [
+          'class' => 'crm-select2',
+          'multiple' => FALSE,
+          'placeholder' => ts('- select status -')
+      ]);
+      $elementGroups['cs_resource_status_id'] = 'none';
+
       $elementGroups['cs_resource_role_id'] = 'none';
       $this->add('advcheckbox', "cs_common_templates", ts("Common templates for all"));
       $elementGroups['cs_common_templates'] = 'none';
@@ -233,14 +255,6 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
             'placeholder' => ts('- select role -')
         ]);
         $elementGroups['cs_host_role_id'] = 'none';
-
-        $statusOptions = [];
-        $sql = "SELECT `id`,`label`,`name`
-                FROM `civicrm_participant_status_type`;";
-        $dao = CRM_Core_DAO::executeQuery($sql);
-        while ($dao->fetch()) {
-          $statusOptions[$dao->id] = $dao->label;
-        }
 
         $this->add('select',
           'cs_host_status_id', ts("Select Host Default Status"),
