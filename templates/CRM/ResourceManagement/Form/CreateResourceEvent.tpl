@@ -238,5 +238,6 @@
               $('#resources').change();
             }
         }
+        calculate();
     });
 </script>{/literal}

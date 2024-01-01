@@ -226,20 +226,20 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
 //                $template->id = $settings['event_template'];
 //                $template->find(true);
 //            }
-      if ($this->_calendarSettings['common_templates']) {
-        if (!$this->_eventId) {
-          $eventTemplates = \Civi\Api4\Event::get(FALSE)
-            ->addSelect('template_title', 'title')
-            ->addWhere('id', 'IN', $this->_calendarSettings['event_templates'])
-            ->execute()
-            ->indexBy('id');
-          $selectTemplates = [];
-          $eventTitles = [];
-          foreach ($eventTemplates as $id => $row) {
-            $selectTemplates[$id] = $row['template_title'];
-            $eventTitles[$id] = $row['title'];
-          }
-          $this->add('hidden', 'event_titles', json_encode($eventTitles));
+      if (!$this->_eventId) {
+        $eventTemplates = \Civi\Api4\Event::get(FALSE)
+          ->addSelect('template_title', 'title')
+          ->addWhere('id', 'IN', $this->_calendarSettings['event_templates'])
+          ->execute()
+          ->indexBy('id');
+        $selectTemplates = [];
+        $eventTitles = [];
+        foreach ($eventTemplates as $id => $row) {
+          $selectTemplates[$id] = $row['template_title'];
+          $eventTitles[$id] = $row['title'];
+        }
+        $this->add('hidden', 'event_titles', json_encode($eventTitles));
+        if ($this->_calendarSettings['common_templates']) {
           $this->add('select',
             'event_template',
             ts('Select template for event'),
@@ -317,11 +317,12 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
           if (!$psId) {
             continue;
           }
+          $ps = CRM_Price_BAO_PriceSet::findById($psId);
           $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
           $this->add('static',
             'res_' . $tId . '_pre_help',
             ts('Price info'),
-            $ps[$psId]['help_pre']);
+            $ps->help_pre);
           foreach ($groupTree[$psId]['fields'] as $pfId => $pField) {
             $eId = 'pf_' . $tId . '_' . $psId . '_' . $pfId;
             $pField['elementId'] = $eId;
@@ -346,13 +347,14 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
       } else {
         foreach ($resources as $resId => $res) {
           $tId = $res['template_id'];
-          if (!is_null($tId)) {
+          if (!is_null($tId) && $tId !== '') {
             $psId = $templatePricesets[$tId];
+            $ps = CRM_Price_BAO_PriceSet::findById($psId);
             $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
             $this->add('static',
               'res_' . $tId . '_pre_help',
               ts('Price info'),
-              $ps[$psId]['help_pre']);
+              $ps->help_pre);
             foreach ($groupTree[$psId]['fields'] as $pfId => $pField) {
               $eId = 'pf_' . $tId . '_' . $psId . '_' . $pfId;
               $pField['elementId'] = $eId;
@@ -419,7 +421,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
           'reset=1&action=update&id=' . $this->_eventId));
     } else if (substr_compare($buttonName, 'submit', -6) === 0) {
       $values = $this->_submitValues;
-      $resourceRole = (int) C::getConfig('resource_role_id');
+      $resourceRole = (int) $this->_calendarSettings['resource_role_id'];
       $hostRole = (int) $values['host_role_id'];
       if (empty($values['host_status_id'])) {
         $values['host_status_id'] = (int) $this->_calendarSettings['host_status_id'];
