@@ -1,30 +1,41 @@
-{if $resources == TRUE}
-    <select id="resource_selector" class="crm-form-select crm-select2 crm-action-menu fa-plus">
-        {if (count($resources) gt 1)}
+
+{if $resource_list == TRUE}
+  <div class="crm-section">
+    <div class="label">
+      <label for="resource_selector">{$page_title}</label>
+    </div>
+    <div class="content">
+      <select name="resource_selector" id="resource_selector" class="crm-form-select required">
+        {if (count($resource_list) gt 1)}
           <option value="0">{ts}All{/ts}</option>
         {/if}
-        {foreach from=$resources item=resource}
-            <option value="{$resource.id}">{$resource.title}</option>
+        {foreach from=$resource_list item=resource}
+          <option value="{$resource.id}">{$resource.title}</option>
         {/foreach}
-    </select>
+      </select>
+    </div>
+    <div class="clear"></div>
+  </div>  
 {/if}
 <div id="calendar"  ></div>
 {literal}
-<script type="text/javascript">
+  <script type="text/javascript">
     if (typeof (jQuery) !== 'function') {
       var jQuery = cj;
     } else {
       var cj = jQuery;
     }
+    var pageTitle = '{/literal}{$page_title}{literal}';
+    cj(".page-header").find(".title").text(pageTitle);
 
     cj(function ( ) {
       checkFullCalendarLIbrary()
-              .then(function () {
-                buildCalendar();
-              })
-              .catch(function () {
-                alert('Error loading calendar, try refreshing...');
-              });
+        .then(function () {
+          buildCalendar();
+        })
+        .catch(function () {
+          alert('Error loading calendar, try refreshing...');
+        });
     });
 
     /*
@@ -74,13 +85,13 @@
         },
         select: function (start, end, jsEvent, view) {
           if (isLoading) {
-              alert(ts('Wait for data load'))
-              return false;
+            alert(ts('Wait for data load'))
+            return false;
           }
           var allDay = 1;
           if (start.hasTime()) {
             allDay = 0;
-            
+
           }
           $el = cj('#calendar');
           $filter = cj('#resource_selector')[0].value;
@@ -88,20 +99,20 @@
             $filter = cj('#resource_selector').children().first().val();
           }
           CRM.loadForm(CRM.url('civicrm/book-resource', {
-              calendar_id: calendarId, 
-              filter: $filter,
-              start: moment(start).format("YYYY-MM-DD HH:mm:ss"),
-              end: moment(end).format("YYYY-MM-DD HH:mm:ss"),
-              allday: allDay}),
-              {
-                  cancelButton: '.cancel.crm-form-submit'
-              })
-          .on('crmFormSuccess', function(event, data) {
-                cj('#calendar').fullCalendar('refetchEvents');
-          })
-          .on('crmFormCancel', function(event, data){
+            calendar_id: calendarId,
+            filter: $filter,
+            start: moment(start).format("YYYY-MM-DD HH:mm:ss"),
+            end: moment(end).format("YYYY-MM-DD HH:mm:ss"),
+            allday: allDay}),
+            {
+              cancelButton: '.cancel.crm-form-submit'
+            })
+            .on('crmFormSuccess', function (event, data) {
+              cj('#calendar').fullCalendar('refetchEvents');
+            })
+            .on('crmFormCancel', function (event, data) {
               concole.log('Canceled');
-          });
+            });
         },
         viewRender: function (view, element) {
           // when the view changes, we update our localStorage value with the new view name
@@ -112,19 +123,19 @@
           if (isAdmin) {
             el.preventDefault();
             CRM.loadForm(CRM.url(event.url, {
-                action: 'edit',
-                calendar_id: calendarId,
+              action: 'edit',
+              calendar_id: calendarId,
             }),
-                {
-                    cancelButton: '.cancel.crm-form-submit'
-                }
+              {
+                cancelButton: '.cancel.crm-form-submit'
+              }
             )
-            .on('crmFormSuccess', function(event, data) {
+              .on('crmFormSuccess', function (event, data) {
                 cj('#calendar').fullCalendar('refetchEvents');
-            })
-            .on('crmFormCancel', function(event, data){
+              })
+              .on('crmFormCancel', function (event, data) {
                 concole.log('Canceled');
-            });
+              });
           }
         },
         displayEventEnd: true,
@@ -138,6 +149,7 @@
           center: 'title',
           right: 'month,agendaWeek,agendaDay'
         },
+        fixedWeekCount: false,
         defaultView: (localStorage.getItem("fcDefaultView") !== null ? localStorage.getItem("fcDefaultView") : "agendaWeek"),
         defaultDate: (localStorage.getItem("fcDefaultStartDate") !== null ? localStorage.getItem("fcDefaultStartDate") : moment()),
         lang: 'da',
@@ -155,5 +167,5 @@
         $("#resource_selector").val("0").trigger('change');
       });
     }
-</script>
+  </script>
 {/literal}

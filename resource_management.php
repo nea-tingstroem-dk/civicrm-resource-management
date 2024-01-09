@@ -68,7 +68,7 @@ function resource_management_civicrm_navigationMenu(&$menu) {
   _resource_management_civix_insert_navigation_menu($menu, 'Administer/resource-management', [
     'label' => E::ts('Resource Management Settings'),
     'name' => 'resource-management-settings',
-    'url' => 'civicrm/admin/resource-mamagement',
+    'url' => 'civicrm/admin/resource-management',
     'permission' => 'administer CiviCRM',
     'operator' => 'AND',
     'separator' => 0,

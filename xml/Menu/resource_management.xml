@@ -16,28 +16,32 @@
     <path>civicrm/showresourceevents</path>
     <page_callback>CRM_ResourceManagement_Page_ShowResourceEvents</page_callback>
     <title>ShowResourceEvents</title>
-    <access_arguments>access CiviCRM</access_arguments>
+    <access_callback>1</access_callback>
+    <is_public>true</is_public>
   </item>
   <item>
     <path>civicrm/ajax/resource-events</path>
     <page_callback>CRM_ResourceManagement_Page_AJAX::getEvents</page_callback>
     <title>AJAX</title>
-    <access_arguments>access CiviEvent</access_arguments>
+    <access_callback>1</access_callback>
+    <is_public>true</is_public>
   </item>
   <item>
     <path>civicrm/ajax/event-pricefields</path>
     <page_callback>CRM_ResourceManagement_Page_AJAX::getPricefieldsForEvent</page_callback>
     <title>AJAX</title>s
-    <access_arguments>access CiviEvent</access_arguments>
+    <access_callback>1</access_callback>
+    <is_public>true</is_public>
   </item>
   <item>
     <path>civicrm/book-resource</path>
     <page_callback>CRM_ResourceManagement_Form_CreateResourceEvent</page_callback>
     <title>CreateResourceEvent</title>
-    <access_arguments>access CiviCRM</access_arguments>
+    <access_callback>1</access_callback>
+    <is_public>true</is_public>
   </item>
   <item>
-    <path>civicrm/admin/resource-mamagement</path>
+    <path>civicrm/admin/resource-management</path>
     <page_callback>CRM_ResourceManagement_Form_AdminResourceManagement</page_callback>
     <title>AdminResourceManagement</title>
     <access_arguments>administer CiviCRM</access_arguments>

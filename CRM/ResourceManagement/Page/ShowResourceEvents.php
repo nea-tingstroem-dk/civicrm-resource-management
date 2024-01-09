@@ -35,10 +35,11 @@ class CRM_ResourceManagement_Page_ShowResourceEvents extends CRM_Core_Page {
                 'title' => $title
             ];
         }
-        $this->assign('resources', $resources);
+        $this->assign('page_title', $settings['calendar_title']);
+        $this->assign('resource_list', $resources);
         $this->assign('calendar_id', $calendarId);
         $this->assign('time_display', !empty($settings['event_time']) ?: 'false');
-        $this->assign('displayEventEnd', $settings['event_end_date']);
+        $this->assign('displayEventEnd', $settings['event_end_date'] ?? 0);
 
         //Check weekBegin settings from calendar configuration
         if (isset($settings['week_begins_day']) && $settings['week_begins_day'] == 1) {
