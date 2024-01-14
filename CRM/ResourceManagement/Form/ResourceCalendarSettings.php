@@ -116,60 +116,58 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
       ]);
       $elementGroups['cs_resource_status_id'] = 'none';
 
-      $elementGroups['cs_resource_role_id'] = 'none';
-      $this->add('advcheckbox', "cs_common_templates", ts("Common templates for all"));
-      $elementGroups['cs_common_templates'] = 'none';
+      $this->add('advcheckbox', "cs_common_template", ts("Common template for all"));
+      $elementGroups['cs_common_template'] = 'none';
 
       if ($this->action === CRM_Core_Action::UPDATE) {
 
         $eventTemplates = self::getEventTemplates();
 
         $calendarResources = $this->getCalendarResources();
-        $commonTemplates = $this->_calendar_settings['cs_common_templates'] === "1";
-        if ($commonTemplates) {
-          $this->add('select', "cs_event_templates",
-            ts("Select Default Event template(s) for ") . $res->display_name, $eventTemplates,
-            FALSE, ['class' => 'crm-select2', 'multiple' => TRUE,
-            'placeholder' => ts('- select template(s) -')]);
-          $elementGroups["cs_event_templates"] = 'none';
-          $templateIds = $this->getTemplateIds($this->_calendar_settings['cs_event_templates']);
-          foreach ($templateIds as $tId) {
+        $commonTemplate = $this->_calendar_settings['cs_common_template'] === "1";
+        if ($commonTemplate) {
+          $this->add('select', "cs_event_template",
+            ts("Select Default Event template"), $eventTemplates,
+            FALSE, ['class' => 'crm-select2', 'multiple' => FALSE,
+            'placeholder' => ts('- select template -')]);
+          $elementGroups["cs_event_template"] = 'none';
+          $tId = $this->getTemplateIds($this->_calendar_settings['cs_event_template']);
+          if ($tId) {
             $psId = CRM_Price_BAO_PriceSet::getFor('civicrm_event', $tId);
-            if (!$psId) {
-              continue;
-            }
-            $groupId = "group_t{$tId}";
+            if ($psId) {
+              $groupId = "group_t{$tId}";
 //                        $group_labels[$groupId] = $eventTemplates[$tId];
-            $this->add('advcheckbox', "cs_price_calc_t{$tId}", ts("Price Calculation"));
-            $descriptions["cs_price_calc_t{$tId}"] = ts('For: ') . $eventTemplates[$tId];
-            $elementGroups["cs_price_calc_t{$tId}"] = 'none';
-            $priceFields = [];
-            $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
-            foreach ($groupTree[$psId]['fields'] as $pfId => $pField) {
-              $priceFields[$pfId] = $pField['label'];
-            }
-            $this->add('select',
-              "cs_price_field_t{$tId}",
-              ts("Price Field"),
-              $priceFields,
-              ['class' => "crm-select2",
-                'multiple' => FALSE,
-                'placeholder' => ts("- select pricefield -")]
-            );
-            $elementGroups["cs_price_field_t{$tId}"] = $groupId;
+              $this->add('advcheckbox', "cs_price_calc_t{$tId}", ts("Price Calculation"));
+              $descriptions["cs_price_calc_t{$tId}"] = ts('For: ') . $eventTemplates[$tId];
+              $elementGroups["cs_price_calc_t{$tId}"] = 'none';
+              $priceFields = [];
+              $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
+              foreach ($groupTree[$psId]['fields'] as $pfId => $pField) {
+                $priceFields[$pfId] = $pField['label'];
+              }
+              $this->add('select',
+                "cs_price_field_t{$tId}",
+                ts("Price Field"),
+                $priceFields,
+                ['class' => "crm-select2",
+                  'multiple' => FALSE,
+                  'placeholder' => ts("- select pricefield -")]
+              );
+              $elementGroups["cs_price_field_t{$tId}"] = $groupId;
 
-            $this->add('select',
-              "cs_price_qty_t{$tId}",
-              ts("Quantity in"),
-              [
-                'days_0.5' => ts('Started Half Days'),
-                'days_1.0' => ts('Started Whole Days'),
-                'hours_2.0' => ts('Started Hours')
-              ],
-              ['class' => 'crm-select2',
-                'multiple' => FALSE,
-            ]);
-            $elementGroups["cs_price_qty_t{$tId}"] = $groupId;
+              $this->add('select',
+                "cs_price_qty_t{$tId}",
+                ts("Quantity in"),
+                [
+                  'days_0.5' => ts('Started Half Days'),
+                  'days_1.0' => ts('Started Whole Days'),
+                  'hours_2.0' => ts('Started Hours')
+                ],
+                ['class' => 'crm-select2',
+                  'multiple' => FALSE,
+              ]);
+              $elementGroups["cs_price_qty_t{$tId}"] = $groupId;
+            }
           }
         } else {
           foreach ($calendarResources as $res_id) {
@@ -379,16 +377,35 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
           $dao = CRM_Core_DAO::executeQuery($sql);
         }
       }
-      foreach ($settings as $key => $value) {
-        $setting = new CRM_ResourceManagement_DAO_ResourceCalendarSettings();
-        $setting->calendar_id = $this->_calendar_id;
-        $setting->config_key = $key;
-        $setting->find(true);
-        if (!$setting->N || $setting->config_value !== $value) {
-          $setting->config_value = $value;
-          $setting->save();
+
+      $setting = new CRM_ResourceManagement_DAO_ResourceCalendarSettings();
+      $setting->calendar_id = $this->_calendar_id;
+      $setting->find();
+      while ($setting->fetch()) {
+        if (isset($settings[$setting->config_key])) {
+          if ($setting->config_value !== $settings[$setting->config_key]) {
+            $setting->config_value = $settings[$setting->config_key];
+            $setting->save();
+          }
+          unset($settings[$setting->config_key]);
+        } else {
+          CRM_ResourceManagement_DAO_ResourceCalendarSettings::deleteRecord(['id' => $setting->id]);
         }
       }
+      $params = [];
+      foreach ($settings as $key => $value) {
+        if ($value) {
+          $params[] = [
+            'calendar_id' => $this->_calendar_id,
+            'config_key' => $key,
+            'config_value' => $value,
+          ];
+        }
+      }
+      if (!empty($params)) {
+        CRM_ResourceManagement_DAO_ResourceCalendarSettings::writeRecords($params);
+      }
+
       CRM_Core_Session::setStatus(ts('The Calendar has been saved.'), ts('Saved'), 'success');
     }
     if ((int) $this->action == CRM_Core_Action::ADD) {

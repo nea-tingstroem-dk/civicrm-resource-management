@@ -27,6 +27,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
   private $_filter = false;
   private $_suppressValidate = false;
   private $_calendarSettings = [];
+  private $_currentUser = 0;
 
   public function preProcess() {
     $buttonName = $this->controller->getButtonName();
@@ -35,11 +36,11 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
     }
 
     parent::preProcess();
-    $getContactId = (int) CRM_Core_Session::singleton()->getLoggedInContactID();
+    $this->_currentUser = (int) CRM_Core_Session::singleton()->getLoggedInContactID();
     $user = civicrm_api3('Contact', 'get', [
       'sequential' => 1,
       'return' => ["display_name", "external_identifier"],
-      'id' => $getContactId,
+      'id' => $this->_currentUser,
     ]);
     $actualUser = $user['values'][0];
     $this->_userId = $actualUser['contact_id'];
@@ -697,9 +698,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
 
   public function setDefaultValues() {
     $defaults = [];
-    if ($this->_superUser) {
-      $defaults['event_title'] = '';
-    } else {
+    if (!$this->_superUser) {
       $defaults['event_title'] = ts("Private Event");
     }
     $calendarSettings = RCS::getAllSettings($this->_calendar_id);
@@ -725,9 +724,16 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
     } else {
       $defaults['event_start_date'] = date('Y-m-d H:i:s', $this->_start_time);
       $defaults['event_end_date'] = date('Y-m-d H:i:s', $this->_end_time);
-      if (!$this->_filter) {
+      $defaults['responsible_contact'] = $this->_currentUser;
+      $defaults['host_status_id'] = $this->_calendarSettings['host_status_id'];
+      if ($this->_calendarSettings['common_template'] &&
+        isset($this->_calendarSettings['event_template'])) {
+        $defaults['event_template'] = $this->_calendarSettings['event_template'];
+      }
+      if ($this->_filter) {
         $defaults['resources'] = $this->_filter;
       }
+      $defaults['resource_status'] = $this->_calendarSettings['resource_status_id'];
     }
     return $defaults;
   }
