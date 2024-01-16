@@ -311,13 +311,11 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
           $templatePricesets[$eId] = $psId;
         }
       }
-      if ($this->_calendarSettings['common_templates'] &&
-        isset($this->_calendarSettings['event_templates'])) {
-        foreach ($this->_calendarSettings['event_templates'] as $tId) {
-          $psId = $templatePricesets[$tId];
-          if (!$psId) {
-            continue;
-          }
+      if ($this->_calendarSettings['common_template'] &&
+        isset($this->_calendarSettings['event_template'])) {
+        $tid = $this->_calendarSettings['event_template'];
+        $psId = $templatePricesets[$tId];
+        if ($psId) {
           $ps = CRM_Price_BAO_PriceSet::findById($psId);
           $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
           $this->add('static',
