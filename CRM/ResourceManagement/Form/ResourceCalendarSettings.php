@@ -384,8 +384,13 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
       while ($setting->fetch()) {
         if (isset($settings[$setting->config_key])) {
           if ($setting->config_value !== $settings[$setting->config_key]) {
-            $setting->config_value = $settings[$setting->config_key];
-            $setting->save();
+            $params = [
+              'id' => $setting->id,
+              'calendar_id' => $this->_calendar_id,
+              'config_key' => $setting->config_key,
+              'config_value' => $settings[$setting->config_key],
+            ];
+            CRM_ResourceManagement_DAO_ResourceCalendarSettings::writeRecord($params);
           }
           unset($settings[$setting->config_key]);
         } else {

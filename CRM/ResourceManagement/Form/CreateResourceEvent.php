@@ -574,35 +574,37 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
           $d->delete();
         }
         $psId = CRM_Price_BAO_PriceSet::getFor('civicrm_event', $event->id);
-        $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
-        $params = [];
-        foreach ($groupTree[$psId]['fields'] as $pfId => $pField) {
-          $eId = 'pf_' . $this->_eventId . '_' . $psId . '_' . $pfId;
-          $val = $values[$eId];
-          if ($val) {
-            $optionsKey = array_key_first($pField['options']);
-            $qty = (float) $val;
-            $unitPrice = (float) $pField['options'][$optionsKey]['amount'];
-            $lineItem = [
-              'price_field_id' => $pfId,
-              'price_field_value_id' => $optionsKey,
-              'label' => $pField['label'],
-              'title' => $pField['name'],
-              'qty' => $qty,
-              'unit_price' => $unitPrice,
-              'line_total' => $qty * $unitPrice,
-              'partipiciant_count' => 0,
-              'html_type' => $pField['html_type'],
-              'financial_type_id' => (int) $pField['options'][$optionsKey]['financial_type_id'],
-              'tax_amount' => 0,
-              'non_deductible_amount' => '0.00'
-            ];
-            $params[$optionsKey] = $lineItem;
+        if ($psId) {
+          $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
+          $params = [];
+          foreach ($groupTree[$psId]['fields'] as $pfId => $pField) {
+            $eId = 'pf_' . $this->_eventId . '_' . $psId . '_' . $pfId;
+            $val = $values[$eId];
+            if ($val) {
+              $optionsKey = array_key_first($pField['options']);
+              $qty = (float) $val;
+              $unitPrice = (float) $pField['options'][$optionsKey]['amount'];
+              $lineItem = [
+                'price_field_id' => $pfId,
+                'price_field_value_id' => $optionsKey,
+                'label' => $pField['label'],
+                'title' => $pField['name'],
+                'qty' => $qty,
+                'unit_price' => $unitPrice,
+                'line_total' => $qty * $unitPrice,
+                'partipiciant_count' => 0,
+                'html_type' => $pField['html_type'],
+                'financial_type_id' => (int) $pField['options'][$optionsKey]['financial_type_id'],
+                'tax_amount' => 0,
+                'non_deductible_amount' => '0.00'
+              ];
+              $params[$optionsKey] = $lineItem;
+            }
           }
-        }
-        if (!empty($params)) {
-          CRM_Price_BAO_LineItem::processPriceSet($participant->id,
-            [$psId => $params], null, 'civicrm_participant');
+          if (!empty($params)) {
+            CRM_Price_BAO_LineItem::processPriceSet($participant->id,
+              [$psId => $params], null, 'civicrm_participant');
+          }
         }
       }
     } elseif (substr_compare($buttonName, 'delete', -6) === 0) {
