@@ -46,8 +46,8 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
     $this->_userId = $actualUser['contact_id'];
     $this->_userName = $actualUser['display_name'];
     $this->_userExternalId = $actualUser['external_identifier'];
-    $this->_superUser = CRM_Core_Permission::check('edit all events', $getContactId);
-    $this->_authUser = CRM_Core_Permission::check('access CiviEvent', $getContactId);
+    $this->_superUser = CRM_Core_Permission::check('edit all events', $this->_currentUser);
+    $this->_authUser = CRM_Core_Permission::check('access CiviEvent', $this->_currentUser);
     $this->_calendar_id = CRM_Utils_Request::retrieve('calendar_id', 'Integer');
     $this->_calendarSettings = CRM_ResourceManagement_Page_AJAX::getResourceCalendarSettings($this->_calendar_id);
 
@@ -203,17 +203,26 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
           'placeholder' => ts('- select status -')
       ]);
       if (!$this->_eventId) {
-        $eventTemplates = \Civi\Api4\Event::get(FALSE)
-          ->addWhere('is_template', '=', TRUE)
-          ->addWhere('is_active', '=', TRUE)
-          ->execute()
-          ->indexBy('id')
-          ->column('template_title');
-
-        $this->add('select',
-          'event_template',
-          ts('Select template for event'),
-          ['' => ts('- select -')] + $eventTemplates, FALSE, ['class' => 'crm-select2 huge']);
+        $this->addEntityRef('event_template', ts('Select Event Template'), [
+          'entity' => 'event',
+          'placeholder' => ts('- Select Event -'),
+          'select' => ['minimumInputLength' => 0],
+          'api' => [
+            'params' => ['is_template' => TRUE,
+              'is_active' => TRUE],
+          ]
+        ]);
+//        $eventTemplates = \Civi\Api4\Event::get(FALSE)
+//          ->addWhere('is_template', '=', TRUE)
+//          ->addWhere('is_active', '=', TRUE)
+//          ->execute()
+//          ->indexBy('id')
+//          ->column('template_title');
+//
+//        $this->add('select',
+//          'event_template',
+//          ts('Select template for event'),
+//          ['' => ts('- select -')] + $eventTemplates, FALSE, ['class' => 'crm-select2 huge']);
       }
       $this->add('text', 'event_title', ts('Event Title'), NULL, TRUE);
     } else {
