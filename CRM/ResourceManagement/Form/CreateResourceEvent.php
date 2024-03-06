@@ -175,34 +175,8 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
       $sql = "SELECT `id`,`name`,`label`
                     FROM `civicrm_participant_status_type`
                     WHERE `id` IN ({$resStatuses});";
-
-      $dao = CRM_Core_DAO::executeQuery($sql);
-      while ($dao->fetch()) {
-        $statusses[$dao->id] = $dao->label;
-      }
-      $this->add('select', 'resource_status', ts('Select Resource Status'),
-        $statusses, FALSE, ['class' => 'crm-select2', 'multiple' => false,
-        'placeholder' => ts('- select status -')]);
-
-      $this->addEntityRef('responsible_contact', ts('Select responsible contact'), NULL, TRUE);
-      $statusOptions = [];
-      $sql = "SELECT `id`,`label`,`name`
-                FROM `civicrm_participant_status_type`;";
-      $dao = CRM_Core_DAO::executeQuery($sql);
-      while ($dao->fetch()) {
-        $statusOptions[$dao->id] = $dao->label;
-      }
-
-      $this->add('select',
-        'host_status_id', ts("Select Resp Cont Status"),
-        $statusOptions,
-        TRUE,
-        [
-          'class' => 'crm-select2',
-          'multiple' => FALSE,
-          'placeholder' => ts('- select status -')
-      ]);
       if (!$this->_eventId) {
+
         $this->addEntityRef('event_template', ts('Select Event Template'), [
           'entity' => 'event',
           'placeholder' => ts('- Select Event -'),
@@ -211,6 +185,33 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
             'params' => ['is_template' => TRUE,
               'is_active' => TRUE],
           ]
+        ]);
+
+        $dao = CRM_Core_DAO::executeQuery($sql);
+        while ($dao->fetch()) {
+          $statusses[$dao->id] = $dao->label;
+        }
+        $this->add('select', 'resource_status', ts('Select Resource Status'),
+          $statusses, FALSE, ['class' => 'crm-select2', 'multiple' => false,
+          'placeholder' => ts('- select status -')]);
+
+        $this->addEntityRef('responsible_contact', ts('Select responsible contact'), NULL, TRUE);
+        $statusOptions = [];
+        $sql = "SELECT `id`,`label`,`name`
+                FROM `civicrm_participant_status_type`;";
+        $dao = CRM_Core_DAO::executeQuery($sql);
+        while ($dao->fetch()) {
+          $statusOptions[$dao->id] = $dao->label;
+        }
+
+        $this->add('select',
+          'host_status_id', ts("Select Resp Cont Status"),
+          $statusOptions,
+          TRUE,
+          [
+            'class' => 'crm-select2',
+            'multiple' => FALSE,
+            'placeholder' => ts('- select status -')
         ]);
 //        $eventTemplates = \Civi\Api4\Event::get(FALSE)
 //          ->addWhere('is_template', '=', TRUE)
@@ -415,6 +416,13 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
         'icon' => 'fa-pencil',
       ];
     }
+//    if ($this->_superUser) {
+//      $buttons[] = [
+//        'type' => 'submit',
+//        'subName' => $this->_eventId ? 'expand' : 'advanced',
+//        'name' => E::ts('Advanced'),
+//      ];
+//    }
 
 
     $this->addButtons($buttons);
@@ -425,9 +433,14 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
   public function postProcess() {
     $buttonName = $this->controller->getButtonName();
     if (substr_compare($buttonName, 'edit_event', -10) === 0) {
-      CRM_Utils_System::redirect(CRM_Utils_System::url('civicrm/event/manage/settings',
-          'reset=1&action=update&id=' . $this->_eventId));
-    } else if (substr_compare($buttonName, 'submit', -6) === 0) {
+      CRM_Utils_JSON::output(['openpage' => 'civicrm/event/manage/settings?' .
+        'reset=1&action=update&id=' . $this->_eventId]);
+      return;
+    } else if (substr_compare($buttonName, 'expand', -6) === 0) {
+      CRM_Utils_JSON::output(['openpage' => 'civicrm/a/#/resource/manage-event?event_id=' . $this->_eventId]);
+      return;
+    } else if (substr_compare($buttonName, 'submit', -6) === 0 ||
+      substr_compare($buttonName, 'advanced', -8) === 0) {
       $values = $this->_submitValues;
       $resourceRole = (int) $this->_calendarSettings['resource_role_id'];
       $hostRole = (int) $values['host_role_id'];
@@ -486,36 +499,38 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
         $participant = CRM_Event_BAO_Participant::create($params);
         $participant->save();
         $psId = CRM_Price_BAO_PriceSet::getFor('civicrm_event', $event->id);
-        $resId = $values['responsible_contact'];
-        $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
-        $params = [];
-        foreach ($groupTree[$psId]['fields'] as $pfId => $pField) {
-          $eId = 'pf_' . $template_id . '_' . $psId . '_' . $pfId;
-          $val = $values[$eId];
-          if ($val) {
-            $optionsKey = array_key_first($pField['options']);
-            $qty = (float) $val;
-            $unitPrice = (float) $pField['options'][$optionsKey]['amount'];
-            $lineItem = [
-              'price_field_id' => $pfId,
-              'price_field_value_id' => $optionsKey,
-              'label' => $pField['label'],
-              'title' => $pField['name'],
-              'qty' => $qty,
-              'unit_price' => $unitPrice,
-              'line_total' => $qty * $unitPrice,
-              'partipiciant_count' => 0,
-              'html_type' => $pField['html_type'],
-              'financial_type_id' => (int) $pField['options'][$optionsKey]['financial_type_id'],
-              'tax_amount' => 0,
-              'non_deductible_amount' => '0.00'
-            ];
-            $params[$optionsKey] = $lineItem;
+        if ($psId) {
+          $resId = $values['responsible_contact'];
+          $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
+          $params = [];
+          foreach ($groupTree[$psId]['fields'] as $pfId => $pField) {
+            $eId = 'pf_' . $template_id . '_' . $psId . '_' . $pfId;
+            $val = $values[$eId];
+            if ($val) {
+              $optionsKey = array_key_first($pField['options']);
+              $qty = (float) $val;
+              $unitPrice = (float) $pField['options'][$optionsKey]['amount'];
+              $lineItem = [
+                'price_field_id' => $pfId,
+                'price_field_value_id' => $optionsKey,
+                'label' => $pField['label'],
+                'title' => $pField['name'],
+                'qty' => $qty,
+                'unit_price' => $unitPrice,
+                'line_total' => $qty * $unitPrice,
+                'partipiciant_count' => 0,
+                'html_type' => $pField['html_type'],
+                'financial_type_id' => (int) $pField['options'][$optionsKey]['financial_type_id'],
+                'tax_amount' => 0,
+                'non_deductible_amount' => '0.00'
+              ];
+              $params[$optionsKey] = $lineItem;
+            }
           }
-        }
-        if (!empty($params)) {
-          CRM_Price_BAO_LineItem::processPriceSet($participant->id,
-            [$psId => $params], null, 'civicrm_participant');
+          if (!empty($params)) {
+            CRM_Price_BAO_LineItem::processPriceSet($participant->id,
+              [$psId => $params], null, 'civicrm_participant');
+          }
         }
       } else if ($this->_action === 0) { // Update
         $change = false;
@@ -615,6 +630,9 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
               [$psId => $params], null, 'civicrm_participant');
           }
         }
+      }
+      if (substr_compare($buttonName, 'advanced', -8) === 0) {
+        CRM_Utils_JSON::output(['openpage' => 'civicrm/a/#/resource/manage-event?event_id=' . $event->id]);
       }
     } elseif (substr_compare($buttonName, 'delete', -6) === 0) {
       if ($this->_eventId) {

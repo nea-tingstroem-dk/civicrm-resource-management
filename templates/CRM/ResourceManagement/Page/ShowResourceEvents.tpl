@@ -1,4 +1,3 @@
-
 {if $resource_list == TRUE}
   <div class="crm-section">
     <div class="label">
@@ -108,6 +107,9 @@
               cancelButton: '.cancel.crm-form-submit'
             })
             .on('crmFormSuccess', function (event, data) {
+              if (data.openpage) {
+                window.open(data.openpage);
+              }
               cj('#calendar').fullCalendar('refetchEvents');
             })
             .on('crmFormCancel', function (event, data) {
@@ -131,6 +133,9 @@
               }
             )
               .on('crmFormSuccess', function (event, data) {
+                if (data.openpage) {
+                  window.open(data.openpage);
+                }
                 cj('#calendar').fullCalendar('refetchEvents');
               })
               .on('crmFormCancel', function (event, data) {
