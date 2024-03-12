@@ -204,7 +204,7 @@
       if (event.originalEvent.submitter.classList.contains('validate') &&
         event.originalEvent.submitter.name.endsWith('submit_submit')) {
         var emptyFields = '';
-        var z = $('.required');
+        var z = $('#CreateResourceEvent').find('.required');
         for (let i = 0; i < z.length; i++) {
           if (!z[i].value) {
             var lab = $('label[for="' + z[i].id + '"]').text();

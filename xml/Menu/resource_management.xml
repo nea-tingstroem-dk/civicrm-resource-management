@@ -46,4 +46,11 @@
     <title>AdminResourceManagement</title>
     <access_arguments>administer CiviCRM</access_arguments>
   </item>
+  <item>
+    <path>civicrm/ajax/resource-advanced</path>
+    <page_callback>CRM_ResourceManagement_Page_AJAX::advancedEventOperations</page_callback>
+    <title>AJAX</title>s
+    <access_callback>1</access_callback>
+    <is_public>true</is_public>
+  </item>
 </menu>

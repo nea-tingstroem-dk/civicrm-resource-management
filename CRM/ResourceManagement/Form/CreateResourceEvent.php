@@ -172,9 +172,6 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
       $resStatuses = C::getConfig('resource_status_ids');
       $statusses = [];
 
-      $sql = "SELECT `id`,`name`,`label`
-                    FROM `civicrm_participant_status_type`
-                    WHERE `id` IN ({$resStatuses});";
       if (!$this->_eventId) {
 
         $this->addEntityRef('event_template', ts('Select Event Template'), [
@@ -186,45 +183,37 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
               'is_active' => TRUE],
           ]
         ]);
-
-        $dao = CRM_Core_DAO::executeQuery($sql);
-        while ($dao->fetch()) {
-          $statusses[$dao->id] = $dao->label;
-        }
-        $this->add('select', 'resource_status', ts('Select Resource Status'),
-          $statusses, FALSE, ['class' => 'crm-select2', 'multiple' => false,
-          'placeholder' => ts('- select status -')]);
-
-        $this->addEntityRef('responsible_contact', ts('Select responsible contact'), NULL, TRUE);
-        $statusOptions = [];
-        $sql = "SELECT `id`,`label`,`name`
-                FROM `civicrm_participant_status_type`;";
-        $dao = CRM_Core_DAO::executeQuery($sql);
-        while ($dao->fetch()) {
-          $statusOptions[$dao->id] = $dao->label;
-        }
-
-        $this->add('select',
-          'host_status_id', ts("Select Resp Cont Status"),
-          $statusOptions,
-          TRUE,
-          [
-            'class' => 'crm-select2',
-            'multiple' => FALSE,
-            'placeholder' => ts('- select status -')
-        ]);
-//        $eventTemplates = \Civi\Api4\Event::get(FALSE)
-//          ->addWhere('is_template', '=', TRUE)
-//          ->addWhere('is_active', '=', TRUE)
-//          ->execute()
-//          ->indexBy('id')
-//          ->column('template_title');
-//
-//        $this->add('select',
-//          'event_template',
-//          ts('Select template for event'),
-//          ['' => ts('- select -')] + $eventTemplates, FALSE, ['class' => 'crm-select2 huge']);
       }
+      $sql = "SELECT `id`,`name`,`label`
+                    FROM `civicrm_participant_status_type`
+                    WHERE `id` IN ({$resStatuses});";
+      $dao = CRM_Core_DAO::executeQuery($sql);
+      while ($dao->fetch()) {
+        $statusses[$dao->id] = $dao->label;
+      }
+      $this->add('select', 'resource_status', ts('Select Resource Status'),
+        $statusses, FALSE, ['class' => 'crm-select2', 'multiple' => false,
+        'placeholder' => ts('- select status -')]);
+
+      $this->addEntityRef('responsible_contact', ts('Select responsible contact'), NULL, FALSE);
+      $statusOptions = [];
+      $sql = "SELECT `id`,`label`,`name`
+                FROM `civicrm_participant_status_type`;";
+      $dao = CRM_Core_DAO::executeQuery($sql);
+      while ($dao->fetch()) {
+        $statusOptions[$dao->id] = $dao->label;
+      }
+
+      $this->add('select',
+        'host_status_id', ts("Select Resp Cont Status"),
+        $statusOptions,
+        FALSE,
+        [
+          'class' => 'crm-select2',
+          'multiple' => FALSE,
+          'placeholder' => ts('- select status -')
+      ]);
+
       $this->add('text', 'event_title', ts('Event Title'), NULL, TRUE);
     } else {
       $this->add('hidden', 'respoensible_contact', $this->_userId);
@@ -416,13 +405,13 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
         'icon' => 'fa-pencil',
       ];
     }
-//    if ($this->_superUser) {
-//      $buttons[] = [
-//        'type' => 'submit',
-//        'subName' => $this->_eventId ? 'expand' : 'advanced',
-//        'name' => E::ts('Advanced'),
-//      ];
-//    }
+    if ($this->_superUser) {
+      $buttons[] = [
+        'type' => 'submit',
+        'subName' => $this->_eventId ? 'expand' : 'advanced',
+        'name' => E::ts('Advanced'),
+      ];
+    }
 
 
     $this->addButtons($buttons);

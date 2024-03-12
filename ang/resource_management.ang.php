@@ -6,6 +6,7 @@ return [
     'ang/resource_management.js',
     'ang/resource_management/*.js',
     'ang/resource_management/*/*.js',
+    'js/moment.js',
   ],
   'css' => [
     'ang/resource_management.css',
