@@ -27,7 +27,7 @@
                       <input
                         crm-entityref="{entity: 'Event', api: {params: {is_active: 1}}, select: {allowClear:true, minimumInputLength: 1}}"
                         class="form-control"
-                        id="masterEventId"
+                        id="eventId"
                         name="eventId"
                         ng-model="masterEventId"
                         ng-required="false"
@@ -129,9 +129,32 @@
                   <input 
                     type="text" 
                     class="form-control huge big disabled"
-                    id="masterStart"
+                    id="repetition_start_date"
                     ng-model="masterEvent.start_date"
                     />
+                </td>
+              </tr>
+              <tr>
+                <td colspan="2">
+                  <details>
+                    <summary>
+                      {{ts('Existing Repeats')}}
+                    </summary>
+                    <div class="crm-accordion-body">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th ng-repeat="(key, value) in existingRepeatsDisplay">{{value}}</th>
+                          </tr>
+                        </thead>
+                        <tbody> 
+                          <tr ng-repeat="repeat in existingRepeats" >
+                            <td  ng-repeat="(key, value) in existingRepeatsDisplay">{{repeat[key]}}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </details>                  
                 </td>
               </tr>
               <tr>
@@ -268,6 +291,17 @@
               </tr>
             </tbody>
           </table>    
+              <tr class="crm-core-form-recurringentity-block-repetition_start_date" id="tr-repetition_start_date">
+                <td class="label"><label for="new_title">{{ts('Title Base')}}</label></td>
+                <td>
+                  <input 
+                    type="text" 
+                    class="form-control huge big"
+                    id="new_title"
+                    ng-model="newTitle"
+                    />
+                </td>
+              </tr>
           <div class="crm-submit-buttons crm-button-disabled">
             <button class="crm-form-submit default validate crm-button crm-button-type-submit " 
                     name="repeat_submit" 

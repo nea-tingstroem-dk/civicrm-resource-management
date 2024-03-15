@@ -60,9 +60,11 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
           'res.display_name',
           'ph.id', 'ph.contact_id', 'ph.role_id', 'ph.status_id',
           'host.display_name')
-        ->addJoin('Participant AS pr', 'INNER', ['id', '=', 'pr.event_id'], ['pr.role_id', '=', 5])
+        ->addJoin('Participant AS pr', 'INNER', ['id', '=', 'pr.event_id'],
+          ['pr.role_id', '=', $this->_calendarSettings['resource_role_id']])
         ->addJoin('Contact AS res', 'LEFT', ['pr.contact_id', '=', 'res.id'])
-        ->addJoin('Participant AS ph', 'LEFT', ['id', '=', 'ph.event_id'], ['ph.role_id', '=', 3])
+        ->addJoin('Participant AS ph', 'LEFT', ['id', '=', 'ph.event_id'],
+          ['ph.role_id', '=', $this->_calendarSettings['host_role_id']])
         ->addJoin('Contact AS host', 'LEFT', ['host.id', '=', 'ph.contact_id'])
         ->setHaving([
           ['id', '=', $this->_eventId],
@@ -421,15 +423,14 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
 
   public function postProcess() {
     $buttonName = $this->controller->getButtonName();
-    if (substr_compare($buttonName, 'edit_event', -10) === 0) {
-      CRM_Utils_JSON::output(['openpage' => 'civicrm/event/manage/settings?' .
-        'reset=1&action=update&id=' . $this->_eventId]);
-      return;
-    } else if (substr_compare($buttonName, 'expand', -6) === 0) {
-      CRM_Utils_JSON::output(['openpage' => 'civicrm/a/#/resource/manage-event?event_id=' . $this->_eventId]);
-      return;
-    } else if (substr_compare($buttonName, 'submit', -6) === 0 ||
-      substr_compare($buttonName, 'advanced', -8) === 0) {
+    if (substr_compare($buttonName, 'delete', -6) === 0) {
+      if ($this->_eventId) {
+        $sql = "DELETE FROM `civicrm_participant` WHERE `event_id` = " . $this->_eventId;
+        CRM_CORE_DAO::executeQuery($sql);
+        $sql = "DELETE FROM `civicrm_event` WHERE `id` = " . $this->_eventId;
+        CRM_CORE_DAO::executeQuery($sql);
+      }
+    } else {
       $values = $this->_submitValues;
       $resourceRole = (int) $this->_calendarSettings['resource_role_id'];
       $hostRole = (int) $values['host_role_id'];
@@ -582,10 +583,6 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
             }
           }
         }
-        foreach ($toDelete as $id) {
-          $d = CRM_Event_BAO_Participant::findById($id);
-          $d->delete();
-        }
         $psId = CRM_Price_BAO_PriceSet::getFor('civicrm_event', $event->id);
         if ($psId) {
           $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
@@ -620,18 +617,17 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
           }
         }
       }
-      if (substr_compare($buttonName, 'advanced', -8) === 0) {
+
+      if (substr_compare($buttonName, 'advanced', -8) === 0 ||
+        substr_compare($buttonName, 'expand', -6) === 0) {
         CRM_Utils_JSON::output(['openpage' => 'civicrm/a/#/resource/manage-event?event_id=' . $event->id]);
-      }
-    } elseif (substr_compare($buttonName, 'delete', -6) === 0) {
-      if ($this->_eventId) {
-        $sql = "DELETE FROM `civicrm_participant` WHERE `event_id` = " . $this->_eventId;
-        CRM_CORE_DAO::executeQuery($sql);
-        $sql = "DELETE FROM `civicrm_event` WHERE `id` = " . $this->_eventId;
-        CRM_CORE_DAO::executeQuery($sql);
+      } else if (substr_compare($buttonName, 'edit_event', -10) === 0) {
+        CRM_Utils_JSON::output(['openpage' => 'civicrm/event/manage/settings?' .
+          'reset=1&action=update&id=' . $this->_eventId]);
+      } else {
+        CRM_Utils_JSON::output(['result' => 'OK']);
       }
     }
-    parent::postProcess();
   }
 
   public function getResources() {
@@ -726,7 +722,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
       $resourceRole = C::getConfig('resource_role_id');
       $resourceId = $this->_event['pr.contact_id'];
       $defaults['resource_status'] = $this->_event['pr.status_id'];
-      $hostId = $defaults['responsible_contact'] = $this->_event['ph.contact_id'];
+      $defaults['responsible_contact'] = $this->_event['ph.contact_id'];
       $defaults['host_status_id'] = $this->_event['ph.status_id'];
       $lineItems = CRM_Price_BAO_LineItem::getLineItems($this->_event['ph.id'], 'participant');
       foreach ($lineItems as $key => $value) {

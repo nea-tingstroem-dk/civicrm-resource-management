@@ -26,11 +26,18 @@
       $scope.parameters = $location.search();
       $scope.masterEventId = null;
       $scope.masterEvent = null;
+      $scope.newTitle = "";
+
+      $scope.existingRepeats = null;
+      $scope.existingRepeatsDisplay = {
+        title: ts('Title'),
+        start_date: ts('Start Date')
+      };
 
       $scope.repetition_start_date = null;
 
       $scope.repeatHeaders = {
-        repeatds: 'Repeats',
+        repeats: 'Repeats',
         every: 'Every',
         times: 'Times',
         lastDate: 'Last Date',
@@ -109,20 +116,36 @@
         $scope.repeatChanged(0);
       };
 
+      $scope.showRepeats = function (eventId) {
+        crmApi4('Event', 'get', {
+          select: ["title", "start_date"],
+          where: [["parent_event_id", "=", eventId]]
+        }).then(function (events) {
+          $scope.existingRepeats = events;
+        }, function (failure) {
+          // handle failure
+        });
+      };
+
       $scope.eventSelected = function () {
         crmApi4('Event', 'get', {
-          select: ["title", "start_date", "end_date", 
+          select: ["title", "start_date", "end_date",
             "p_res.id", "p_resp.id",
-            "resource.id", "resource.display_name", 
-            "resp.id", "resp.display_name"],
-          join: [["Participant AS p_res", "LEFT", ["p_res.event_id", "=", "id"], ["p_res.role_id", "=", 5]], 
-            ["Contact AS resource", "LEFT", ["resource.id", "=", "p_res.contact_id"]], 
-            ["Participant AS p_resp", "LEFT", ["p_resp.event_id", "=", "id"], ["p_resp.role_id", "IN", [2, 3]]], ["Contact AS resp", "LEFT", ["resp.id", "=", "p_resp.contact_id"]]],
+            "resource.id", "resource.display_name",
+            "resp.id", "resp.display_name",
+            "parent_event_id"],
+          join: [
+            ["Participant AS p_res", "LEFT", ["p_res.event_id", "=", "id"], ["p_res.role_id", "=", 5]],
+            ["Contact AS resource", "LEFT", ["resource.id", "=", "p_res.contact_id"]],
+            ["Participant AS p_resp", "LEFT", ["p_resp.event_id", "=", "id"], ["p_resp.role_id", "IN", [2, 3]]],
+            ["Contact AS resp", "LEFT", ["resp.id", "=", "p_resp.contact_id"]]],
           where: [["id", "=", $scope.masterEventId]],
         }).then(function (events) {
           $scope.masterEvent = events[0];
           $scope.repetition_start_date = $scope.masterEvent.start_date;
           $scope.repeatChanged(0);
+          $scope.showRepeats($scope.masterEvent.parent_event_id);
+          $scope.newTitle = $scope.masterEvent.title;
         }, function (failure) {
           // handle failure
         });
@@ -132,8 +155,9 @@
         var params = {
           action: 'repeat',
           event_id: $scope.masterEventId,
+          new_title: $scope.newTitle,
           resource_participant_id: $scope.masterEvent['p_res.id'],
-          responsible_participant_id: $scope.masterEvent['P_resp.id'],
+          responsible_participant_id: $scope.masterEvent['p_resp.id'],
           dates: $scope.expandDates(),
         };
         var req = {
@@ -144,7 +168,14 @@
         $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
         $http(req)
           .then(function successCallback(response) {
-            console.log(response);
+            $scope.repeats = [
+              {
+                rep_freq: "1",
+                rep_every: 'week',
+                rep_times: "1",
+                rep_last_date: null
+              }];
+          $scope.showRepeats($scope.masterEvent.parent_event_id);
           }, function errorCallback(response) {
             console.log(response);
           });

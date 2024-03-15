@@ -53,29 +53,44 @@ class CRM_ResourceManagement_Page_AJAX {
           }
         }
         $event = CRM_Event_BAO_Event::findById($params->event_id);
+        if (!$event->parent_event_id) {
+          $event->parent_event_id = $event->id;
+          $event->save();
+        }
+
         $duration = date_diff(new DateTimeImmutable($event->start_date), new DateTimeImmutable($event->end_date));
         $resource = CRM_Event_BAO_Participant::findById($params->resource_participant_id);
-        $responsible = CRM_Event_BAO_Participant::findById($params->responsible_participant_id);
+        $eventList = [];
+        $responsible = false;
+        if ($params->responsible_participant_id) {
+          $responsible = CRM_Event_BAO_Participant::findById($params->responsible_participant_id);
+        }
+        $i = 0;
         foreach ($params->dates as $date) {
+          $i++;
           $newEvent = CRM_Event_BAO_Event::copy($params->event_id);
-          $newEvent->title = $event->title;
+          $newEvent->title = $params->new_title . " {$i}";
           $start = new DateTimeImmutable($date);
           $newEvent->start_date = $start->format("YmdHis");
           $end = $start->add($duration);
           $newEvent->end_date = $end->format("YmdHis");
-          $newEvent->parent_event_id = $params->event_id;
-          $res = $newEvent->save();
+          $newEvent->parent_event_id = $event->parent_event_id;
+          $newEvent = $newEvent->save();
+          $eventList[$newEvent->id] = $newEvent->title;
           $par = [];
           $pr = get_object_vars($resource);
           unset($pr['id']);
           $pr['event_id'] = $newEvent->id;
           $par[] = $pr;
-          $pr = get_object_vars($responsible);
-          unset($pr['id']);
-          $pr['event_id'] = $newEvent->id;
-          $par[] = $pr;
+          if ($responsible) {
+            $pr = get_object_vars($responsible);
+            unset($pr['id']);
+            $pr['event_id'] = $newEvent->id;
+            $par[] = $pr;
+          }
           $pRes = CRM_Event_BAO_Participant::writeRecords($par);
         }
+        $result['events'] = $eventList;
 
         break;
 
