@@ -49,6 +49,12 @@
         repeat: true,
         participants: true
       };
+
+      $scope.fieldMap = new Map();
+      
+      $scope.masterEventParticipants = [];
+      $scope.masterEventParticipantLabels = [];
+
       // Local variable for this controller (needed when inside a callback fn where `this` is not available).
       var ctrl = this;
 
@@ -126,6 +132,15 @@
           // handle failure
         });
       };
+      
+      $scope.changeMasterEvent = function(event_id) {
+        $scope.masterEventId = event_id;
+        $scope.eventSelected();
+      };
+      
+      $scope.removeRepeatedEvent = function(event_id) {
+        console.log('Remove ' + event_id);
+      };
 
       $scope.eventSelected = function () {
         crmApi4('Event', 'get', {
@@ -146,6 +161,63 @@
           $scope.repeatChanged(0);
           $scope.showRepeats($scope.masterEvent.parent_event_id);
           $scope.newTitle = $scope.masterEvent.title;
+          crmApi4('UFGroup', 'get', {
+            select: [
+              "uf_field.id",
+              "uf_field.field_name",
+              "uf_field.field_name:label",
+              "event.default_role_id",
+              "SUBSTRING(uf_field.field_name, 8) AS custom_id"
+            ],
+            join: [
+              ["Event AS event", "LEFT", "UFJoin"],
+              ["UFField AS uf_field", "LEFT", ["uf_field.uf_group_id", "=", "id"]]],
+            where: [
+              ["event.id", "=", $scope.masterEvent.id],
+              ["uf_field.field_name", "LIKE", "custom_%"]
+            ],
+          }).then(function (uFGroups) {
+            var customIds = [];
+            for (var field of uFGroups) {
+              customIds.push(field['custom_id']);
+              $scope.fieldMap[field['custom_id']] = {
+                name: field['uf_field.field_name'],
+                label: field['uf_field.field_name:label']
+              };
+            }
+            var fieldNames = [
+              "contact_id", "contact_id.external_identifier",
+              "contact_id.display_name"];
+            var fieldLabels = {
+              id: "Id",
+              contact_id: ts("Contact Id"),
+              'contact_id.external_identifier': ts("External Identifier"),
+              'contact_id.display_name': ts("Display Name"),
+            };
+            crmApi4('Participant', 'getFields', {
+              where: [["custom_field_id", "IN", customIds]],
+              select: ["custom_field_id", "name", "title"]
+            }).then(function (fields) {
+              for (var field of fields) {
+                fieldNames.push(field.name);
+                fieldLabels[field.name] = field.title;
+              }
+              $scope.masterEventParticipantLabels = fieldLabels;
+              crmApi4('Participant', 'get', {
+                select: fieldNames,
+                where: [["event_id", "=", $scope.masterEvent.id]]
+              }).then(function (participants) {
+                $scope.masterEventParticipants = participants;
+              }, function (failure) {
+                console.log('Error');
+              });
+            }, function (failure) {
+              console.log('Error');
+            });
+          }, function (failure) {
+            console.log('Error');
+          });
+
         }, function (failure) {
           // handle failure
         });
@@ -175,11 +247,15 @@
                 rep_times: "1",
                 rep_last_date: null
               }];
-          $scope.showRepeats($scope.masterEvent.parent_event_id);
+            $scope.showRepeats($scope.masterEvent.parent_event_id);
           }, function errorCallback(response) {
             console.log(response);
           });
 
+      };
+
+      $scope.open_participants = function () {
+        console.log('Was here');
       };
 
       $scope.repeats[0] = {

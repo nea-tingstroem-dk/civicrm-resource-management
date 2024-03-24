@@ -35,73 +35,111 @@
                         />
                     </td>
                   </tr>  
-                  <tr >
-                    <td>
-                      <label for="masterTitle" class="control-label">{{ts('Title')}}</label>
-                    </td>
-                    <td>
-                      <input 
-                        type="text" 
-                        class="form-control huge big disabled"
-                        id="masterTitle"
-                        ng-model="masterEvent.title"
-                        />
-                    </td>
-                  </tr>
-                  <tr >
-                    <td>
-                      <label for="masterStart" class="control-label">{{ts('Start')}}</label>
-                    </td>
-                    <td>
-                      <input 
-                        type="text" 
-                        class="form-control huge big disabled"
-                        id="masterStart"
-                        ng-model="masterEvent.start_date"
-                        />
-                    </td>
-                  </tr>
-                  <tr >
-                    <td>
-                      <label for="masterEnd" class="control-label">{{ts('End')}}</label>
-                    </td>
-                    <td>
-                      <input 
-                        type="text"
-                        class="form-control huge big disabled"
-                        id="masterEnd"
-                        ng-model="masterEvent.end_date"
-                        />
-                    </td>
-                  </tr>
-                  <tr >
-                    <td>
-                      <label for="masterEnd" class="control-label">{{ts('Resource')}}</label>
-                    </td>
-                    <td>
-                      <input 
-                        type="text"
-                        class="form-control huge big disabled"
-                        id="masterEnd"
-                        ng-model="masterEvent['resource.display_name']"
-                        />
-                    </td>
-                  </tr>
-                  <tr >
-                    <td>
-                      <label for="masterEnd" class="control-label">{{ts('Responsible')}}</label>
-                    </td>
-                    <td>
-                      <input 
-                        type="text"
-                        class="form-control huge big disabled"
-                        id="masterEnd"
-                        ng-model="masterEvent['resp.display_name']"
-                        />
-                    </td>
-                  </tr>
                 </tbody>
               </table>
+              <details>
+                <summary>
+                  {{ts('Information')}}
+                </summary>
+                <div class="crm-accordion-body">
+                  <table>
+                    <thead>
+                    <th width="25%" />
+                    <th width="auto" />
+                    </thead>
+                    <tbody>
+                      <tr >
+                        <td>
+                          <label for="masterTitle" class="control-label">{{ts('Title')}}</label>
+                        </td>
+                        <td>
+                          <input 
+                            type="text" 
+                            class="form-control huge big disabled"
+                            id="masterTitle"
+                            ng-model="masterEvent.title"
+                            />
+                        </td>
+                      </tr>
+                      <tr >
+                        <td>
+                          <label for="masterStart" class="control-label">{{ts('Start')}}</label>
+                        </td>
+                        <td>
+                          <input 
+                            type="text" 
+                            class="form-control huge big disabled"
+                            id="masterStart"
+                            ng-model="masterEvent.start_date"
+                            />
+                        </td>
+                      </tr>
+                      <tr >
+                        <td>
+                          <label for="masterEnd" class="control-label">{{ts('End')}}</label>
+                        </td>
+                        <td>
+                          <input 
+                            type="text"
+                            class="form-control huge big disabled"
+                            id="masterEnd"
+                            ng-model="masterEvent.end_date"
+                            />
+                        </td>
+                      </tr>
+                      <tr >
+                        <td>
+                          <label for="masterEnd" class="control-label">{{ts('Resource')}}</label>
+                        </td>
+                        <td>
+                          <input 
+                            type="text"
+                            class="form-control huge big disabled"
+                            id="masterEnd"
+                            ng-model="masterEvent['resource.display_name']"
+                            />
+                        </td>
+                      </tr>
+                      <tr >
+                        <td>
+                          <label for="masterEnd" class="control-label">{{ts('Responsible')}}</label>
+                        </td>
+                        <td>
+                          <input 
+                            type="text"
+                            class="form-control huge big disabled"
+                            id="masterEnd"
+                            ng-model="masterEvent['resp.display_name']"
+                            />
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </details>                  
+              <details>
+                <summary >
+                  {{ts('Participants')}}
+                </summary>
+                <div class="crm-accordion-body">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th ng-repeat="(key, value) in masterEventParticipantLabels">{{value}}</th>
+                      </tr>
+                    </thead>
+                    <tbody> 
+                      <tr ng-repeat="repeat in masterEventParticipants" >
+                        <td  ng-repeat="(key, value) in masterEventParticipantLabels">{{repeat[key]}}</td>
+                        <td>
+                          
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                </div>
+              </details>                  
             </div>
           </form>
         </div>
@@ -150,6 +188,22 @@
                         <tbody> 
                           <tr ng-repeat="repeat in existingRepeats" >
                             <td  ng-repeat="(key, value) in existingRepeatsDisplay">{{repeat[key]}}</td>
+                        <td>
+                          <a class="crm-hover-button" 
+                             ng-click="changeMasterEvent(repeat.id)"
+                             title="Add" style="visibility: visible;">
+                            <i class="crm-i fa-plus-circle" aria-hidden="true">
+                            </i>
+                          </a>                          
+                        </td>
+                        <td>
+                          <a class="crm-hover-button" 
+                             ng-click="removeRepeatedEvent(repeat.id)"
+                             title="Remove" style="visibility: visible;">
+                            <i class="crm-i fa-trash-o" aria-hidden="true">
+                            </i>
+                          </a>                          
+                        </td>
                           </tr>
                         </tbody>
                       </table>
@@ -291,17 +345,17 @@
               </tr>
             </tbody>
           </table>    
-              <tr class="crm-core-form-recurringentity-block-repetition_start_date" id="tr-repetition_start_date">
-                <td class="label"><label for="new_title">{{ts('Title Base')}}</label></td>
-                <td>
-                  <input 
-                    type="text" 
-                    class="form-control huge big"
-                    id="new_title"
-                    ng-model="newTitle"
-                    />
-                </td>
-              </tr>
+          <tr class="crm-core-form-recurringentity-block-repetition_start_date" id="tr-repetition_start_date">
+            <td class="label"><label for="new_title">{{ts('Title Base')}}</label></td>
+            <td>
+              <input 
+                type="text" 
+                class="form-control huge big"
+                id="new_title"
+                ng-model="newTitle"
+                />
+            </td>
+          </tr>
           <div class="crm-submit-buttons crm-button-disabled">
             <button class="crm-form-submit default validate crm-button crm-button-type-submit " 
                     name="repeat_submit" 
