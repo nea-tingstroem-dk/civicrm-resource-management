@@ -18,6 +18,72 @@ class CRM_ResourceManagement_Page_AJAX {
     $params = json_decode(CRM_Utils_Request::retrieve('params', 'String'));
     $result = [];
     switch ($params->action) {
+      case 'parse_pasted';
+        $lines = explode("\n", $params->pasted);
+        $columnNames = explode("\t", $lines[0]);
+        $externalIndex = -1;
+        $emailIndex = -1;
+        for ($i = 0; $i < count($columnNames); $i++) {
+          $colName = trim($columnNames[$i]);
+          switch (strtolower($colName)) {
+            case 'konto':
+              $externalIndex = $i;
+//          $fieldName = 'external_identifier';
+              break;
+            case 'email':
+              $emailIndex = $i;
+//          $fieldName = 'email_primary.email';
+              break;
+
+            default:
+              break;
+          }
+        }
+        $inList = [];
+        $outList = [];
+        for ($j = 1; $j < count($lines); $j++) {
+          $line = trim($lines[$j]);
+          if (strlen($line) === 0) {
+            continue;
+          }
+          $fields = explode("\t", $line);
+          if ($externalIndex >= 0) {
+            $contacts = \Civi\Api4\Contact::get(TRUE)
+              ->addSelect('id', 'external_identifier', 'display_name')
+              ->addWhere('external_identifier', '=', $fields[$externalIndex])
+              ->execute();
+            if ($contacts->rowCount) {
+              $c = $contacts->first();
+              $inList[] = array_merge($c, array_combine($columnNames, $fields));
+              continue;
+            }
+          } 
+          if ($emailIndex >= 0) {
+            $contacts = \Civi\Api4\Contact::get(TRUE)
+              ->addSelect('external_identifier', 'display_name')
+              ->addWhere('email_primary.email', '=', $fields[$emailIndex])
+              ->execute();
+            if ($contacts->rowCount) {
+              $inList[$contacts->first()['id']] = array_merge($contacts->first(), $fields);
+              continue;
+            }
+          }
+          $outList[] = array_combine($columnNames, $fields);
+        }
+        $result = [
+          'found_headers' => array_merge(['Contact id', 'External ID', 'Name'], $columnNames),
+          'found' => $inList,
+          'not_found_headers' => $columnNames,
+          'not_found' => $outList,
+          'columns' => $columnNames,
+        ];
+        break;
+      case 'delete':
+        $event = CRM_Event_BAO_Event::findById($params->event_id);
+        if ($event) {
+          $event->delete();
+        }
+        break;
       case 'repeat':
         $checkParentExistsForThisId = CRM_Core_BAO_RecurringEntity::getParentFor($params->event_id, 'civicrm_event');
         //If this ID has parent, send parent id

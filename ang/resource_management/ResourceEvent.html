@@ -15,8 +15,10 @@
               </div>
               <table>
                 <thead>
-                <th width="25%" />
-                <th width="auto" />
+                  <tr>
+                    <th class="w-25" ></th>
+                    <th class="w-auto" ></th>
+                  </tr>
                 </thead>
                 <tbody>
                   <tr>
@@ -118,6 +120,41 @@
                 </div>
               </details>                  
               <details>
+                <summary>
+                  {{ts('Repeat')}}
+                </summary>
+                <div class="crm-accordion-body">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th ng-repeat="(key, value) in existingRepeatsDisplay">{{value}}</th>
+                      </tr>
+                    </thead>
+                    <tbody> 
+                      <tr ng-repeat="repeat in existingRepeats" >
+                        <td  ng-repeat="(key, value) in existingRepeatsDisplay">{{repeat[key]}}</td>
+                        <td>
+                          <a class="crm-hover-button" 
+                             ng-click="changeMasterEvent(repeat.id)"
+                             title="Open" style="visibility: visible;">
+                            <i class="crm-i fa-folder-open-o" aria-hidden="true">
+                            </i>
+                          </a>                          
+                        </td>
+                        <td>
+                          <a class="crm-hover-button" 
+                             ng-click="removeRepeatedEvent(repeat.id)"
+                             title="Remove" style="visibility: visible;">
+                            <i class="crm-i fa-trash-o" aria-hidden="true">
+                            </i>
+                          </a>                          
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </details>                  
+              <details>
                 <summary >
                   {{ts('Participants')}}
                 </summary>
@@ -132,7 +169,7 @@
                       <tr ng-repeat="repeat in masterEventParticipants" >
                         <td  ng-repeat="(key, value) in masterEventParticipantLabels">{{repeat[key]}}</td>
                         <td>
-                          
+
                         </td>
                       </tr>
                     </tbody>
@@ -148,7 +185,7 @@
     <div class="crm-flex-3">
       <div class="tab">
         <button class="tablinks" ng-click="selectTab('repeat')">{{ts('Repeat')}}</button>
-        <button class="tablinks" ng-click="selectTab('participants')">{{ts('Participants')}}</button>
+        <button class="tablinks" ng-click="selectTab('import')">{{ts('Import Partiticipants')}}</button>
       </div>
 
       <!-- Tab content -->
@@ -170,45 +207,6 @@
                     id="repetition_start_date"
                     ng-model="masterEvent.start_date"
                     />
-                </td>
-              </tr>
-              <tr>
-                <td colspan="2">
-                  <details>
-                    <summary>
-                      {{ts('Existing Repeats')}}
-                    </summary>
-                    <div class="crm-accordion-body">
-                      <table>
-                        <thead>
-                          <tr>
-                            <th ng-repeat="(key, value) in existingRepeatsDisplay">{{value}}</th>
-                          </tr>
-                        </thead>
-                        <tbody> 
-                          <tr ng-repeat="repeat in existingRepeats" >
-                            <td  ng-repeat="(key, value) in existingRepeatsDisplay">{{repeat[key]}}</td>
-                        <td>
-                          <a class="crm-hover-button" 
-                             ng-click="changeMasterEvent(repeat.id)"
-                             title="Add" style="visibility: visible;">
-                            <i class="crm-i fa-plus-circle" aria-hidden="true">
-                            </i>
-                          </a>                          
-                        </td>
-                        <td>
-                          <a class="crm-hover-button" 
-                             ng-click="removeRepeatedEvent(repeat.id)"
-                             title="Remove" style="visibility: visible;">
-                            <i class="crm-i fa-trash-o" aria-hidden="true">
-                            </i>
-                          </a>                          
-                        </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </details>                  
                 </td>
               </tr>
               <tr>
@@ -368,9 +366,136 @@
         </form>
       </div>
 
-      <div id="group_tab" class="ng-hide" ng-hide="hideTabs.participants">
-        <h3>Paris</h3>
-        <p>Paris is the capital of France.</p>
+      <div id="import_tab" class="ng-hide" ng-hide="hideTabs.import">
+        <h3>Import</h3>
+        <div class="help">
+          <p>{{ts('Paste the input lines with tab-separated data to the paste area')}}</p>
+
+          <p>{{ts('Please make sure it has headings and that one of them is Konto (medlemsnummer) or Email')}}</p>
+        </div>
+
+        <form name="paste_form" >
+          <div class="section crmkas-pastearea">
+            <div class="label bold">
+              {{ts('Paste Area')}}
+            </div>
+            <div class="content">
+              <div class="crm-block">
+                <div class="form-group">
+                  <textarea ng-model="paste_area"
+                            ng-change="pasted()"
+                            class="form-control ng-pristine ng-valid ng-empty ng-touched " 
+                            id="paste_area" 
+                            Cols="80" ></textarea>
+                </div>      
+              </div>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr class="columnheader">
+                <th width="25%" >{{ts("Input Column")}}</th>
+                <th width="25%" >{{ts("Target")}}</th>
+                <th width="auto" ></th>
+              </tr>            
+            </thead>
+            <tbody>
+              <tr ng-repeat="(rowindex, row) in pastedMappings">
+                <td>
+                  <select class="crm-form-select" 
+                          ng-model="pastedMappings[$index].input_field"
+                          ng-change="pastedMappingsChanged($index)">
+                    <option value="">{{ts("none")}}</option>
+                    <option ng-repeat="value in pastedColumns" value="{{value}}" >{{value}}</option>
+                  </select>
+                </td>
+                <td>
+                  <select class="crm-form-select" 
+                          ng-model="pastedMappings[$index].target"
+                          ng-change="pastedMappingsChanged($index)">
+                    <option value="">{{ts("none")}}</option>
+                    <option ng-repeat="(key, value) in targetFieldsMap" value="{{key}}" >{{value}}</option>
+                  </select>
+                  <a class="crm-hover-button" 
+                     ng-click="addPasteMapping()"
+                     title="Add" style="visibility: visible;">
+                    <i class="crm-i fa-plus-circle" aria-hidden="true">
+                    </i>
+                  </a>                          
+
+                </td>
+                <td>
+                  <div ng-if="isTargetRole(rowindex)">
+                    <table >
+                      <tr>
+                        <th>{{ts("Input Value")}}</th>
+                        <th>{{ts("Target")}}</th>
+                      </tr>
+                      <tr ng-repeat="(uind, uval) in uniqueRoleValues">
+                        <td>{{uval.field}}</td>
+                        <td>
+                          <select ng-model="uniqueRoleValues[$index].role_id">
+                            <option value="null">{{ts('None')}}</option>
+                            <option ng-repeat="role in roleIdList" value="{{role.id}}">{{role.label}}</option>
+                          </select>
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="crm-actions-ribbon">
+            <ul id="actions">
+              <li>
+                <a class="button" ng-click="addPastedParticipants()" >
+                  <span>{{ts('Add Participants To Selected Event')}}</span>
+                </a>            
+              </li>
+            </ul>
+            <div class="clear"></div>
+          </div>        </form>
+        <details id="import_error_accordian" open>
+          <summary>
+            {{ts('Errors')}}
+          </summary>
+          <div class="crm-accordion-body">
+
+            <table class="">
+              <thead>
+              <th class="h2" ng-repeat="fh in notFoundHeaders" >{{fh}}</th>
+              </thead>
+
+              <tbody>
+                <tr ng-repeat="row in notFound" >
+                  <td ng-repeat="field in row" >{{field}}</td>
+                </tr>        
+              </tbody>
+            </table>
+          </div>
+        </details>
+
+        <details id="import_contacts_accordian" open>
+          <summary>
+            {{ts('Contacts')}}
+          </summary>
+          <div class="crm-accordion-body">
+            <table>
+              <thead>
+              <th ng-repeat="fh in foundHeaders" >
+                <div class="font-weight-bold">{{fh}}</div>
+              </th>
+              </thead>
+
+              <tbody>
+                <tr ng-repeat="row in found" >
+                  <td ng-repeat="field in row" >{{field}}</td>
+                </tr>        
+              </tbody>
+            </table>
+          </div>
+        </details>
       </div>
     </div>
   </div>

@@ -47,29 +47,38 @@
 
       $scope.hideTabs = {
         repeat: true,
-        participants: true
+        import: true
       };
 
       $scope.fieldMap = new Map();
-      
+      $scope.customMap = new Map();
+
       $scope.masterEventParticipants = [];
       $scope.masterEventParticipantLabels = [];
 
+      $scope.paste_area = null;
+
+      $scope.foundHeaders = [];
+      $scope.found = [];
+      $scope.notFoundHeaders = [];
+      $scope.notFound = [];
+      $scope.pastedColumns = null;
+      $scope.pastedMappings = [];
+      $scope.targetFieldsMap = [];
+      $scope.uniqueRoleValues = [];
+      $scope.roleIdList = null;
       // Local variable for this controller (needed when inside a callback fn where `this` is not available).
       var ctrl = this;
 
       function hideAllTabs() {
-        $scope.hideTabs.repeat = true;
-        $scope.hideTabs.participants = true;
+        for (var tab in $scope.hideTabs) {
+          $scope.hideTabs[tab] = true;
+        }
       }
 
       $scope.selectTab = function (tab) {
         hideAllTabs();
-        if (tab === 'repeat') {
-          $scope.hideTabs.repeat = false;
-        } else if (tab === 'participants') {
-          $scope.hideTabs.participants = false;
-        }
+        $scope.hideTabs[tab] = false;
       };
 
       $scope.repeatChanged = function (index) {
@@ -132,14 +141,29 @@
           // handle failure
         });
       };
-      
-      $scope.changeMasterEvent = function(event_id) {
+
+      $scope.changeMasterEvent = function (event_id) {
         $scope.masterEventId = event_id;
         $scope.eventSelected();
       };
-      
-      $scope.removeRepeatedEvent = function(event_id) {
-        console.log('Remove ' + event_id);
+
+      $scope.removeRepeatedEvent = function (event_id) {
+        var params = {
+          action: 'delete',
+          event_id: event_id,
+        };
+        var req = {
+          method: 'POST',
+          url: '/civicrm/ajax/resource-advanced',
+          data: 'params=' + JSON.stringify(params)
+        };
+        $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
+        $http(req)
+          .then(function successCallback(response) {
+            $scope.showRepeats($scope.masterEvent.parent_event_id);
+          }, function errorCallback(response) {
+            console.log(response);
+          });
       };
 
       $scope.eventSelected = function () {
@@ -198,10 +222,14 @@
               where: [["custom_field_id", "IN", customIds]],
               select: ["custom_field_id", "name", "title"]
             }).then(function (fields) {
+              var targets = {};
               for (var field of fields) {
                 fieldNames.push(field.name);
                 fieldLabels[field.name] = field.title;
+                targets[field.name] = field.title;
               }
+              targets['role'] = ts("Participant Role");
+              $scope.targetFieldsMap = targets;
               $scope.masterEventParticipantLabels = fieldLabels;
               crmApi4('Participant', 'get', {
                 select: fieldNames,
@@ -251,11 +279,117 @@
           }, function errorCallback(response) {
             console.log(response);
           });
-
       };
 
-      $scope.open_participants = function () {
-        console.log('Was here');
+      $scope.pasted = function () {
+        if (!$scope.paste_area) {
+          return;
+        }
+        var params = {
+          action: 'parse_pasted',
+          pasted: $scope.paste_area,
+        };
+        var req = {
+          method: 'POST',
+          url: '/civicrm/ajax/resource-advanced',
+          data: 'params=' + JSON.stringify(params)
+        };
+        $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
+        $http(req)
+          .then(function successCallback(response) {
+            if (response.data.found.length > 0) {
+              $scope.foundHeaders = response.data.found_headers;
+              $scope.found = response.data.found;
+              $scope.inputFields = response.data.not_found_headers;
+              $scope.pastedColumns = response.data.columns;
+              if ($scope.pastedColumns.length > 0) {
+                $scope.pastedMappings = Array(1);
+              } else {
+                $scope.pastedMappings = null;
+              }
+            } else {
+              $scope.foundHeaders = null;
+              $scope.found = null;
+              $scope.pastedColumns = null;
+            }
+
+            if (response.data.not_found.length > 0) {
+              $scope.notFoundHeaders = response.data.not_found_headers;
+              $scope.notFound = response.data.not_found;
+            } else {
+              $scope.notFoundHeaders = [];
+              $scope.notFound = [];
+            }
+            $scope.paste_area = null;
+          }, function errorCallback(response) {
+            console.log(response);
+          });
+      };
+      
+      $scope.isTargetRole = function(index) {
+        if (typeof($scope) !== 'undefined' &&
+          typeof($scope.pastedMappings[index]) !== 'undefined' && 
+          'role' === $scope.pastedMappings[index].target) {
+          return true;
+        }
+        return false;
+      };
+      
+      $scope.addPasteMapping = function() {
+        $scope.pastedMappings.push({});
+      };
+
+      $scope.pastedMappingsChanged = function (index) {
+        var m = $scope.pastedMappings[index];
+        if (m.input_field && m.target) {
+          if (m.target === 'role') {
+            var uniqueValues = [];
+            for (var f of $scope.found) {
+              if (uniqueValues.indexOf(f[m.input_field]) < 0) {
+                uniqueValues.push({field: f[m.input_field]});
+              }
+            }
+            $scope.uniqueRoleValues = uniqueValues;
+            if ($scope.roleIdList === null) {
+              crmApi4('OptionValue', 'get', {
+                select: ["label"],
+                where: [["option_group_id:name", "=", "participant_role"]]
+              }).then(function (optionValues) {
+                $scope.roleIdList = optionValues;
+              }, function (failure) {
+                // handle failure
+              });
+            }
+          }
+        }
+      };
+
+      $scope.addPastedParticipants = function (series = false) {
+        var eventIds = [];
+        if (series) {
+          for (var value of $scope.existingRepeats) {
+            eventIds.push(value.id);
+          }
+        } else {
+          eventIds.push($scope.masterEventId);
+        }
+        var params = {
+          action: 'add_participants',
+          contacts: $scope.found,
+          event_ids: eventIds,
+
+        };
+        var req = {
+          method: 'POST',
+          url: '/civicrm/ajax/resource-advanced',
+          data: 'params=' + JSON.stringify(params)
+        };
+        $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
+        $http(req)
+          .then(function successCallback(response) {
+          }, function errorCallback(response) {
+            console.log(response);
+          });
       };
 
       $scope.repeats[0] = {
