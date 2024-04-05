@@ -455,7 +455,24 @@
               </li>
             </ul>
             <div class="clear"></div>
-          </div>        </form>
+          </div>        
+          <div ng-if="participantEventQueue" 
+               ng-model="participantEventQueue"
+               ng-change="queueChanged()">
+            <table >
+                    <thead>
+                      <tr>
+                        <th ng-repeat="(key, value) in existingRepeatsDisplay">{{value}}</th>
+                      </tr>
+                    </thead>
+                    <tbody> 
+                      <tr ng-repeat="repeat in participantEventQueue" >
+                        <td  ng-repeat="(key, value) in existingRepeatsDisplay">{{repeat[key]}}</td>
+                      </tr>
+                    </tbody>
+            </table>
+          </div>
+        </form>
         <details id="import_error_accordian" open>
           <summary>
             {{ts('Errors')}}

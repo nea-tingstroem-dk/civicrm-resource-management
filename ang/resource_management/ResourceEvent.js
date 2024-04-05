@@ -67,6 +67,9 @@
       $scope.targetFieldsMap = [];
       $scope.uniqueRoleValues = [];
       $scope.roleIdList = null;
+
+      $scope.participantEventQueue = null;
+
       // Local variable for this controller (needed when inside a callback fn where `this` is not available).
       var ctrl = this;
 
@@ -87,7 +90,7 @@
         for (var i = 0; i < $scope.repeats.length; i++) {
           var rep = $scope.repeats.at(i);
           var nextDate = date.add(rep.rep_freq * rep.rep_times, rep.rep_every);
-          rep.rep_last_date = nextDate.format('YYYY-MM-DD');
+          rep.rep_last_date = nextDate.format('YYYY-MM-DD HH:mm');
           repeats.push(rep);
           date = nextDate.clone();
         }
@@ -101,7 +104,7 @@
           var rep = $scope.repeats.at(i);
           for (var j = 0; j < rep.rep_times; j++) {
             var nextDate = date.add(rep.rep_freq, rep.rep_every);
-            repeats.push(nextDate.format('YYYY-MM-DDThh:mm'));
+            repeats.push(nextDate.format('YYYY-MM-DDTHH:mm'));
             date = nextDate.clone();
           }
         }
@@ -325,17 +328,17 @@
             console.log(response);
           });
       };
-      
-      $scope.isTargetRole = function(index) {
-        if (typeof($scope) !== 'undefined' &&
-          typeof($scope.pastedMappings[index]) !== 'undefined' && 
+
+      $scope.isTargetRole = function (index) {
+        if (typeof ($scope) !== 'undefined' &&
+          typeof ($scope.pastedMappings[index]) !== 'undefined' &&
           'role' === $scope.pastedMappings[index].target) {
           return true;
         }
         return false;
       };
-      
-      $scope.addPasteMapping = function() {
+
+      $scope.addPasteMapping = function () {
         $scope.pastedMappings.push({});
       };
 
@@ -365,18 +368,37 @@
       };
 
       $scope.addPastedParticipants = function (series = false) {
-        var eventIds = [];
+        var queue = [];
         if (series) {
+          var firstDate = moment($scope.masterEvent.start_date);
           for (var value of $scope.existingRepeats) {
-            eventIds.push(value.id);
+            if (moment(value.start_date) >= firstDate)
+              queue.push(value);
           }
         } else {
-          eventIds.push($scope.masterEventId);
+          queue.push($scope.masterEvent);
         }
+        $scope.participantEventQueue = queue;
+        $scope.queueChanged();
+      };
+
+      $scope.queueChanged = function () {
+        if ($scope.participantEventQueue.length === 0) {
+          $scope.participantEventQueue = null;
+          $scope.foundHeaders = null;
+          $scope.found = null;
+          $scope.notFoundHeaders = [];
+          $scope.notFound = [];
+          $scope.pastedMappings = null;
+          $scope.eventSelected();   //refresh event data
+          return;
+        }
+
         var params = {
           action: 'add_participants',
           contacts: $scope.found,
-          event_ids: eventIds,
+          event_id: $scope.participantEventQueue[0].id,
+          mappings: $scope.pastedMappings
 
         };
         var req = {
@@ -387,10 +409,12 @@
         $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
         $http(req)
           .then(function successCallback(response) {
+            $scope.participantEventQueue.shift();
+            $scope.queueChanged();
           }, function errorCallback(response) {
             console.log(response);
           });
-      };
+      }
 
       $scope.repeats[0] = {
         rep_freq: "1",

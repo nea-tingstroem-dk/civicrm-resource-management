@@ -18,6 +18,63 @@ class CRM_ResourceManagement_Page_AJAX {
     $params = json_decode(CRM_Utils_Request::retrieve('params', 'String'));
     $result = [];
     switch ($params->action) {
+      case 'add_participants':
+        $now = date('YmdHis');
+
+        $event = CRM_Event_DAO_Event::findById($params->event_id);
+        $existingParticipants = [];
+        $pRequest = \Civi\Api4\Participant::get(TRUE)
+          ->addSelect('contact_id')
+          ->addSelect('event_id')
+          ->addSelect('contact_id')
+          ->addSelect('register_date')
+          ->addWhere('event_id', '=', $params->event_id);
+        foreach ($params->mappings as $m) {
+          if ($m->target) {
+            $pRequest->addSelect($m->target);
+          }
+        }
+
+        $participants = $pRequest->execute();
+        foreach ($participants as $p) {
+          $existingParticipants[$p['contact_id']] = $p;
+        }
+        foreach ($params->contacts as $contact) {
+          $changed = false;
+          $participant = [];
+          if (isset($existingParticipants[$contact->id])) {
+            $participant = $existingParticipants[$contact->id];
+          } else {
+            $participant = [
+              'contact_id' => $contact->id,
+              'event_id' => $params->event_id,
+              'register_date' => $now,
+            ];
+            $changed = true;
+          }
+          $c = (array) $contact;
+          foreach ($params->mappings as $m) {
+            if ( "{$c[$m->input_field]}" !== "{$participant[$m->target]}") {
+              $participant[$m->target] = $c[$m->input_field];
+              $changed = true;
+            }
+          }
+
+          if ($changed) {
+            if (isset($participant['id'])) {
+              $op = 'update';
+            } else {
+              $op = 'create';
+            }
+            $res = civicrm_api4('Participant', $op, [
+              'values' => $participant,
+              'checkPermissions' => TRUE,
+            ]);
+            $result[] = $res;
+          }
+        }
+
+        break;
       case 'parse_pasted';
         $lines = explode("\n", $params->pasted);
         $columnNames = explode("\t", $lines[0]);
@@ -57,7 +114,7 @@ class CRM_ResourceManagement_Page_AJAX {
               $inList[] = array_merge($c, array_combine($columnNames, $fields));
               continue;
             }
-          } 
+          }
           if ($emailIndex >= 0) {
             $contacts = \Civi\Api4\Contact::get(TRUE)
               ->addSelect('external_identifier', 'display_name')
