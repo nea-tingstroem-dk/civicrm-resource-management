@@ -425,25 +425,17 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
     $buttonName = $this->controller->getButtonName();
     if (substr_compare($buttonName, 'delete', -6) === 0) {
       if ($this->_eventId) {
-        $sql = "DELETE FROM `civicrm_participant` WHERE `event_id` = " . $this->_eventId;
-        CRM_CORE_DAO::executeQuery($sql);
-        $sql = "DELETE FROM `civicrm_event` WHERE `id` = " . $this->_eventId;
-        CRM_CORE_DAO::executeQuery($sql);
+        $event = CRM_Event_BAO_Event::findById($this->_eventId);
+        $event->delete();
       }
     } else {
       $values = $this->_submitValues;
       $resourceRole = (int) $this->_calendarSettings['resource_role_id'];
       $hostRole = (int) $values['host_role_id'];
-      if (empty($values['host_status_id'])) {
-        $values['host_status_id'] = (int) $this->_calendarSettings['host_status_id'];
-      }
       $statuses = explode(',', C::getConfig('resource_status_ids'));
       $today = date('Y-m-d H:i:s');
       if (!$this->_eventId) {
         $resource_id = $values['resources'];
-        if (!isset($values['responsible_contact'])) {
-          $values['responsible_contact'] = $this->_userId;
-        }
         $template_id = 0;
         if (isset($values['event_template'])) {
           $template_id = $values['event_template'];
@@ -479,15 +471,17 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
         ];
         $participant = CRM_Event_BAO_Participant::create($params);
         $participant->save();
-        $params = [
-          'register_date' => $today,
-          'role_id' => $hostRole,
-          'contact_id' => $values['responsible_contact'],
-          'event_id' => $event->id,
-          'status_id' => $values['host_status_id'],
-        ];
-        $participant = CRM_Event_BAO_Participant::create($params);
-        $participant->save();
+        if (!empty($values['responsible_contact'])) {
+          $params = [
+            'register_date' => $today,
+            'role_id' => $hostRole,
+            'contact_id' => $values['responsible_contact'],
+            'event_id' => $event->id,
+            'status_id' => $values['host_status_id'],
+          ];
+          $participant = CRM_Event_BAO_Participant::create($params);
+          $participant->save();
+        }
         $psId = CRM_Price_BAO_PriceSet::getFor('civicrm_event', $event->id);
         if ($psId) {
           $resId = $values['responsible_contact'];
@@ -557,15 +551,17 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
         $host->role_id = $hostRole;
         $host->find();
         if ($host->N === 0) {
-          $params = [
-            'register_date' => $today,
-            'role_id' => $hostRole,
-            'contact_id' => $values['responsible_contact'],
-            'event_id' => $event->id,
-            'status_id' => $values['host_status_id'],
-          ];
-          $host = CRM_Event_BAO_Participant::create($params);
-          $host->save();
+          if (!empty($values['responsible_contact'])) {
+            $params = [
+              'register_date' => $today,
+              'role_id' => $hostRole,
+              'contact_id' => $values['responsible_contact'],
+              'event_id' => $event->id,
+              'status_id' => $values['host_status_id'],
+            ];
+            $host = CRM_Event_BAO_Participant::create($params);
+            $host->save();
+          }
         } else {
           while ($host->fetch()) {
             $change = FALSE;
