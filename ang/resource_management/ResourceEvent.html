@@ -185,6 +185,7 @@
     <div class="crm-flex-3">
       <div class="tab">
         <button class="tablinks" ng-click="selectTab('repeat')">{{ts('Repeat')}}</button>
+<!--        <button class="tablinks" ng-click="selectTab('clone')">{{ts('Clone')}}</button>-->
         <button class="tablinks" ng-click="selectTab('import')">{{ts('Import Partiticipants')}}</button>
       </div>
 
@@ -366,6 +367,16 @@
         </form>
       </div>
 
+<!--      <div id="repeat_tab" class="ng-hide" ng-hide="hideTabs.clone">
+        <form name="repeat_event">
+          <div class="section crmresource-event-area">
+            <div class="label bold">
+              {{ts('Clone Repeated Events')}}
+            </div>
+          </div>
+        </form>
+      </div>-->
+
       <div id="import_tab" class="ng-hide" ng-hide="hideTabs.import">
         <h3>Import</h3>
         <div class="help">
@@ -460,16 +471,16 @@
                ng-model="participantEventQueue"
                ng-change="queueChanged()">
             <table >
-                    <thead>
-                      <tr>
-                        <th ng-repeat="(key, value) in existingRepeatsDisplay">{{value}}</th>
-                      </tr>
-                    </thead>
-                    <tbody> 
-                      <tr ng-repeat="repeat in participantEventQueue" >
-                        <td  ng-repeat="(key, value) in existingRepeatsDisplay">{{repeat[key]}}</td>
-                      </tr>
-                    </tbody>
+              <thead>
+                <tr>
+                  <th ng-repeat="(key, value) in existingRepeatsDisplay">{{value}}</th>
+                </tr>
+              </thead>
+              <tbody> 
+                <tr ng-repeat="repeat in participantEventQueue" >
+                  <td  ng-repeat="(key, value) in existingRepeatsDisplay">{{repeat[key]}}</td>
+                </tr>
+              </tbody>
             </table>
           </div>
         </form>

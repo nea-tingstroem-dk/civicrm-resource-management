@@ -616,7 +616,8 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
 
       if (substr_compare($buttonName, 'advanced', -8) === 0 ||
         substr_compare($buttonName, 'expand', -6) === 0) {
-        CRM_Utils_JSON::output(['openpage' => 'civicrm/a/#/resource/manage-event?event_id=' . $event->id]);
+        CRM_Utils_JSON::output(['openpage' => "civicrm/a/#/resource/manage-event?".
+          "event_id={$event->id}&calendar_id={$this->_calendar_id}"]);
       } else if (substr_compare($buttonName, 'edit_event', -10) === 0) {
         CRM_Utils_JSON::output(['openpage' => 'civicrm/event/manage/settings?' .
           'reset=1&action=update&id=' . $this->_eventId]);

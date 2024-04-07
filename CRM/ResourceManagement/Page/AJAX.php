@@ -192,7 +192,7 @@ class CRM_ResourceManagement_Page_AJAX {
         foreach ($params->dates as $date) {
           $i++;
           $newEvent = CRM_Event_BAO_Event::copy($params->event_id);
-          $newEvent->title = $params->new_title . " {$i}";
+          $newEvent->title = $params->new_title;
           $start = new DateTimeImmutable($date);
           $newEvent->start_date = $start->format("YmdHis");
           $end = $start->add($duration);

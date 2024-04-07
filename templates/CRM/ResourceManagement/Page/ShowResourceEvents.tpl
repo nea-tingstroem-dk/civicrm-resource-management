@@ -149,6 +149,8 @@
         timeFormat: use24HourFormat ? 'HH:mm' : 'hh(:mm)A',
         aspectRatio: 2.5,
         stickyHeaderDates: true,
+        scrollTime: '17:00:00',
+        scrollTimeReset: false,
         header: {
           left: 'prev,next today',
           center: 'title',
