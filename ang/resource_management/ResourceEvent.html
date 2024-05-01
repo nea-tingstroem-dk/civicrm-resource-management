@@ -185,6 +185,7 @@
     <div class="crm-flex-3">
       <div class="tab">
         <button class="tablinks" ng-click="selectTab('repeat')">{{ts('Repeat')}}</button>
+        <button class="tablinks" ng-click="selectTab('clone')">{{ts('Clone')}}</button>
         <button class="tablinks" ng-click="selectTab('import')">{{ts('Import Partiticipants')}}</button>
       </div>
 
@@ -366,6 +367,117 @@
         </form>
       </div>
 
+      <div id="clone_tab" class="ng-hide" ng-hide="hideTabs.clone">
+        <form name="repeat_event">
+          <div class="section crmresource-event-area">
+            <div class="label bold">
+              {{ts('Clone Repeated Events')}}
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th width="25%" ></th>
+                <th width="auto" ></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <label for="calendar_select" class="control-label">{{ts('Select Calendar')}}</label>
+                </td>
+                <td>
+                  <select class="required crm-form-select" 
+                          ng-model="calendar_id"
+                          ng-change="calendarChanged()"
+                          name="calendar_select" 
+                          id="calendar_select">
+                    <option ng-repeat="value in calendarList" value="{{value.id}}" >{{value.calendar_title}}</option>
+                  </select>
+                </td>
+              </tr>  
+              <tr>
+                <td>
+                  <label for="resources_select" class="control-label">{{ts('Select Resource(s)')}}</label>
+                </td>
+                <td>
+                  <select class="crm-form-select" 
+                          crm-ui-select="{allowClear: true}"
+                          ng-model="selectedResources"
+                          ng-change="resourceChanged()"
+                          multiple="multiple"
+                          name="resources_select" 
+                          id="resources_select">
+                    <option ng-repeat="value in resources" value="{{value.contact_id}}" >{{value['contact_id.display_name']}}</option>
+                  </select>
+                </td>
+              </tr>  
+              <tr>
+                <td>
+                  <label for="dates_select" class="control-label">{{ts('Select Date(s)')}}</label>
+                </td>
+                <td>
+                  <ul class="select2-choices">
+                    <div ng-switch on="pickedDates.length">
+                      <div ng-switch-when="0">
+                        <li>{{ts('None selected')}}</li>
+                      </div>
+                      <div ng-switch-default>
+                        <li class="select2-choice" ng-repeat="date in pickedDates">
+                          <span>
+                            {{date}}
+                            <a class="crm-button" 
+                               ng-click="removeCloneDate($index)"
+                               title="Add" style="visibility: visible;">
+                              <i class="crm-i fa-times" aria-hidden="true">
+                              </i>
+                            </a>                          
+                          </span>
+                        </li>
+                      </div>
+                    </div>
+                  </ul>
+                  <input crm-ui-datepicker="{time: false, firstDay: 1, date: 'yy-mm-dd'}" 
+                         ng-model="cloneDate" />
+                  <a class="crm-hover-button" 
+                     ng-click="datePicked()"
+                     title="Add" style="visibility: visible;">
+                    <i class="crm-i fa-plus-circle" aria-hidden="true">
+                    </i>
+                  </a>                          
+                </td>
+              </tr>  
+            </tbody>
+          </table>
+          <div class="crm-actions-ribbon">
+            <ul id="actions">
+              <li>
+                <a class="button" ng-click="cloneEvents()" >
+                  <span>{{ts('Clone Selected Event to list')}}</span>
+                </a>            
+              </li>
+            </ul>
+            <div class="clear"></div>
+          </div>        
+          <div ng-if="cloneEventQueue" 
+               ng-model="cloneEventQueue"
+               ng-change="cloneEventQueueChanged()">
+            <table >
+              <thead>
+                <tr>
+                  <th ng-repeat="(key, value) in cloneEventQueueColumns">{{value}}</th>
+                </tr>
+              </thead>
+              <tbody> 
+                <tr ng-repeat="repeat in cloneEventQueue" >
+                  <td  ng-repeat="(key, value) in cloneEventQueueColumns">{{repeat[key]}}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </form>
+      </div>
+
       <div id="import_tab" class="ng-hide" ng-hide="hideTabs.import">
         <h3>Import</h3>
         <div class="help">
@@ -460,16 +572,16 @@
                ng-model="participantEventQueue"
                ng-change="queueChanged()">
             <table >
-                    <thead>
-                      <tr>
-                        <th ng-repeat="(key, value) in existingRepeatsDisplay">{{value}}</th>
-                      </tr>
-                    </thead>
-                    <tbody> 
-                      <tr ng-repeat="repeat in participantEventQueue" >
-                        <td  ng-repeat="(key, value) in existingRepeatsDisplay">{{repeat[key]}}</td>
-                      </tr>
-                    </tbody>
+              <thead>
+                <tr>
+                  <th ng-repeat="(key, value) in existingRepeatsDisplay">{{value}}</th>
+                </tr>
+              </thead>
+              <tbody> 
+                <tr ng-repeat="repeat in participantEventQueue" >
+                  <td  ng-repeat="(key, value) in existingRepeatsDisplay">{{repeat[key]}}</td>
+                </tr>
+              </tbody>
             </table>
           </div>
         </form>
