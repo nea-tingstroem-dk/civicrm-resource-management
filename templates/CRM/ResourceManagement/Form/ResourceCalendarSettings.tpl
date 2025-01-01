@@ -6,7 +6,7 @@
         {if $groupName EQ 'none'}
         </div>
         {else}
-            {if $group_labels.$groupName}
+            {if isset($group_labels.$groupName)}
                 <div id="{$groupName}" style="border:1px solid gray; margin-bottom: 10px; padding-top: 10px" >
                 <div class="crm-section">
                     <span class="content">{$group_labels.$groupName}</span> 
@@ -20,14 +20,14 @@
     <div class="crm-section">
         <div class="label">{$form.$elementName.label}</div>
         <div class="content">{$form.$elementName.html}
-            {if $descriptions.$elementName}<br /><span class="description">{$descriptions.$elementName}</span>{/if}
+            {if isset($descriptions.$elementName)}<br /><span class="description">{$descriptions.$elementName}</span>{/if}
         </div>
         <div class="clear"></div>
     </div>
 {/foreach}
 <div class="crm-section">
     <div>
-        {if $descriptions.delete_warning}<br /><span id="delete_warning" class="description">{$descriptions.delete_warning}</span>{/if}
+        {if isset($descriptions.delete_warning)}<br /><span id="delete_warning" class="description">{$descriptions.delete_warning}</span>{/if}
     </div>
     <div class="clear"></div>
 </div>

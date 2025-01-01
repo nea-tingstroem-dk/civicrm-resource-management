@@ -1,5 +1,5 @@
-{crmScript ext=resource-management file=js/jscolor.js}
-{crmScript ext=resource-management file=js/resourcecalendar.js}
+{crmScript ext=resource-management file="js/jscolor.js"}
+{crmScript ext=resource-management file="js/resourcecalendar.js"}
 
 <div class="help">
     <p>{ts}Manage your Resource Calendars here{/ts}</p>
@@ -22,7 +22,7 @@
                         </tr>
                     </thead>
                     {foreach from=$rows item=row}
-                        <tr id="calendar-{$row.id}" class="crm-entity {cycle values="odd-row,even-row"} {$row.class}{if NOT $row.is_active} disabled{/if} ">
+                        <tr id="calendar-{$row.id}" class="crm-entity {cycle values="odd-row,even-row"} {$row.class} ">
                             <td class="crm-calendar-title" data-field="calendar_title">{$row.calendar_title}</td>
                             <td class="crm-calendar-title" data-field="calendar_type">{$row.calendar_label}</td>
                             <td class="crm-calendar-id" data-field="id">{$row.id}</td>

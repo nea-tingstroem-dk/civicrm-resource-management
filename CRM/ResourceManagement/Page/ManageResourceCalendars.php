@@ -27,18 +27,21 @@ class CRM_ResourceManagement_Page_ManageResourceCalendars extends CRM_Core_Page_
                     'url' => 'civicrm/resource-calendarsettings',
                     'qs' => 'action=update&id=%%id%%&reset=1',
                     'title' => ts('Edit Resource Calendar'),
+                    'weight' => 10,
                 ),
                 CRM_Core_Action::DELETE => array(
                     'name' => ts('Delete'),
                     'url' => 'civicrm/resource-calendarsettings',
                     'qs' => 'action=delete&id=%%id%%',
                     'title' => ts('Delete Resource Calendar'),
+                    'weight' => 20,
                 ),
                 CRM_Core_Action::VIEW => array(
                     'name' => ts('Preview'),
                     'url' => 'civicrm/showresourceevents',
                     'qs' => 'id=%%id%%',
                     'title' => ts('Preview Resource Calendar'),
+                    'weight' => 30,
                 ),
             );
         }
