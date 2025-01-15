@@ -1,5 +1,3 @@
-{crmScript ext=resource-management file="js/jscolor.js"}
-{crmScript ext=resource-management file="js/resourcecalendar.js"}
 
 <div class="help">
     <p>{ts}Manage your Resource Calendars here{/ts}</p>
