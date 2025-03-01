@@ -310,6 +310,7 @@ class CRM_ResourceManagement_Page_AJAX {
         'ph.contact_id', 'ph.status_id:label',
         'pr.contact_id', 'pr.status_id',
         'res.display_name',
+        'host.id',
         'host.display_name',
         'host.external_identifier')
       ->addJoin('Participant AS pr', 'INNER', ['id', '=', 'pr.event_id'])
@@ -345,7 +346,7 @@ class CRM_ResourceManagement_Page_AJAX {
       if ($superUser) {
         $eventData['url'] = "civicrm/book-resource?calendar_id={$calendarId}&event_id={$event['id']}&snippet=json";
       } else {
-        $eventData['url'] = "event/info?id={$event['id']}";
+        $eventData['url'] = "/civicrm/resource/show-responsible?reset=1&cid={$event['host.id']}";
       }
 
       foreach ($eventCalendarParams as $from => $to) {

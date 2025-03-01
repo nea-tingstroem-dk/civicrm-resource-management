@@ -1,0 +1,23 @@
+<div class="crm-container">
+  <div crm-ui-debug="$ctrl.wizard"></div>
+
+  <h1 crm-page-title>{{$ctrl.wizard.title}}</h1>
+
+  <wizard on-finish="finishedWizard()" on-cancel="cancelledWizard()"> 
+    <wz-step wz-title="$ctrl.wizard.title">
+        <h1>{{$ctrl.wizard.steps[0].title}}</h1>
+        <p>Here you can use whatever you want. You can use other directives, binding, etc.</p>
+        <input type="submit" wz-next value="Continue" />
+    </wz-step>
+    <wz-step wz-title="Continuing">
+        <h1>Continuing</h1>
+        <p>You have continued here!</p>
+        <input type="submit" wz-next value="Go on" />
+    </wz-step>
+    <wz-step wz-title="More steps">
+        <p>Even more steps!!</p>
+        <input type="submit" wz-next value="Finish now" />
+    </wz-step>
+</wizard>
+
+</div>

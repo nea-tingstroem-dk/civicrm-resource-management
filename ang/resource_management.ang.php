@@ -7,9 +7,11 @@ return [
     'ang/resource_management/*.js',
     'ang/resource_management/*/*.js',
     'js/moment.js',
+    'js/angular-wizard.min.js',
   ],
   'css' => [
     'ang/resource_management.css',
+    'css/angular-wizard.min.css'
   ],
   'partials' => [
     'ang/resource_management',

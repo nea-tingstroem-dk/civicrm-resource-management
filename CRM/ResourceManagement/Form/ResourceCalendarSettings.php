@@ -124,15 +124,19 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
         $eventTemplates = self::getEventTemplates();
 
         $calendarResources = $this->getCalendarResources();
-        $commonTemplate = isset( $this->_calendar_settings['cs_common_template'])? 
-          $this->_calendar_settings['cs_common_template'] === "1": FALSE;
+        $commonTemplate = isset($this->_calendar_settings['cs_common_template']) ?
+          $this->_calendar_settings['cs_common_template'] === "1" : FALSE;
         if ($commonTemplate) {
           $this->add('select', "cs_event_template",
             ts("Select Default Event template"), $eventTemplates,
             FALSE, ['class' => 'crm-select2', 'multiple' => FALSE,
             'placeholder' => ts('- select template -')]);
           $elementGroups["cs_event_template"] = 'none';
-          $tId = $this->getTemplateIds($this->_calendar_settings['cs_event_template']);
+          if (isset($this->_calendar_settings['cs_event_template'])) {
+            $tId = $this->getTemplateIds($this->_calendar_settings['cs_event_template']);
+          } else {
+            $tId = false;
+          }
           if ($tId) {
             $psId = CRM_Price_BAO_PriceSet::getFor('civicrm_event', $tId);
             if ($psId) {

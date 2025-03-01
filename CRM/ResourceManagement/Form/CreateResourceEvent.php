@@ -28,6 +28,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
   private $_suppressValidate = false;
   private $_calendarSettings = [];
   private $_currentUser = 0;
+  private $_eventTitles = [];
 
   public function preProcess() {
     $buttonName = $this->controller->getButtonName();
@@ -47,7 +48,10 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
     $this->_userName = $actualUser['display_name'];
     $this->_userExternalId = $actualUser['external_identifier'];
     $this->_superUser = CRM_Core_Permission::check('edit all events', $this->_currentUser);
-    $this->_authUser = CRM_Core_Permission::check('access CiviEvent', $this->_currentUser);
+    $this->_authUser = CRM_Core_Permission::check('book own event', $this->_currentUser);
+    if (!$this->_superUser && !$this->_authUser) {
+      CRM_Core_Session::setStatus('', ts('Insufficient permission'), 'error');
+    }
     $this->_calendar_id = CRM_Utils_Request::retrieve('calendar_id', 'Integer');
     $this->_calendarSettings = CRM_ResourceManagement_Page_AJAX::getResourceCalendarSettings($this->_calendar_id);
 
@@ -220,8 +224,8 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
 
       $this->add('text', 'event_title', ts('Event Title'), NULL, TRUE);
     } else {
-      $this->add('hidden', 'respoensible_contact', $this->_userId);
-      $this->add('hidden', 'host_status_id', $settings['host_status_id']);
+      $this->add('hidden', 'responsible_contact', $this->_userId);
+      $this->add('hidden', 'host_status_id', $this->_calendarSettings['host_status_id']);
       $this->add('static', 'user_info', ts('Responsible'),
         $this->_userExternalId . ' ' . $this->_userName);
 //            if (!$this->_event_id) {
@@ -231,19 +235,24 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
 //                $template->find(true);
 //            }
       if (!$this->_eventId) {
+        if ($this->_calendarSettings['common_template']) {
+          $t = [$this->_calendarSettings['event_template']];
+        } else {
+          $t = $this->_calendarSettings['event_templates'];
+        }
         $eventTemplates = \Civi\Api4\Event::get(FALSE)
           ->addSelect('template_title', 'title')
-          ->addWhere('id', 'IN', $this->_calendarSettings['event_templates'])
+          ->addWhere('id', 'IN', $t)
           ->execute()
           ->indexBy('id');
         $selectTemplates = [];
-        $eventTitles = [];
+        $this->_eventTitles = [];
         foreach ($eventTemplates as $id => $row) {
           $selectTemplates[$id] = $row['template_title'];
-          $eventTitles[$id] = $row['title'];
+          $this->_eventTitles[$id] = $row['title'];
         }
-        $this->add('hidden', 'event_titles', json_encode($eventTitles));
-        if ($this->_calendarSettings['common_templates']) {
+        $this->add('hidden', 'event_titles', json_encode($this->_eventTitles));
+        if (!$this->_calendarSettings['common_template']) {
           $this->add('select',
             'event_template',
             ts('Select template for event'),
@@ -316,8 +325,8 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
       }
       if ($this->_calendarSettings['common_template'] &&
         isset($this->_calendarSettings['event_template'])) {
-        $tid = $this->_calendarSettings['event_template'];
-        $psId = $templatePricesets[$tId];
+        $tId = $this->_calendarSettings['event_template'];
+        $psId = isset($templatePricesets[$tId]) ? $templatePricesets[$tId] : false;
         if ($psId) {
           $ps = CRM_Price_BAO_PriceSet::findById($psId);
           $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
@@ -441,6 +450,8 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
         $template_id = 0;
         if (isset($values['event_template'])) {
           $template_id = $values['event_template'];
+        } else if ($this->_calendarSettings['common_template']) {
+          $template_id = $this->_calendarSettings['event_template'];
         } else {
           $key = 'event_template_' . $resource_id;
           $template_id = $this->_calendarSettings[$key];
@@ -469,7 +480,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
           'role_id' => $resourceRole,
           'contact_id' => $values['resources'],
           'event_id' => $event->id,
-          'status_id' => isset($values['resource_status']) ? $values['resource_status'] : $statuses[0],
+          'status_id' => isset($values['resource_status']) ? $values['resource_status'] : $this->_calendarSettings['resource_status_id'],
         ];
         $participant = CRM_Event_BAO_Participant::create($params);
         $participant->save();
@@ -479,7 +490,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
             'role_id' => $hostRole,
             'contact_id' => $values['responsible_contact'],
             'event_id' => $event->id,
-            'status_id' => $values['host_status_id'],
+            'status_id' => isset($values['host_status_id']) ? $values['host_status_id']: $this->_calendarSettings['host_status_id'],
           ];
           $participant = CRM_Event_BAO_Participant::create($params);
           $participant->save();
@@ -740,6 +751,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
       if ($this->_calendarSettings['common_template'] &&
         isset($this->_calendarSettings['event_template'])) {
         $defaults['event_template'] = $this->_calendarSettings['event_template'];
+        $defaults['event_title'] = $this->_eventTitles[$defaults['event_template']];
       }
       if ($this->_filter) {
         $defaults['resources'] = $this->_filter;

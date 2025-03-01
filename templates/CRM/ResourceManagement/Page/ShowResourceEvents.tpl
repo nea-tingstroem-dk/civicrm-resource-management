@@ -141,6 +141,9 @@
               .on('crmFormCancel', function (event, data) {
                 concole.log('Canceled');
               });
+          } else {
+            el.preventDefault();
+            CRM.loadPage(event.url);
           }
         },
         displayEventEnd: true,

@@ -58,6 +58,14 @@ function resource_management_civicrm_navigationMenu(&$menu) {
     'separator' => 0,
   ]);
   _resource_management_civix_insert_navigation_menu($menu, 'Administer/resource-management', [
+    'label' => E::ts('Advanced Event Management'),
+    'name' => 'resource-calendar-settings',
+    'url' => 'civicrm/a/#/resource/manage-event',
+    'permission' => 'administer CiviCRM',
+    'operator' => 'AND',
+    'separator' => 0,
+  ]);
+  _resource_management_civix_insert_navigation_menu($menu, 'Administer/resource-management', [
     'label' => E::ts('Resource Calendar Settings'),
     'name' => 'resource-calendar-settings',
     'url' => 'civicrm/admin/resource-calendars',
@@ -75,3 +83,19 @@ function resource_management_civicrm_navigationMenu(&$menu) {
   ]);
   _resource_management_civix_navigationMenu($menu);
 }
+
+/**
+ * Implements hook_civicrm_permission().
+ */
+function resource_management_civicrm_permission(&$permissions) {
+  $prefix = E::ts('ResourceManager') . ': ';
+  $permissions['view Calendars'] = [
+      'label' => $prefix . E::ts('View Resource Calendars'),
+      'description' => E::ts('View calendars for resources'),
+    ];
+  $permissions['book own event'] = [
+      'label' => $prefix . E::ts('Book own private event in calendar'),
+      'description' => E::ts('Allow booking of default event for resource'),
+    ];
+}
+
