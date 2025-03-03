@@ -7,11 +7,11 @@ class CRM_ResourceManagement_Page_ShowResourceEvents extends CRM_Core_Page {
     public function run() {
         $url = CRM_Utils_Request::retrieve('IDS_request_uri', 'String');
         CRM_Core_Session::singleton()->pushUserContext($url);
-        Civi::resources()->addScriptFile('resource-management', 'js/moment.js', 5);
-        Civi::resources()->addScriptFile('resource-management', 'js/fullcalendar/fullcalendar.js', 10);
-        Civi::resources()->addScriptFile('resource-management', 'js/fullcalendar/locale/da.js', 15);
-        Civi::resources()->addStyleFile('resource-management', 'css/civicrm_events.css');
-        Civi::resources()->addStyleFile('resource-management', 'css/fullcalendar.css');
+        Civi::resources()->addScriptFile('resource-management', 'js/moment.js', ['weight' => 5]);
+        Civi::resources()->addScriptFile('resource-management', 'js/index.global.min.js', ['weight' => 10]);
+//        Civi::resources()->addScriptFile('resource-management', 'js/fullcalendar/locale/da.js', 15);
+//        Civi::resources()->addStyleFile('resource-management', 'css/civicrm_events.css');
+//        Civi::resources()->addStyleFile('resource-management', 'css/fullcalendar.css');
 
         $getContactId = (int) CRM_Core_Session::singleton()->getLoggedInContactID();
         $superUser = CRM_Core_Permission::check('edit all events', $getContactId) ?: 0;
@@ -50,7 +50,7 @@ class CRM_ResourceManagement_Page_ShowResourceEvents extends CRM_Core_Page {
         $this->assign('weekBeginDay', $weekBegins);
 
         $this->assign('use24Hour', isset($settings['time_format_24_hour']) ?
-                        $settings['time_format_24_hour'] : false);
+                        $settings['time_format_24_hour'] : 0);
         parent::run();
     }
 

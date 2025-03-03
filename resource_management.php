@@ -58,14 +58,6 @@ function resource_management_civicrm_navigationMenu(&$menu) {
     'separator' => 0,
   ]);
   _resource_management_civix_insert_navigation_menu($menu, 'Administer/resource-management', [
-    'label' => E::ts('Advanced Event Management'),
-    'name' => 'resource-calendar-settings',
-    'url' => 'civicrm/a/#/resource/manage-event',
-    'permission' => 'administer CiviCRM',
-    'operator' => 'AND',
-    'separator' => 0,
-  ]);
-  _resource_management_civix_insert_navigation_menu($menu, 'Administer/resource-management', [
     'label' => E::ts('Resource Calendar Settings'),
     'name' => 'resource-calendar-settings',
     'url' => 'civicrm/admin/resource-calendars',

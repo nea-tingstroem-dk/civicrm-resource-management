@@ -1,4 +1,4 @@
-{debug}
+
 {* Example: Display a variable directly *}
 <p>{$contact.external_identifier} {$contact.display_name}</p>
 <p>Email {$contact['email_primary.email']}</p>

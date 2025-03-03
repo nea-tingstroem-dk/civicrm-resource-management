@@ -31,7 +31,7 @@ class CRM_ResourceManagement_Page_AJAX {
         if (!$masterEvent) {
           $masterEvent = CRM_Event_DAO_Event::findById($params->from->id);
           $masterEvent->parent_event_id = $masterEvent->id;
-          $masterEvent.save();
+          $masterEvent . save();
         }
 
         $masterResources = \Civi\Api4\Participant::get(TRUE)
@@ -303,7 +303,7 @@ class CRM_ResourceManagement_Page_AJAX {
     }
 
     $resourceRoleId = $settings['resource_role_id'];
-    $responsibleRoleId = $settings['host_role_id'];
+    $responsibleRoleId = isset($settings['host_role_id']) ? $settings['host_role_id'] : null;
 
     $eventsGet = \Civi\Api4\Event::get(FALSE)
       ->addSelect('id', 'title', 'start_date', 'end_date',
@@ -336,9 +336,6 @@ class CRM_ResourceManagement_Page_AJAX {
       $eventsGet->addWhere('e.is_public', '=', 1);
     }
 
-    $eventCalendarParams = array('title' => 'title',
-      'start_date' => 'start',
-      'end_date' => 'end');
     $events = [];
     $eventsArray = $eventsGet->execute();
     foreach ($eventsArray as $event) {
@@ -349,17 +346,20 @@ class CRM_ResourceManagement_Page_AJAX {
         $eventData['url'] = "/civicrm/resource/show-responsible?reset=1&cid={$event['host.id']}";
       }
 
-      foreach ($eventCalendarParams as $from => $to) {
-        $eventData[$to] = $event[$from];
+      $eventData['title'] = "{$event['title']}";
+      $eventData['start'] = str_replace(' ', 'T', $event['start_date']);
+      $eventData['end'] = str_replace(' ', 'T', $event['end_date']);
+
+      if (isset($settings['status_colors'][$event['pr.status_id']])) {
+        $color = $settings['status_colors'][$event['pr.status_id']];
       }
-      $color = $settings['status_colors'][$event['pr.status_id']];
       $eventData['backgroundColor'] = "#{$color}";
+      $eventData['allDay'] = false;
       $eventData['textColor'] = self::_getContrastTextColor($eventData['backgroundColor']);
-      $eventData['title'] .= "\n" . $event['res.display_name'] .
-        "\n" . $event['host.external_identifier'] . ' ' .
-        $event['host.display_name'];
+      $eventData['title'] .= "<br >{$event['res.display_name']}" .
+        "<br >{$event['host.external_identifier']} {$event['host.display_name']}";
       if ($superUser) {
-        $eventData['title'] .= "\n" . $event['ph.status_id:label'];
+        $eventData['title'] .= "<br >{$event['ph.status_id:label']}";
       }
 
       $events[] = $eventData;

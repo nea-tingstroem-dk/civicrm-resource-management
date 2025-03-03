@@ -751,7 +751,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
       if ($this->_calendarSettings['common_template'] &&
         isset($this->_calendarSettings['event_template'])) {
         $defaults['event_template'] = $this->_calendarSettings['event_template'];
-        $defaults['event_title'] = $this->_eventTitles[$defaults['event_template']];
+        $defaults['event_title'] = $this->_eventTitles[$this->_calendarSettings['event_template']];
       }
       if ($this->_filter) {
         $defaults['resources'] = $this->_filter;
