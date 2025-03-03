@@ -5,6 +5,7 @@
       controller: 'Resource_managementResourceEvent',
       controllerAs: '$ctrl',
       templateUrl: '~/resource_management/ResourceEvent.html',
+
       // If you need to look up data when opening the page, list it out
       // under "resolve".
       resolve: {
@@ -12,6 +13,7 @@
     });
   }
   );
+
   // The controller uses *injection*. This default injects a few things:
   //   $scope -- This is the set of variables shared between JS and HTML.
   //   crmApi, crmStatus, crmUiHelp -- These are services provided by civicrm-core.
@@ -25,12 +27,15 @@
       $scope.masterEventId = null;
       $scope.masterEvent = null;
       $scope.newTitle = "";
+
       $scope.existingRepeats = null;
       $scope.existingRepeatsDisplay = {
         title: ts('Title'),
         start_date: ts('Start Date')
       };
+
       $scope.repetition_start_date = null;
+
       $scope.repeatHeaders = {
         repeats: 'Repeats',
         every: 'Every',
@@ -39,16 +44,20 @@
         addButton: 'Add'
       };
       $scope.repeats = Array(1);
+
       $scope.hideTabs = {
         repeat: true,
-        import: true,
-        clone: true,
+        import: true
       };
+
       $scope.fieldMap = new Map();
       $scope.customMap = new Map();
+
       $scope.masterEventParticipants = [];
       $scope.masterEventParticipantLabels = [];
+
       $scope.paste_area = null;
+
       $scope.foundHeaders = [];
       $scope.found = [];
       $scope.notFoundHeaders = [];
@@ -58,19 +67,9 @@
       $scope.targetFieldsMap = [];
       $scope.uniqueRoleValues = [];
       $scope.roleIdList = null;
-      $scope.calendar_id = null;
-      $scope.calendarList = null;
-      $scope.resources = new Map();
-      $scope.cloneDate = null;
-      $scope.pickedDates = [];
-      $scope.cloneEventQueue = [null];
-      $scope.cloneEventQueueColumns = {
-        resource: ts('Resource'),
-        date: ts('Date'),
-      };
-      $scope.participantEventQueue = null;
       // Local variable for this controller (needed when inside a callback fn where `this` is not available).
       var ctrl = this;
+
       function hideAllTabs() {
         for (var tab in $scope.hideTabs) {
           $scope.hideTabs[tab] = true;
@@ -81,18 +80,20 @@
         hideAllTabs();
         $scope.hideTabs[tab] = false;
       };
+
       $scope.repeatChanged = function (index) {
         var date = moment($scope.masterEvent.start_date);
         var repeats = Array();
         for (var i = 0; i < $scope.repeats.length; i++) {
           var rep = $scope.repeats.at(i);
           var nextDate = date.add(rep.rep_freq * rep.rep_times, rep.rep_every);
-          rep.rep_last_date = nextDate.format('YYYY-MM-DD HH:mm');
+          rep.rep_last_date = nextDate.format('YYYY-MM-DD');
           repeats.push(rep);
           date = nextDate.clone();
         }
         $scope.repeats = repeats;
       };
+
       $scope.expandDates = function () {
         var date = moment($scope.masterEvent.start_date);
         var repeats = Array();
@@ -100,12 +101,13 @@
           var rep = $scope.repeats.at(i);
           for (var j = 0; j < rep.rep_times; j++) {
             var nextDate = date.add(rep.rep_freq, rep.rep_every);
-            repeats.push(nextDate.format('YYYY-MM-DDTHH:mm'));
+            repeats.push(nextDate.format('YYYY-MM-DDThh:mm'));
             date = nextDate.clone();
           }
         }
         return repeats;
       };
+
       $scope.addRepeat = function () {
         $scope.repeats.push({
           rep_freq: "1",
@@ -115,6 +117,7 @@
         });
         $scope.repeatChanged(0);
       };
+
       $scope.removeRepeat = function (index) {
         var repeats = Array();
         for (var i = 0; i < $scope.repeats.length; i++) {
@@ -127,6 +130,7 @@
         $scope.repeats = repeats;
         $scope.repeatChanged(0);
       };
+
       $scope.showRepeats = function (eventId) {
         crmApi4('Event', 'get', {
           select: ["title", "start_date"],
@@ -137,10 +141,12 @@
           // handle failure
         });
       };
+
       $scope.changeMasterEvent = function (event_id) {
         $scope.masterEventId = event_id;
         $scope.eventSelected();
       };
+
       $scope.removeRepeatedEvent = function (event_id) {
         var params = {
           action: 'delete',
@@ -159,6 +165,7 @@
             console.log(response);
           });
       };
+
       $scope.eventSelected = function () {
         crmApi4('Event', 'get', {
           select: ["title", "start_date", "end_date",
@@ -174,7 +181,6 @@
           where: [["id", "=", $scope.masterEventId]],
         }).then(function (events) {
           $scope.masterEvent = events[0];
-          $scope.cloneDate = moment($scope.masterEvent.start_date).format('YYYY-MM-DD');
           $scope.repetition_start_date = $scope.masterEvent.start_date;
           $scope.repeatChanged(0);
           $scope.showRepeats($scope.masterEvent.parent_event_id);
@@ -239,10 +245,12 @@
           }, function (failure) {
             console.log('Error');
           });
+
         }, function (failure) {
           // handle failure
         });
       };
+
       $scope.saveRepeatedEvents = function () {
         var params = {
           action: 'repeat',
@@ -272,6 +280,7 @@
             console.log(response);
           });
       };
+
       $scope.pasted = function () {
         if (!$scope.paste_area) {
           return;
@@ -316,17 +325,20 @@
             console.log(response);
           });
       };
-      $scope.isTargetRole = function (index) {
-        if (typeof ($scope) !== 'undefined' &&
-          typeof ($scope.pastedMappings[index]) !== 'undefined' &&
+      
+      $scope.isTargetRole = function(index) {
+        if (typeof($scope) !== 'undefined' &&
+          typeof($scope.pastedMappings[index]) !== 'undefined' && 
           'role' === $scope.pastedMappings[index].target) {
           return true;
         }
         return false;
       };
-      $scope.addPasteMapping = function () {
+      
+      $scope.addPasteMapping = function() {
         $scope.pastedMappings.push({});
       };
+
       $scope.pastedMappingsChanged = function (index) {
         var m = $scope.pastedMappings[index];
         if (m.input_field && m.target) {
@@ -351,38 +363,20 @@
           }
         }
       };
+
       $scope.addPastedParticipants = function (series = false) {
-        var queue = [];
+        var eventIds = [];
         if (series) {
-          var firstDate = moment($scope.masterEvent.start_date);
           for (var value of $scope.existingRepeats) {
-            if (moment(value.start_date) >= firstDate)
-              queue.push(value);
+            eventIds.push(value.id);
           }
         } else {
-          queue.push($scope.masterEvent);
+          eventIds.push($scope.masterEventId);
         }
-        $scope.participantEventQueue = queue;
-        $scope.queueChanged();
-      };
-
-      $scope.queueChanged = function () {
-        if ($scope.participantEventQueue.length === 0) {
-          $scope.participantEventQueue = null;
-          $scope.foundHeaders = null;
-          $scope.found = null;
-          $scope.notFoundHeaders = [];
-          $scope.notFound = [];
-          $scope.pastedMappings = null;
-          $scope.eventSelected(); //refresh event data
-          return;
-        }
-
         var params = {
           action: 'add_participants',
           contacts: $scope.found,
-          event_id: $scope.participantEventQueue[0].id,
-          mappings: $scope.pastedMappings
+          event_ids: eventIds,
 
         };
         var req = {
@@ -393,88 +387,10 @@
         $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
         $http(req)
           .then(function successCallback(response) {
-            $scope.participantEventQueue.shift();
-            $scope.queueChanged();
           }, function errorCallback(response) {
             console.log(response);
           });
       };
-      $scope.getCalendars = function () {
-        crmApi4('ResourceCalendar', 'get', {
-          select: ["calendar_title"],
-        }).then(function (resourceCalendars) {
-          $scope.calendarList = resourceCalendars;
-        }, function (failure) {
-          console.log(failure);
-        });
-      };
-      $scope.calendarChanged = function () {
-        crmApi4('ResourceCalendarParticipant', 'get', {
-          select: ["contact_id", "contact_id.display_name"],
-          where: [["resource_calendar_id", "=", $scope.calendar_id]]
-        }).then(function (resourceCalendarParticipants) {
-          $scope.resources.clear();
-          resourceCalendarParticipants.forEach((p) => $scope.resources[p.contact_id] = p);
-        }, function (failure) {
-          console.log(failure);
-        });
-      };
-      $scope.datePicked = function () {
-        if (!$scope.pickedDates.includes($scope.cloneDate)) {
-          $scope.pickedDates.push($scope.cloneDate);
-        }
-      };
-      $scope.removeCloneDate = function (index) {
-        $scope.pickedDates.splice(index, 1);
-      };
-      $scope.cloneEvents = function () {
-        $scope.cloneEventQueue = [];
-        $scope.pickedDates.forEach((date) => {
-          $scope.selectedResources.forEach((res) => {
-            console.log(date + ' ' + res);
-            if ($scope.masterEvent['resource.id'] != res ||
-              moment($scope.masterEvent.start_date).format('YYYY-MM-DD') != date) {
-              $scope.cloneEventQueue.push({
-                resource_id: res,
-                resource: $scope.resources[res]['contact_id.display_name'],
-                date: date,
-              });
-            }
-          });
-        });
-        $scope.cloneEventQueueChanged();
-      };
-
-      $scope.cloneEventQueueChanged = function () {
-        if ($scope.cloneEventQueue.length === 0) {
-          $scope.cloneEventQueue = null;
-          $scope.selectedResources = null;
-          $scope.pickedDates = null;
-          return;
-        }
-
-        var params = {
-          action: 'clone_event',
-          calendar_id: $scope.calendar_id,
-          from: $scope.masterEvent,
-          resource: $scope.cloneEventQueue[0].resource_id,
-          start_date: $scope.cloneEventQueue[0].date,
-        };
-        var req = {
-          method: 'POST',
-          url: '/civicrm/ajax/resource-advanced',
-          data: 'params=' + JSON.stringify(params)
-        };
-        $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
-        $http(req)
-          .then(function successCallback(response) {
-            $scope.cloneEventQueue.shift();
-            $scope.cloneEventQueueChanged();
-          }, function errorCallback(response) {
-            console.log(response);
-          });
-      };
-
 
       $scope.repeats[0] = {
         rep_freq: "1",
@@ -482,15 +398,12 @@
         rep_times: "1",
         rep_last_date: null
       };
+
       if ($scope.parameters.event_id) {
         $scope.masterEventId = $scope.parameters.event_id;
         $scope.eventSelected();
       }
-      $scope.getCalendars();
-      if ($scope.parameters.calendar_id) {
-        $scope.calendar_id = $scope.parameters.calendar_id;
-        $scope.calendarChanged();
-      }
 
     });
+
 })(angular, CRM.$, CRM._);

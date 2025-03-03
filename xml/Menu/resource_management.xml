@@ -16,8 +16,7 @@
     <path>civicrm/showresourceevents</path>
     <page_callback>CRM_ResourceManagement_Page_ShowResourceEvents</page_callback>
     <title>ShowResourceEvents</title>
-    <access_callback>1</access_callback>
-    <is_public>true</is_public>
+    <access_arguments>view Calendars;administer CiviCRM</access_arguments>
   </item>
   <item>
     <path>civicrm/ajax/resource-events</path>
@@ -26,19 +25,13 @@
     <access_callback>1</access_callback>
     <is_public>true</is_public>
   </item>
-  <item>
-    <path>civicrm/ajax/event-pricefields</path>
-    <page_callback>CRM_ResourceManagement_Page_AJAX::getPricefieldsForEvent</page_callback>
-    <title>AJAX</title>s
-    <access_callback>1</access_callback>
-    <is_public>true</is_public>
-  </item>
+  <item><path>civicrm/ajax/event-pricefields</path><page_callback>CRM_ResourceManagement_Page_AJAX::getPricefieldsForEvent</page_callback><title>AJAX</title>s
+    <access_callback>1</access_callback><is_public>true</is_public></item>
   <item>
     <path>civicrm/book-resource</path>
     <page_callback>CRM_ResourceManagement_Form_CreateResourceEvent</page_callback>
     <title>CreateResourceEvent</title>
-    <access_callback>1</access_callback>
-    <is_public>true</is_public>
+    <access_arguments>book own event;administer CiviCRM</access_arguments>
   </item>
   <item>
     <path>civicrm/admin/resource-management</path>
@@ -46,11 +39,12 @@
     <title>AdminResourceManagement</title>
     <access_arguments>administer CiviCRM</access_arguments>
   </item>
+  <item><path>civicrm/ajax/resource-advanced</path><page_callback>CRM_ResourceManagement_Page_AJAX::advancedEventOperations</page_callback><title>AJAX</title>s
+    <access_callback>1</access_callback><is_public>true</is_public></item>
   <item>
-    <path>civicrm/ajax/resource-advanced</path>
-    <page_callback>CRM_ResourceManagement_Page_AJAX::advancedEventOperations</page_callback>
-    <title>AJAX</title>s
-    <access_callback>1</access_callback>
-    <is_public>true</is_public>
+    <path>civicrm/resource/show-responsible</path>
+    <page_callback>CRM_ResourceManagement_Page_ShowResponsible</page_callback>
+    <title>ShowResponsible</title>
+    <access_arguments>access CiviCRM</access_arguments>
   </item>
 </menu>

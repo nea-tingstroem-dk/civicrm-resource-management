@@ -5,7 +5,7 @@
   <div class="crm-section">
     <div class="label">{$form.$elementName.label}</div>
     <div class="content">{$form.$elementName.html}
-      {if $descriptions.$elementName}<br /><span class="description">{$descriptions.$elementName}</span>{/if}
+      {if isset($descriptions.$elementName)}<br /><span class="description">{$descriptions.$elementName}</span>{/if}
     </div>
     <div class="clear"></div>
   </div>

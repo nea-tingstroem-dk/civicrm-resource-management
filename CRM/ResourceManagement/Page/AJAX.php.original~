@@ -18,134 +18,6 @@ class CRM_ResourceManagement_Page_AJAX {
     $params = json_decode(CRM_Utils_Request::retrieve('params', 'String'));
     $result = [];
     switch ($params->action) {
-      case 'clone_event':
-        $now = date('Ymd His');
-        $calendarSettings = self::getResourceCalendarSettings($params->calendar_id);
-        $resourceRoleId = $calendarSettings['resource_role_id'];
-        $masterEvent = false;
-        try {
-          $masterEvent = CRM_Event_DAO_Event::findById($params->from->parent_event_id);
-        } catch (Exception $ex) {
-          
-        }
-        if (!$masterEvent) {
-          $masterEvent = CRM_Event_DAO_Event::findById($params->from->id);
-          $masterEvent->parent_event_id = $masterEvent->id;
-          $masterEvent . save();
-        }
-
-        $masterResources = \Civi\Api4\Participant::get(TRUE)
-          ->addWhere('event_id', '=', $masterEvent->id)
-          ->addWhere('role_id', '=', $resourceRoleId)
-          ->execute();
-        $masterResource = false;
-        foreach ($masterResources as $mr) {
-          unset($mr['id']);
-          unset($mr['event_id']);
-          unset($mr['contact_id']);
-          $mr['register_date'] = $now;
-          $masterResource = $mr;
-          break;
-        }
-        $masterStart = new DateTimeImmutable($masterEvent->start_date);
-        $masterDate = new DateTimeImmutable($masterStart->format('Y-m-d'));
-        $masterEnd = new DateTimeImmutable($masterEvent->end_date);
-        $duration = $masterStart->diff(new DateTime($masterEvent->end_date));
-        $offset = $masterDate->diff(new DateTime($params->start_date));
-        $events = \Civi\Api4\Event::get(TRUE)
-          ->addWhere('parent_event_id', '=', $params->from->parent_event_id)
-          ->execute();
-        $newEventParams = [];
-        foreach ($events as $event) {
-          unset($event['id']);
-          $eventStart = new DateTimeImmutable($event['start_date']);
-          $eventEnd = new DateTimeImmutable($event['end_date']);
-          $event['start_date'] = $eventStart->add($offset)->format('Y-m-d H:i:s');
-          $event['end_date'] = $eventEnd->add($offset)->format('Y-m-d H:i:s');
-
-          $events = \Civi\Api4\Event::get(TRUE)
-            ->addSelect('id')
-            ->addJoin('Participant AS participant', 'LEFT', ['participant.event_id', '=', 'id'])
-            ->addWhere('participant.contact_id', '=', $params->resource)
-            ->addWhere('start_date', '=', $event['start_date'])
-            ->execute();
-          if ($events->count()) {
-            continue;
-          }
-          $newEventParams[] = $event;
-        }
-        $newEvents = CRM_Event_DAO_Event::writeRecords($newEventParams);
-        $newResourceParams = [];
-        foreach ($newEvents as $newEvent) {
-          $newResourceParams[] = array_merge($masterResource, [
-            'contact_id' => $params->resource,
-            'event_id' => $newEvent->id,
-          ]);
-        }
-        $newResources = CRM_Event_DAO_Participant::writeRecords($newResourceParams);
-        $result[] = [
-          'events' => $newEvents,
-          'participants' => $newResources,
-        ];
-
-        break;
-      case 'add_participants':
-        $now = date('YmdHis');
-
-        $event = CRM_Event_DAO_Event::findById($params->event_id);
-        $existingParticipants = [];
-        $pRequest = \Civi\Api4\Participant::get(TRUE)
-          ->addSelect('contact_id')
-          ->addSelect('event_id')
-          ->addSelect('contact_id')
-          ->addSelect('register_date')
-          ->addWhere('event_id', '=', $params->event_id);
-        foreach ($params->mappings as $m) {
-          if ($m->target) {
-            $pRequest->addSelect($m->target);
-          }
-        }
-
-        $participants = $pRequest->execute();
-        foreach ($participants as $newResources) {
-          $existingParticipants[$newResources['contact_id']] = $newResources;
-        }
-        foreach ($params->contacts as $contact) {
-          $changed = false;
-          $participant = [];
-          if (isset($existingParticipants[$contact->id])) {
-            $participant = $existingParticipants[$contact->id];
-          } else {
-            $participant = [
-              'contact_id' => $contact->id,
-              'event_id' => $params->event_id,
-              'register_date' => $now,
-            ];
-            $changed = true;
-          }
-          $c = (array) $contact;
-          foreach ($params->mappings as $m) {
-            if ("{$c[$m->input_field]}" !== "{$participant[$m->target]}") {
-              $participant[$m->target] = $c[$m->input_field];
-              $changed = true;
-            }
-          }
-
-          if ($changed) {
-            if (isset($participant['id'])) {
-              $op = 'update';
-            } else {
-              $op = 'create';
-            }
-            $res = civicrm_api4('Participant', $op, [
-              'values' => $participant,
-              'checkPermissions' => TRUE,
-            ]);
-            $result[] = $res;
-          }
-        }
-
-        break;
       case 'parse_pasted';
         $lines = explode("\n", $params->pasted);
         $columnNames = explode("\t", $lines[0]);
@@ -185,7 +57,7 @@ class CRM_ResourceManagement_Page_AJAX {
               $inList[] = array_merge($c, array_combine($columnNames, $fields));
               continue;
             }
-          }
+          } 
           if ($emailIndex >= 0) {
             $contacts = \Civi\Api4\Contact::get(TRUE)
               ->addSelect('external_identifier', 'display_name')
@@ -213,23 +85,43 @@ class CRM_ResourceManagement_Page_AJAX {
         }
         break;
       case 'repeat':
+        $checkParentExistsForThisId = CRM_Core_BAO_RecurringEntity::getParentFor($params->event_id, 'civicrm_event');
+        //If this ID has parent, send parent id
+        if ($checkParentExistsForThisId) {
+          /**
+           * Get connected event information list
+           */
+          //Get all connected event ids
+          $allEventIdsArray = CRM_Core_BAO_RecurringEntity::getEntitiesForParent($checkParentExistsForThisId, 'civicrm_event');
+          $allEventIds = [];
+          if (!empty($allEventIdsArray)) {
+            foreach ($allEventIdsArray as $key => $val) {
+              $allEventIds[] = $val['id'];
+            }
+            if (!empty($allEventIds)) {
+              $params = [];
+              $query = "
+            SELECT *
+            FROM civicrm_event
+            WHERE id IN (" . implode(",", $allEventIds) . ")
+            ORDER BY start_date asc
+             ";
+
+              $dao = CRM_Core_DAO::executeQuery($query, $params, TRUE, 'CRM_Event_DAO_Event');
+              $permissions = CRM_Event_BAO_Event::getAllPermissions();
+              while ($dao->fetch()) {
+                if (in_array($dao->id, $permissions[CRM_Core_Permission::VIEW])) {
+                  $manageEvent[$dao->id] = [];
+                  CRM_Core_DAO::storeValues($dao, $manageEvent[$dao->id]);
+                }
+              }
+            }
+          }
+        }
         $event = CRM_Event_BAO_Event::findById($params->event_id);
-        if (!$event->parent_event_id || $event->parent_event_id != $event->id) {
+        if (!$event->parent_event_id) {
           $event->parent_event_id = $event->id;
           $event->save();
-        }
-        $masterResources = \Civi\Api4\Participant::get(TRUE)
-          ->addWhere('event_id', '=', $event->id)
-          ->addWhere('role_id', '=', $resourceRoleId)
-          ->execute();
-        $masterResource = false;
-        foreach ($masterResources as $mr) {
-          unset($mr['id']);
-          unset($mr['event_id']);
-          unset($mr['contact_id']);
-          $mr['register_date'] = $now;
-          $masterResource = $mr;
-          break;
         }
 
         $duration = date_diff(new DateTimeImmutable($event->start_date), new DateTimeImmutable($event->end_date));
@@ -243,11 +135,11 @@ class CRM_ResourceManagement_Page_AJAX {
         foreach ($params->dates as $date) {
           $i++;
           $newEvent = CRM_Event_BAO_Event::copy($params->event_id);
-          $newEvent->title = $params->new_title;
+          $newEvent->title = $params->new_title . " {$i}";
           $start = new DateTimeImmutable($date);
-          $newEvent->start_date = $start->format("Ymd His");
+          $newEvent->start_date = $start->format("YmdHis");
           $end = $start->add($duration);
-          $newEvent->end_date = $end->format("Ymd His");
+          $newEvent->end_date = $end->format("YmdHis");
           $newEvent->parent_event_id = $event->parent_event_id;
           $newEvent = $newEvent->save();
           $eventList[$newEvent->id] = $newEvent->title;
@@ -303,14 +195,13 @@ class CRM_ResourceManagement_Page_AJAX {
     }
 
     $resourceRoleId = $settings['resource_role_id'];
-    $responsibleRoleId = isset($settings['host_role_id']) ? $settings['host_role_id'] : null;
+    $responsibleRoleId = $settings['host_role_id'];
 
     $eventsGet = \Civi\Api4\Event::get(FALSE)
       ->addSelect('id', 'title', 'start_date', 'end_date',
         'ph.contact_id', 'ph.status_id:label',
         'pr.contact_id', 'pr.status_id',
         'res.display_name',
-        'host.id',
         'host.display_name',
         'host.external_identifier')
       ->addJoin('Participant AS pr', 'INNER', ['id', '=', 'pr.event_id'])
@@ -336,6 +227,9 @@ class CRM_ResourceManagement_Page_AJAX {
       $eventsGet->addWhere('e.is_public', '=', 1);
     }
 
+    $eventCalendarParams = array('title' => 'title',
+      'start_date' => 'start',
+      'end_date' => 'end');
     $events = [];
     $eventsArray = $eventsGet->execute();
     foreach ($eventsArray as $event) {
@@ -343,23 +237,20 @@ class CRM_ResourceManagement_Page_AJAX {
       if ($superUser) {
         $eventData['url'] = "civicrm/book-resource?calendar_id={$calendarId}&event_id={$event['id']}&snippet=json";
       } else {
-        $eventData['url'] = "/civicrm/resource/show-responsible?reset=1&cid={$event['host.id']}";
+        $eventData['url'] = "event/info?id={$event['id']}";
       }
 
-      $eventData['title'] = "{$event['title']}";
-      $eventData['start'] = str_replace(' ', 'T', $event['start_date']);
-      $eventData['end'] = str_replace(' ', 'T', $event['end_date']);
-
-      if (isset($settings['status_colors'][$event['pr.status_id']])) {
-        $color = $settings['status_colors'][$event['pr.status_id']];
+      foreach ($eventCalendarParams as $from => $to) {
+        $eventData[$to] = $event[$from];
       }
+      $color = $settings['status_colors'][$event['pr.status_id']];
       $eventData['backgroundColor'] = "#{$color}";
-      $eventData['allDay'] = false;
       $eventData['textColor'] = self::_getContrastTextColor($eventData['backgroundColor']);
-      $eventData['title'] .= "<br >{$event['res.display_name']}" .
-        "<br >{$event['host.external_identifier']} {$event['host.display_name']}";
+      $eventData['title'] .= "\n" . $event['res.display_name'] .
+        "\n" . $event['host.external_identifier'] . ' ' .
+        $event['host.display_name'];
       if ($superUser) {
-        $eventData['title'] .= "<br >{$event['ph.status_id:label']}";
+        $eventData['title'] .= "\n" . $event['ph.status_id:label'];
       }
 
       $events[] = $eventData;
