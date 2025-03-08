@@ -39,12 +39,17 @@
 </div>
 {literal}<script type="text/javascript">
     CRM.$(function ($) {
-      $('.crm-select2').change(function () {
-        let id = $(this)[0].id;
-        let value = $('#' + id).checked();
-        if (id.startsWith('cs_event_template')) {
-          console.log(id + ' changed to ' + value);
-        }
+      $('#cs_available_templates').change(function () {
+        let value = $(this).val();
+        let selected = $('#cs_available_templates :selected').
+          map((i, el) => {return {id: $(el).val(), text: $(el).text()}}).get();
+        let templateFields = $('[id^=cs_event_template]');
+        templateFields.map((i, field) => {
+          $('#'+field.id).empty();
+          selected.forEach((s) => {
+            $('#'+field.id).append('<option value="' + s.id + '">' + s.text + '</option>');
+          });
+        });
       });
       $('[type="checkbox"').change(function () {
         let id = $(this)[0].id;
@@ -80,5 +85,6 @@
           console.log(id + ' changed to ' + value);
         }
       });
+      $('#cs_available_templates').trigger('change');
     });
 </script>{/literal}

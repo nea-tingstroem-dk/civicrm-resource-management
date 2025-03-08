@@ -19,150 +19,149 @@
 <div id="calendar" style="height:auto " ></div>
 {literal}
   <script type="text/javascript">
-    if (typeof (jQuery) !== 'function') {
-      var jQuery = cj;
-    } else {
-      var cj = jQuery;
-    }
-    var pageTitle = '{/literal}{$page_title}{literal}';
-    cj(".page-header").find(".title").text(pageTitle);
-    cj(function () {
-      var showTime = {/literal}{$time_display}{literal};
-      var weekStartDay = {/literal}{$weekBeginDay}{literal};
-      var use24HourFormat = {/literal}{$use24Hour}{literal};
-      var calendarId = {/literal}{$calendar_id}{literal};
-      const isAdmin = {/literal}{$is_admin}{literal}
-      const defaultStartDate = (localStorage.getItem("fcDefaultStartDate") !== null ? localStorage.getItem("fcDefaultStartDate") : moment());
-      var isLoading = true;
-      let calendarEl = document.getElementById("calendar");
-      let calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'timeGridWeek',
-        height: "auto",
-        headerToolbar: {
-          left: 'prev,next today',
-          center: 'title',
-          right: 'monthGrid,timeGridWeek,timeGridDay'
-        },
-        firstDay: weekStartDay,
-        slotLabelFormat: {
-          hour: '2-digit',
-          minute: '2-digit',
-          omitZeroMinute: false,
-          hour12: false,
-        },
-        nowIndicator: true,
-        views: {
-          dayGrid: {
-            // options apply to dayGridMonth, dayGridWeek, and dayGridDay views
+    CRM.$(function ($) {
+      var pageTitle = '{/literal}{$page_title}{literal}';
+      $(".page-header").find(".title").text(pageTitle);
+      $(function () {
+        var showTime = {/literal}{$time_display}{literal};
+        var weekStartDay = {/literal}{$weekBeginDay}{literal};
+        var use24HourFormat = {/literal}{$use24Hour}{literal};
+        var calendarId = {/literal}{$calendar_id}{literal};
+        let scrollTime = {/literal}{$scroll}{literal};
+        let eventSourceId = "events";
+        const isAdmin = {/literal}{$is_admin}{literal}
+        const defaultStartDate = (localStorage.getItem("fcDefaultStartDate") !== null ? localStorage.getItem("fcDefaultStartDate") : moment());
+        var isLoading = true;
+        let calendarEl = document.getElementById("calendar");
+        let calendar = new FullCalendar.Calendar(calendarEl, {
+          initialView: 'timeGridWeek',
+          scrollTime: scroll??'08:00',
+            scrollTimeReset: false,
+          headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'timeGridDay,timeGridWeek,dayGridMonth'
           },
-          timeGrid: {
-            // options apply to timeGridWeek and timeGridDay views
+          firstDay: weekStartDay,
+          slotLabelFormat: {
+            hour: '2-digit',
+            minute: '2-digit',
+            omitZeroMinute: false,
+            hour12: false,
           },
-          week: {
-            // options apply to dayGridWeek and timeGridWeek views
-          },
-          day: {
-            // options apply to dayGridDay and timeGridDay views
-          }
-        },
-        fixedWeekCount: false,
-        locale: 'da',
-        selectable: true,
-        selectOverlap: false,
-        eventSources: [
-          {
-            url: '/civicrm/ajax/resource-events',
-            method: 'POST',
-            extraParams: {
-              calendar_id: {/literal}{$calendar_id}{literal},
-              filter: '0'
+          nowIndicator: true,
+          views: {
+            dayGrid: {
+              // options apply to dayGridMonth, dayGridWeek, and dayGridDay views
             },
-            failure: function () {
-              alert('there was an error while fetching events!');
+            timeGrid: {
+              // options apply to timeGridWeek and timeGridDay views
+            },
+            week: {
+              // options apply to dayGridWeek and timeGridWeek views
+            },
+            day: {
+              // options apply to dayGridDay and timeGridDay views
             }
-          }
-        ],
-        loading: function (is_loading) {
-          isLoading = is_loading;
-        },
-        select: function (info) {
-          if (isLoading) {
-            alert(ts('Wait for data load'))
-            return false;
-          }
-          $el = cj('#calendar');
-          $filter = cj('#resource_selector')[0].value;
-          if (typeof $filter === "string" && $filter.length === 0) {
-            $filter = cj('#resource_selector').children().first().val();
-          }
-          CRM.loadForm(CRM.url('civicrm/book-resource', {
-            calendar_id: calendarId,
-            filter: $filter,
-            start: info.start.toISOString(),
-            end: info.end.toISOString(),
-            allday: info.allDay}),
+          },
+          fixedWeekCount: false,
+          locale: 'da',
+          selectable: true,
+          selectOverlap: false,
+          eventSources: [
             {
-              cancelButton: '.cancel.crm-form-submit'
-            })
-            .on('crmFormSuccess', function (event, data) {
-              if (data.openpage) {
-                window.open(data.openpage);
+              id: eventSourceId,
+              url: '/civicrm/ajax/resource-events',
+              method: 'POST',
+              extraParams: {
+                calendar_id: {/literal}{$calendar_id}{literal},
+                filter: '0'
+              },
+              failure: function () {
+                alert('there was an error while fetching events!');
               }
-              cj('#calendar').fullCalendar('refetchEvents');
-            })
-            .on('crmFormCancel', function (event, data) {
-              concole.log('Canceled');
-            });
-        },
-        eventContent: function (info) {
-          let spanEl = document.createElement('span');
-          spanEl.innerHTML = info.event.title;
-
-          let arrayOfDomNodes = [spanEl];
-          return {domNodes: arrayOfDomNodes};
-        },
-        viewRender: function (view, element) {
-          // when the view changes, we update our localStorage value with the new view name
-          localStorage.setItem("fcDefaultView", view.name);
-          localStorage.setItem("fcDefaultStartDate", view.start);
-        },
-        eventClick: function (info) {
-          if (isAdmin) {
-            info.jsEvent.preventDefault();
-            CRM.loadForm(CRM.url(info.event.url, {
-              action: 'edit',
+            }
+          ],
+          loading: function (is_loading) {
+            isLoading = is_loading;
+          },
+          select: function (info) {
+            if (isLoading) {
+              alert(ts('Wait for data load'))
+              return false;
+            }
+            $el = $('#calendar');
+            $filter = $('#resource_selector')[0].value;
+            if (typeof $filter === "string" && $filter.length === 0) {
+              $filter = $('#resource_selector').children().first().val();
+            }
+            CRM.loadForm(CRM.url('civicrm/book-resource', {
               calendar_id: calendarId,
-            }),
+              filter: $filter,
+              start: info.start.toISOString(),
+              end: info.end.toISOString(),
+              allday: info.allDay}),
               {
                 cancelButton: '.cancel.crm-form-submit'
-              }
-            )
+              })
               .on('crmFormSuccess', function (event, data) {
                 if (data.openpage) {
                   window.open(data.openpage);
                 }
-                cj('#calendar').fullCalendar('refetchEvents');
+                calendar.refetchEvents();
               })
               .on('crmFormCancel', function (event, data) {
                 concole.log('Canceled');
               });
-          } else {
-            info.jsEvent.preventDefault();
-            CRM.loadPage(CRM.url(info.event.url, {
-              calendar_id: calendarId,
-              snippet: 'json'
-            }));
+          },
+          eventContent: function (info) {
+            let spanEl = document.createElement('span');
+            spanEl.innerHTML = info.event.title;
+            let arrayOfDomNodes = [spanEl];
+            return {domNodes: arrayOfDomNodes};
+          },
+          viewRender: function (view, element) {
+            // when the view changes, we update our localStorage value with the new view name
+            localStorage.setItem("fcDefaultView", view.name);
+            localStorage.setItem("fcDefaultStartDate", view.start);
+          },
+          eventClick: function (info) {
+            if (isAdmin) {
+              info.jsEvent.preventDefault();
+              CRM.loadForm(CRM.url(info.event.url, {
+                action: 'edit',
+                calendar_id: calendarId,
+              }),
+                {
+                  cancelButton: '.cancel.crm-form-submit'
+                }
+              )
+                .on('crmFormSuccess', function (event, data) {
+                  if (data.openpage) {
+                    window.open(data.openpage);
+                  }
+                  calendar.refetchEvents();
+                })
+                .on('crmFormCancel', function (event, data) {
+                  concole.log('Canceled');
+                });
+            } else {
+              info.jsEvent.preventDefault();
+              CRM.loadPage(CRM.url(info.event.url, {
+                calendar_id: calendarId,
+                snippet: 'json'
+              }));
+            }
           }
-        }
+        });
+        calendar.render();
+        $("#resource_selector").change(function () {
+          let source = calendar.getEventSourceById(eventSourceId);
+          source.internalEventSource._raw.extraParams.filter = this.value;
+          calendar.refetchEvents();
+        });
+        $("#resource_selector").val("0").trigger('change');
       });
-      calendar.render();
-
-      cj("#resource_selector").change(function () {
-        const source = cj('#calendar').fullCalendar('getEventSources')[0];
-        source.ajaxSettings.data.filter = this.value;
-        cj('#calendar').fullCalendar('refetchEvents');
-      });
-      $("#resource_selector").val("0").trigger('change');
     });
   </script>
 {/literal}

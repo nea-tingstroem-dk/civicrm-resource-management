@@ -116,24 +116,58 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
       ]);
       $elementGroups['cs_resource_status_id'] = 'none';
 
-      $this->add('advcheckbox', "cs_common_template", ts("Common template for all"));
+      $eventTemplates = [];
+
+      $events = \Civi\Api4\Event::get(TRUE)
+        ->addSelect('template_title')
+        ->addWhere('is_template', '=', TRUE)
+        ->addOrderBy('template_title', 'ASC')
+        ->execute();
+      foreach ($events as $e) {
+        $eventTemplates[$e['id']] = $e['template_title'];
+      }
+      $this->add('select', "cs_available_templates",
+        ts("Select Available Event templates"), $eventTemplates,
+        FALSE, ['class' => 'crm-select2', 'multiple' => TRUE,
+        'placeholder' => ts('- select template -')]);
+      $elementGroups["cs_available_templates"] = 'none';
+
+      $availableTemplates = [];
+      $avIds = [];
+      $v = $this->_calendar_settings['cs_available_templates'];
+      if (str_starts_with($v ?? '', '[')) {
+        $avIds = explode(',', substr($v, 1, strlen($v) - 2));
+      } else {
+        $avIds = [(int) $v];
+      }
+
+      foreach ($avIds as $key) {
+        $availableTemplates[$key] = $eventTemplates[$key];
+      }
+      asort($availableTemplates);
+
+      $this->add('advcheckbox', "cs_common_template", ts("Common template for all"),
+      );
       $elementGroups['cs_common_template'] = 'none';
 
       if ($this->action === CRM_Core_Action::UPDATE) {
-
-        $eventTemplates = self::getEventTemplates();
 
         $calendarResources = $this->getCalendarResources();
         $commonTemplate = isset($this->_calendar_settings['cs_common_template']) ?
           $this->_calendar_settings['cs_common_template'] === "1" : FALSE;
         if ($commonTemplate) {
           $this->add('select', "cs_event_template",
-            ts("Select Default Event template"), $eventTemplates,
-            FALSE, ['class' => 'crm-select2', 'multiple' => FALSE,
-            'placeholder' => ts('- select template -')]);
+            ts("Select User Template"),
+            $availableTemplates,
+            FALSE,
+            [
+              'class' => 'crm-select2 user-template',
+              'multiple' => false,
+              'placeholder' => ts('- select template -')
+          ]);
           $elementGroups["cs_event_template"] = 'none';
           if (isset($this->_calendar_settings['cs_event_template'])) {
-            $tId = $this->getTemplateIds($this->_calendar_settings['cs_event_template']);
+            $tId = $this->explodeIfArray($this->_calendar_settings['cs_event_template']);
           } else {
             $tId = false;
           }
@@ -179,9 +213,14 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
             $groupId = "group_{$res_id}";
             $res = CRM_Contact_BAO_Contact::findById($res_id);
             $this->add('select', "cs_event_template_{$res_id}",
-              ts("Select Default Event template for ") . $res->display_name, $eventTemplates,
-              FALSE, ['class' => 'crm-select2', 'multiple' => FALSE,
-              'placeholder' => ts('- select template(s) -')]);
+              ts("Select User Template for ") . $res->display_name,
+              $availableTemplates,
+              FALSE,
+              [
+                'class' => 'crm-select2 user-template',
+                'multiple' => FALSE,
+                'placeholder' => ts('- select template -')
+            ]);
             $elementGroups["cs_event_template_{$res_id}"] = 'none';
             $priceFields = [];
             if (isset($this->_calendar_settings["cs_event_template_{$res_id}"])) {
@@ -189,7 +228,6 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
               $psId = CRM_Price_BAO_PriceSet::getFor('civicrm_event', $eId);
               $this->add('advcheckbox', "cs_price_calc_{$res_id}", ts("Price Calculation"));
               $descriptions["cs_price_calc_{$res_id}"] = ts('For: ') . $eventTemplates[$eId];
-              ;
               $elementGroups["cs_price_calc_{$res_id}"] = 'none';
 
               if ($psId) {
@@ -236,7 +274,14 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
         $this->add('advcheckbox', 'cs_time_format_24_hour', ts('24 hour time format'));
         $elementGroups['cs_time_format_24_hour'] = 'none';
         $descriptions['cs_time_format_24_hour'] = ts('Use 24 hour time format - default is AM/PM format.');
-
+        $elementGroups['cs_scroll'] = 'none';
+        $this->add('select',
+          'cs_scroll',
+          E::ts('Calendar scroll'),
+          [
+            '08:00:00' => E::ts('Day time - from 08:00'),
+            '17:00:00' => E::ts('Evening - from 17:00')
+        ]);
         $roleOptions = [];
         $sql = "SELECT `id`,`option_group_id`,`label`,`value`,`name`
                 FROM `civicrm_option_value`
@@ -469,12 +514,7 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
       $settings->calendar_id = $this->_calendar_id;
       $settings->find();
       while ($settings->fetch()) {
-        $v = $settings->config_value;
-        if (str_starts_with($v, '[')) {
-          $defaults['cs_' . $settings->config_key] = explode(',', substr($v, 1, strlen($v) - 2));
-        } else {
-          $defaults['cs_' . $settings->config_key] = $settings->config_value;
-        }
+        $defaults['cs_' . $settings->config_key] = $this->explodeIfArray($settings->config_value);
       }
       return $defaults;
     }
@@ -504,9 +544,9 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
     return $resources;
   }
 
-  public function getTemplateIds($setting) {
+  public function explodeIfArray($setting) {
     if (str_starts_with($setting, '[')) {
-      return explode(',', substr($setting, 1, strlen($v) - 1));
+      return explode(',', substr($setting, 1, strlen($setting) - 1));
     } else {
       return $setting;
     }

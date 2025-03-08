@@ -48,6 +48,7 @@ class CRM_ResourceManagement_Page_ShowResourceEvents extends CRM_Core_Page {
             $weekBegins = Civi::settings()->get('weekBegins') ?? 0;
         }
         $this->assign('weekBeginDay', $weekBegins);
+        $this->assign('scroll', "'{$settings['scroll']}'");
 
         $this->assign('use24Hour', isset($settings['time_format_24_hour']) ?
                         $settings['time_format_24_hour'] : 0);
