@@ -50,8 +50,8 @@ class CRM_ResourceManagement_Page_ManageResourceCalendars extends CRM_Core_Page_
 
     public function run() {
         CRM_Utils_System::setTitle(E::ts('Manage Resource Calendars'));
-        Civi::resources()->addScriptFile('resource-management', 'jscolor.js');
-        Civi::resources()->addScriptFile('resource-management', 'resourcecalendar.js');
+        Civi::resources()->addScriptFile('resource-management', 'js/jscolor.js');
+        Civi::resources()->addScriptFile('resource-management', 'js/resourcecalendar.js');
 
         $resourceTypes = CRM_ResourceManagement_BAO_ResourceConfiguration::getConfig('resource_types');
         if (!$resourceTypes) {

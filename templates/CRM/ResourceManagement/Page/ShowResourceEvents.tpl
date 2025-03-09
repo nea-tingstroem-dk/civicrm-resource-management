@@ -27,7 +27,7 @@
         var weekStartDay = {/literal}{$weekBeginDay}{literal};
         var use24HourFormat = {/literal}{$use24Hour}{literal};
         var calendarId = {/literal}{$calendar_id}{literal};
-        let scrollTime = {/literal}{$scroll}{literal};
+        let scroll = {/literal}{$scroll}{literal};
         let eventSourceId = "events";
         const isAdmin = {/literal}{$is_admin}{literal}
         const defaultStartDate = (localStorage.getItem("fcDefaultStartDate") !== null ? localStorage.getItem("fcDefaultStartDate") : moment());
@@ -35,8 +35,7 @@
         let calendarEl = document.getElementById("calendar");
         let calendar = new FullCalendar.Calendar(calendarEl, {
           initialView: 'timeGridWeek',
-          scrollTime: scroll??'08:00',
-            scrollTimeReset: false,
+          scrollTime: scroll,
           headerToolbar: {
             left: 'prev,next today',
             center: 'title',
@@ -65,9 +64,12 @@
             }
           },
           fixedWeekCount: false,
+          height: 600,
+          aspectRation: 1.8,
           locale: 'da',
           selectable: true,
           selectOverlap: false,
+          stickyHeaderDates: true,
           eventSources: [
             {
               id: eventSourceId,

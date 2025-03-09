@@ -45,10 +45,13 @@
           map((i, el) => {return {id: $(el).val(), text: $(el).text()}}).get();
         let templateFields = $('[id^=cs_event_template]');
         templateFields.map((i, field) => {
+          let fval = $(field).val();
           $('#'+field.id).empty();
+            $('#'+field.id).append('<option value="">' + this.attributes.placeholder + '</option>');
           selected.forEach((s) => {
             $('#'+field.id).append('<option value="' + s.id + '">' + s.text + '</option>');
           });
+          $(field).val(fval);
         });
       });
       $('[type="checkbox"').change(function () {

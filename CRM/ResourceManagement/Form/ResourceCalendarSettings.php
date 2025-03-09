@@ -510,13 +510,11 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
         $defaults['statusid_' . $dao->status_id] = 1;
         $defaults['eventcolorid_' . $dao->status_id] = $dao->event_color;
       }
-      $settings = new CRM_ResourceManagement_DAO_ResourceCalendarSettings();
-      $settings->calendar_id = $this->_calendar_id;
-      $settings->find();
-      while ($settings->fetch()) {
-        $defaults['cs_' . $settings->config_key] = $this->explodeIfArray($settings->config_value);
+      
+      foreach ($this->_calendar_settings as $key => $value) {
+        $defaults[$key] = $this->explodeIfArray($value);
       }
-      return $defaults;
+     return $defaults;
     }
   }
 
@@ -544,9 +542,9 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
     return $resources;
   }
 
-  public function explodeIfArray($setting) {
+  private function explodeIfArray($setting) {
     if (str_starts_with($setting, '[')) {
-      return explode(',', substr($setting, 1, strlen($setting) - 1));
+      return explode(',', substr($setting, 1, strlen($setting) - 2));
     } else {
       return $setting;
     }
