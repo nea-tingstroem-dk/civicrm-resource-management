@@ -14,6 +14,7 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
   private $_calendar_type = '';
   private $_calendar_id = 0;
   private $_calendar_settings = [];
+  private $_deleting = FALSE;
 
   public function preProcess() {
     $this->_calendar_id = CRM_Utils_Request::retrieve('id', 'Integer') ??
@@ -41,10 +42,12 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
     CRM_Utils_System::setTitle(E::ts('Resource Calendars Settings'));
     $this->controller->_destination = CRM_Utils_System::url('civicrm/admin/resource-calendars', 'reset=1');
     $this->action = CRM_Utils_Request::retrieve('action', 'String') ?? '';
+    $this->_deleting = CRM_Utils_Request::retrieve('deleting', 'String') ?? FALSE;
 
     $elementGroups = [];
     $group_labels = [];
     $statusOptions = [];
+    $descriptions = [];
 
     $sql = "SELECT `id`,`label`,`name`
                 FROM `civicrm_participant_status_type`;";
@@ -57,8 +60,16 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
     $this->add('hidden', 'calendar_type', $this->_calendar_type);
     if ($this->action === CRM_Core_Action::DELETE) {
       $descriptions['delete_warning'] = ts('Are you sure you want to delete this calendar?');
-      $this->add('hidden', 'action', $this->action);
+      $this->add('hidden', 'deleting', TRUE);
       $this->assign('descriptions', $descriptions);
+      $this->addButtons(array(
+        array(
+          'type' => 'submit',
+          'name' => ts('Delete'),
+        ),
+      ));
+    } else if ($this->_deleting) {
+      $this->action = CRM_Core_Action::DELETE;
     } else {
       CRM_Core_Resources::singleton()->addScriptFile('resource-management', 'js/jscolor.js');
       CRM_Core_Resources::singleton()->addScriptFile('resource-management', 'js/resourcecalendar.js');
@@ -134,17 +145,19 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
 
       $availableTemplates = [];
       $avIds = [];
-      $v = $this->_calendar_settings['cs_available_templates'];
-      if (str_starts_with($v ?? '', '[')) {
-        $avIds = explode(',', substr($v, 1, strlen($v) - 2));
-      } else {
-        $avIds = [(int) $v];
-      }
+      $v = $this->_calendar_settings['cs_available_templates'] ?? FALSE;
+      if ($v) {
+        if (str_starts_with($v ?? '', '[')) {
+          $avIds = explode(',', substr($v, 1, strlen($v) - 2));
+        } else {
+          $avIds = [(int) $v];
+        }
 
-      foreach ($avIds as $key) {
-        $availableTemplates[$key] = $eventTemplates[$key];
+        foreach ($avIds as $key) {
+          $availableTemplates[$key] = $eventTemplates[$key];
+        }
+        asort($availableTemplates);
       }
-      asort($availableTemplates);
 
       $this->add('advcheckbox', "cs_common_template", ts("Common template for all"),
       );
@@ -337,15 +350,15 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
           $elementGroups["eventcolorid_{$id}"] = 'none';
         }
       }
+      $this->addButtons(array(
+        array(
+          'type' => 'submit',
+          'name' => ts('Submit'),
+          'isDefault' => TRUE,
+        ),
+      ));
     }
 
-    $this->addButtons(array(
-      array(
-        'type' => 'submit',
-        'name' => ts('Submit'),
-        'isDefault' => TRUE,
-      ),
-    ));
     // export form element
     $this->assign('elementGroups', $elementGroups);
     $this->assign('descriptions', $descriptions);
@@ -510,11 +523,11 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
         $defaults['statusid_' . $dao->status_id] = 1;
         $defaults['eventcolorid_' . $dao->status_id] = $dao->event_color;
       }
-      
+
       foreach ($this->_calendar_settings as $key => $value) {
         $defaults[$key] = $this->explodeIfArray($value);
       }
-     return $defaults;
+      return $defaults;
     }
   }
 
