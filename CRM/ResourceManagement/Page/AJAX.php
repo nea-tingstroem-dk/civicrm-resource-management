@@ -17,9 +17,9 @@ class CRM_ResourceManagement_Page_AJAX {
     }
     $params = json_decode(CRM_Utils_Request::retrieve('params', 'String'));
     $result = [];
+    $now = date('Y-m-d H:i:s');
     switch ($params->action) {
       case 'clone_event':
-        $now = date('Ymd His');
         $calendarSettings = self::getResourceCalendarSettings($params->calendar_id);
         $resourceRoleId = $calendarSettings['resource_role_id'];
         $masterEvent = false;
@@ -90,7 +90,6 @@ class CRM_ResourceManagement_Page_AJAX {
 
         break;
       case 'add_participants':
-        $now = date('YmdHis');
 
         $event = CRM_Event_DAO_Event::findById($params->event_id);
         $existingParticipants = [];
@@ -207,12 +206,21 @@ class CRM_ResourceManagement_Page_AJAX {
         ];
         break;
       case 'delete':
-        $event = CRM_Event_BAO_Event::findById($params->event_id);
-        if ($event) {
-          $event->delete();
+        if (is_array($params->event_id)) {
+          $eventIds = $params->event_id;
+        } else {
+          $eventIds = [$params->event_id];
+        }
+        foreach ($eventIds as $eId) {
+          $event = CRM_Event_BAO_Event::findById($eId);
+          if ($event) {
+            $event->delete();
+          }
         }
         break;
       case 'repeat':
+        $calendarSettings = self::getResourceCalendarSettings($params->calendar_id);
+        $resourceRoleId = $calendarSettings['resource_role_id'];
         $event = CRM_Event_BAO_Event::findById($params->event_id);
         if (!$event->parent_event_id || $event->parent_event_id != $event->id) {
           $event->parent_event_id = $event->id;
@@ -240,18 +248,24 @@ class CRM_ResourceManagement_Page_AJAX {
           $responsible = CRM_Event_BAO_Participant::findById($params->responsible_participant_id);
         }
         $i = 0;
+        $newEvents = [];
+        $copyEvent = CRM_Event_BAO_Event::findById($params->event_id);
         foreach ($params->dates as $date) {
           $i++;
-          $newEvent = CRM_Event_BAO_Event::copy($params->event_id);
-          $newEvent->title = $params->new_title;
+          $newEvent = $event->toArray();
+          unset($newEvent['id']);
+          $newEvent['title'] = $params->new_title;
           $start = new DateTimeImmutable($date);
-          $newEvent->start_date = $start->format("Ymd His");
+          $newEvent['start_date'] = $start->format("Y-m-d H:i:s");
           $end = $start->add($duration);
-          $newEvent->end_date = $end->format("Ymd His");
-          $newEvent->parent_event_id = $event->parent_event_id;
-          $newEvent = $newEvent->save();
+          $newEvent['end_date'] = $end->format("Y-m-d H:i:s");
+          $newEvent['parent_event_id'] = $event->parent_event_id;
+          $newEvents[] = $newEvent;
+        }
+        $insertedEvents = CRM_Event_BAO_Event::writeRecords($newEvents);
+        $par = [];
+        foreach ($insertedEvents as $newEvent) {
           $eventList[$newEvent->id] = $newEvent->title;
-          $par = [];
           $pr = get_object_vars($resource);
           unset($pr['id']);
           $pr['event_id'] = $newEvent->id;
@@ -262,8 +276,8 @@ class CRM_ResourceManagement_Page_AJAX {
             $pr['event_id'] = $newEvent->id;
             $par[] = $pr;
           }
-          $pRes = CRM_Event_BAO_Participant::writeRecords($par);
         }
+        $pRes = CRM_Event_BAO_Participant::writeRecords($par);
         $result['events'] = $eventList;
 
         break;
@@ -302,7 +316,7 @@ class CRM_ResourceManagement_Page_AJAX {
       $whereCondition .= " AND e.is_public = 1";
     }
 
-    $resourceRoleId = $settings['resource_role_id'];
+    $resourceRoleId = isset($settings['resource_role_id']) ? $settings['resource_role_id'] : null;
     $responsibleRoleId = isset($settings['host_role_id']) ? $settings['host_role_id'] : null;
 
     $eventsGet = \Civi\Api4\Event::get(FALSE)
@@ -353,9 +367,11 @@ class CRM_ResourceManagement_Page_AJAX {
       if (isset($settings['status_colors'][$event['pr.status_id']])) {
         $color = $settings['status_colors'][$event['pr.status_id']];
       }
-      $eventData['backgroundColor'] = "#{$color}";
+      if (isset($eventData['backgroundColor'])) {
+        $eventData['backgroundColor'] = "#{$color}";
+        $eventData['textColor'] = self::_getContrastTextColor($eventData['backgroundColor']);
+      }
       $eventData['allDay'] = false;
-      $eventData['textColor'] = self::_getContrastTextColor($eventData['backgroundColor']);
       $eventData['title'] .= "<br >{$event['res.display_name']}" .
         "<br >{$event['host.external_identifier']} {$event['host.display_name']}";
       if ($superUser) {

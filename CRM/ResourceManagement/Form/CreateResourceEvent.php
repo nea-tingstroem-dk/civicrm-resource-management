@@ -491,17 +491,21 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
         } else {
           while ($host->fetch()) {
             $change = FALSE;
-            if ($host->contact_id != (int) $values['responsible_contact']) {
-              $host->contact_id = (int) $values['responsible_contact'];
-              $change = TRUE;
-              $host->register_date = $today;
-            }
-            if ((int) $host->status_id != (int) $values['host_status_id']) {
-              $host->status_id = $values['host_status_id'];
-              $change = TRUE;
-            }
-            if ($change) {
-              $host->save();
+            if (isset($values['responsible_contact'])) {
+              if ($host->contact_id != (int) $values['responsible_contact']) {
+                $host->contact_id = (int) $values['responsible_contact'];
+                $change = TRUE;
+                $host->register_date = $today;
+              }
+              if ((int) $host->status_id != (int) $values['host_status_id']) {
+                $host->status_id = $values['host_status_id'];
+                $change = TRUE;
+              }
+              if ($change) {
+                $host->save();
+              }
+            } else {
+              $host->delete();
             }
           }
         }
@@ -616,10 +620,10 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
    * @return array (string)
    */
   public function getRenderableElementNames() {
-    // The _elements list includes some items which should not be
-    // auto-rendered in the loop -- such as "qfKey" and "buttons".  These
-    // items don't have labels.  We'll identify renderable by filtering on
-    // the 'label'.
+// The _elements list includes some items which should not be
+// auto-rendered in the loop -- such as "qfKey" and "buttons".  These
+// items don't have labels.  We'll identify renderable by filtering on
+// the 'label'.
     $elementNames = array();
     foreach ($this->_elements as $element) {
       /** @var HTML_QuickForm_Element $element */
@@ -649,7 +653,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
       $defaults['host_status_id'] = $this->_event['ph.status_id'];
       $lineItems = CRM_Price_BAO_LineItem::getLineItems($this->_event['ph.id'], 'participant');
       foreach ($lineItems as $key => $value) {
-        //pf_4728_49_84
+//pf_4728_49_84
         if ($value['html_type'] === 'Select') {
           $defaults["pf_{$this->_eventId}_{$value['price_set_id']}_{$value['price_field_id']}"] = $value['price_field_value_id'];
         } else {

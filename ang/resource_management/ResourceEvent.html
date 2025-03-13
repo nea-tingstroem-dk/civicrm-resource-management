@@ -128,6 +128,15 @@
                     <thead>
                       <tr>
                         <th ng-repeat="(key, value) in existingRepeatsDisplay">{{value}}</th>
+                        <th></th>
+                        <th>
+                          <a class="crm-hover-button" 
+                             ng-click="deleteRepeatedEvents()"
+                             title="{{ts('Delete All Repeats')}}" style="visibility: visible;">
+                            <i class="crm-i fa-trash" aria-hidden="true">
+                            </i>
+                          </a>                          
+                        </th>
                       </tr>
                     </thead>
                     <tbody> 
@@ -343,26 +352,39 @@
                 </td>
               </tr>
             </tbody>
-          </table>    
-          <tr class="crm-core-form-recurringentity-block-repetition_start_date" id="tr-repetition_start_date">
-            <td class="label"><label for="new_title">{{ts('Title Base')}}</label></td>
-            <td>
-              <input 
-                type="text" 
-                class="form-control huge big"
-                id="new_title"
-                ng-model="newTitle"
-                />
-            </td>
-          </tr>
-          <div class="crm-submit-buttons crm-button-disabled">
-            <button class="crm-form-submit default validate crm-button crm-button-type-submit " 
-                    name="repeat_submit" 
-                    ng-click="saveRepeatedEvents()"
-                    id="repeat_submit">
-              <i aria-hidden="true" class="crm-i fa-check"></i>
-              {{ts('Save')}}
-            </button>
+          </table>  
+          <table class="form-layout-compressed">
+            <tbody>
+              <tr class="crm-core-form-recurringentity-block-repetition_start_date" id="tr-new-title">
+                <td class="label"><label for="new_title">{{ts('Title Base')}}</label></td>
+                <td>
+                  <input 
+                    type="text" 
+                    class="form-control huge big"
+                    id="new_title"
+                    ng-model="newTitle"
+                    />
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="crm-submit-buttons crm-button-disabled">
+                    <button class="crm-form-submit default validate crm-button crm-button-type-submit " 
+                            name="repeat_submit" 
+                            ng-click="saveRepeatedEvents()"
+                            id="repeat_submit">
+                      <i aria-hidden="true" class="crm-i fa-check"></i>
+                      {{ts('Save')}}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div ng-if="repeatedEventsQueue.length" >
+            <span>
+                {{ts('Added')}}&nbsp;{{repeatedEventsDone}}&nbsp;of&nbsp;{{repeatedEventsCount}}
+            </span>
           </div>
         </form>
       </div>

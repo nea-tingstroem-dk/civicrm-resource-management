@@ -69,6 +69,11 @@
         date: ts('Date'),
       };
       $scope.participantEventQueue = null;
+
+      $scope.repeatedEventsQueue = [];
+      $scope.repeatedEventsCount = 0;
+      $scope.repeatedEventsDone = 0;
+
       // Local variable for this controller (needed when inside a callback fn where `this` is not available).
       var ctrl = this;
       function hideAllTabs() {
@@ -130,7 +135,8 @@
       $scope.showRepeats = function (eventId) {
         crmApi4('Event', 'get', {
           select: ["title", "start_date"],
-          where: [["parent_event_id", "=", eventId]]
+          where: [["parent_event_id", "=", eventId]],
+          orderBy: {"start_date": "ASC"}
         }).then(function (events) {
           $scope.existingRepeats = events;
         }, function (failure) {
@@ -243,14 +249,46 @@
           // handle failure
         });
       };
+      $scope.deleteRepeatedEvents = function () {
+        event.preventDefault();
+        const title = ts('Delete All');
+        const message = ts('Delete cannot be reversed!');
+        CRM.confirm({title: title,
+          message: message
+        }).on('crmConfirm:yes', function () {
+          let eventIds = $scope.existingRepeats.map((r) => {
+            if (r.id != $scope.masterEventId) {
+              return r.id;
+            }
+          });
+          var params = {
+            action: 'delete',
+            event_id: eventIds,
+          };
+          var req = {
+            method: 'POST',
+            url: '/civicrm/ajax/resource-advanced',
+            data: 'params=' + JSON.stringify(params)
+          };
+          $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
+          $http(req)
+            .then(function successCallback(response) {
+              $scope.showRepeats($scope.masterEvent.parent_event_id);
+            }, function errorCallback(response) {
+              console.log(response);
+            });
+        });
+      };
+
       $scope.saveRepeatedEvents = function () {
         var params = {
           action: 'repeat',
+          calendar_id: $scope.calendar_id,
           event_id: $scope.masterEventId,
           new_title: $scope.newTitle,
           resource_participant_id: $scope.masterEvent['p_res.id'],
           responsible_participant_id: $scope.masterEvent['p_resp.id'],
-          dates: $scope.expandDates(),
+          dates: $scope.expandDates()
         };
         var req = {
           method: 'POST',
@@ -272,6 +310,10 @@
             console.log(response);
           });
       };
+
+
+
+
       $scope.pasted = function () {
         if (!$scope.paste_area) {
           return;
