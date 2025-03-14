@@ -47,4 +47,10 @@
     <title>ShowResponsible</title>
     <access_arguments>access CiviCRM</access_arguments>
   </item>
+  <item>
+    <path>civicrm/resource-job</path>
+    <page_callback>CRM_ResourceManagement_Page_BatchOperations</page_callback>
+    <title>BatchOperations</title>
+    <access_arguments>access CiviCRM</access_arguments>
+  </item>
 </menu>

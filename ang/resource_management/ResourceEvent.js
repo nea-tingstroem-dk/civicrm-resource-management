@@ -21,6 +21,10 @@
       // The ts() and hs() functions help load strings for this module.
       var ts = $scope.ts = CRM.ts('resource-management');
       var hs = $scope.hs = crmUiHelp({file: 'CRM/resource_management/ResourceEvent'}); // See: templates/CRM/resource_management/ResourceEvent.hlp
+
+      const chunkSize = 5;
+
+
       $scope.parameters = $location.search();
       $scope.masterEventId = null;
       $scope.masterEvent = null;
@@ -281,15 +285,34 @@
       };
 
       $scope.saveRepeatedEvents = function () {
-        var params = {
-          action: 'repeat',
-          calendar_id: $scope.calendar_id,
-          event_id: $scope.masterEventId,
-          new_title: $scope.newTitle,
-          resource_participant_id: $scope.masterEvent['p_res.id'],
-          responsible_participant_id: $scope.masterEvent['p_resp.id'],
-          dates: $scope.expandDates()
-        };
+        let dates = $scope.expandDates();
+        $scope.repeatedEventsCount = dates.length;
+        $scope.repeatedEventsDone = 0;
+        for (let i = 0; i < dates.length; i += chunkSize) {
+          var params = {
+            action: 'repeat',
+            calendar_id: $scope.calendar_id,
+            event_id: $scope.masterEventId,
+            new_title: $scope.newTitle,
+            resource_participant_id: $scope.masterEvent['p_res.id'],
+            responsible_participant_id: $scope.masterEvent['p_resp.id'],
+            dates: dates.slice(i, i + chunkSize)
+          };
+          $scope.repeatedEventsQueue.push(params);
+        }
+        $scope.handleRepeatQueue();
+        $scope.repeats = [
+          {
+            rep_freq: "1",
+            rep_every: 'week',
+            rep_times: "1",
+            rep_last_date: null
+          }];
+
+      };
+
+      $scope.handleRepeatQueue = function () {
+        let params = $scope.repeatedEventsQueue.shift();
         var req = {
           method: 'POST',
           url: '/civicrm/ajax/resource-advanced',
@@ -298,14 +321,12 @@
         $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
         $http(req)
           .then(function successCallback(response) {
-            $scope.repeats = [
-              {
-                rep_freq: "1",
-                rep_every: 'week',
-                rep_times: "1",
-                rep_last_date: null
-              }];
-            $scope.showRepeats($scope.masterEvent.parent_event_id);
+            $scope.repeatedEventsDone = $scope.repeatedEventsCount - $scope.repeatedEventsQueue.length * chunkSize;
+            if ($scope.repeatedEventsQueue.length === 0) {
+              $scope.showRepeats($scope.masterEvent.parent_event_id);
+            } else {
+              $scope.handleRepeatQueue();
+            }
           }, function errorCallback(response) {
             console.log(response);
           });
@@ -491,7 +512,7 @@
         if ($scope.cloneEventQueue.length === 0) {
           $scope.cloneEventQueue = null;
           $scope.selectedResources = null;
-          $scope.pickedDates = null;
+          $scope.pickedDates = [];
           return;
         }
 
