@@ -10,6 +10,7 @@ class CRM_ResourceManagement_ExtensionUtil {
   const SHORT_NAME = 'resource_management';
   const LONG_NAME = 'resource-management';
   const CLASS_PREFIX = 'CRM_ResourceManagement';
+  const QUEUE_NAME = 'resource_management_queue';
 
   /**
    * Translate a string using the extension's domain.

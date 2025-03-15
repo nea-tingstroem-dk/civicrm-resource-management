@@ -6,6 +6,7 @@
  */
 
 use CRM_ResourceManagement_BAO_ResourceConfiguration as C;
+use CRM_ResourceManagement_ExtensionUtil as E;
 
 class CRM_ResourceManagement_Page_AJAX {
 
@@ -219,6 +220,18 @@ class CRM_ResourceManagement_Page_AJAX {
         }
         break;
       case 'repeat':
+        /*
+         * Parameter when called from
+          var params = {
+            action: 'repeat',
+            calendar_id: $scope.calendar_id,
+            event_id: $scope.masterEventId,
+            new_title: $scope.newTitle,
+            resource_participant_id: $scope.masterEvent['p_res.id'],
+            responsible_participant_id: $scope.masterEvent['p_resp.id'],
+            dates: $scope.expandDates();
+          };
+        */
         $calendarSettings = self::getResourceCalendarSettings($params->calendar_id);
         $resourceRoleId = $calendarSettings['resource_role_id'];
         $event = CRM_Event_BAO_Event::findById($params->event_id);

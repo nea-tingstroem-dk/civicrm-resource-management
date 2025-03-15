@@ -285,52 +285,40 @@
       };
 
       $scope.saveRepeatedEvents = function () {
-        let dates = $scope.expandDates();
-        $scope.repeatedEventsCount = dates.length;
-        $scope.repeatedEventsDone = 0;
-        for (let i = 0; i < dates.length; i += chunkSize) {
-          var params = {
-            action: 'repeat',
-            calendar_id: $scope.calendar_id,
-            event_id: $scope.masterEventId,
-            new_title: $scope.newTitle,
-            resource_participant_id: $scope.masterEvent['p_res.id'],
-            responsible_participant_id: $scope.masterEvent['p_resp.id'],
-            dates: dates.slice(i, i + chunkSize)
-          };
-          $scope.repeatedEventsQueue.push(params);
-        }
-        $scope.handleRepeatQueue();
-        $scope.repeats = [
-          {
-            rep_freq: "1",
-            rep_every: 'week',
-            rep_times: "1",
-            rep_last_date: null
-          }];
-
-      };
-
-      $scope.handleRepeatQueue = function () {
-        let params = $scope.repeatedEventsQueue.shift();
-        var req = {
-          method: 'POST',
-          url: '/civicrm/ajax/resource-advanced',
-          data: 'params=' + JSON.stringify(params)
+        var params = {
+          action: 'repeat',
+          ret_url: window.location.href,
+          title: 'Save Repeated Events',
+          calendar_id: $scope.calendar_id,
+          event_id: $scope.masterEventId,
+          new_title: $scope.newTitle,
+          resource_participant_id: $scope.masterEvent['p_res.id'],
+          responsible_participant_id: $scope.masterEvent['p_resp.id'],
+          dates: $scope.expandDates()
         };
-        $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
-        $http(req)
-          .then(function successCallback(response) {
-            $scope.repeatedEventsDone = $scope.repeatedEventsCount - $scope.repeatedEventsQueue.length * chunkSize;
-            if ($scope.repeatedEventsQueue.length === 0) {
-              $scope.showRepeats($scope.masterEvent.parent_event_id);
-            } else {
-              $scope.handleRepeatQueue();
-            }
-          }, function errorCallback(response) {
-            console.log(response);
-          });
+          window.location.replace(CRM.url('civicrm/resource-job', {
+          params: JSON.stringify(params)}));
       };
+//        var req = {
+//          method: 'POST',
+//          url: '/civicrm/resource-job',
+//          data: 'params=' + JSON.stringify(params)
+//        };
+//        $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
+//        $http(req)
+//          .then(function successCallback(response) {
+//            $scope.repeatedEventsDone = $scope.repeatedEventsCount - $scope.repeatedEventsQueue.length * chunkSize;
+//            if ($scope.repeatedEventsQueue.length === 0) {
+//              $scope.showRepeats($scope.masterEvent.parent_event_id);
+//            } else {
+//              $scope.handleRepeatQueue();
+//            }
+//          }, function errorCallback(response) {
+//            console.log(response);
+//          });
+//      };
+
+
 
 
 
