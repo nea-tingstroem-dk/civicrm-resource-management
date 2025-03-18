@@ -25,6 +25,9 @@ class CRM_ResourceManagement_Page_BatchOperations extends CRM_Core_Page {
       case 'repeat':
         $this->CreateRepeatItems($queue, $params);
         break;
+      case 'clone_event':
+        $this->CreateCloneItems($queue, $params);
+        break;
     }
 
     \Civi\Api4\UserJob::create()->setValues([
@@ -74,21 +77,10 @@ class CRM_ResourceManagement_Page_BatchOperations extends CRM_Core_Page {
 
   public function CreateRepeatItems($queue, $params) {
 
-    /*
-     * Parameter when called from
-      var params = {
-      action: 'repeat',
-      calendar_id: $scope.calendar_id,
-      event_id: $scope.masterEventId,
-      new_title: $scope.newTitle,
-      resource_participant_id: $scope.masterEvent['p_res.id'],
-      responsible_participant_id: $scope.masterEvent['p_resp.id'],
-      dates: $scope.expandDates();
-      };
-     */
     $calendarSettings = CRM_ResourceManagement_Page_AJAX::getResourceCalendarSettings($params->calendar_id);
     $resourceRoleId = $calendarSettings['resource_role_id'];
     $event = CRM_Event_BAO_Event::findById($params->event_id);
+    $duration = date_diff(new DateTimeImmutable($event->start_date), new DateTimeImmutable($event->end_date));
     if (!$event->parent_event_id || $event->parent_event_id != $event->id) {
       $event->parent_event_id = $event->id;
       $event->save();
@@ -108,7 +100,6 @@ class CRM_ResourceManagement_Page_BatchOperations extends CRM_Core_Page {
       break;
     }
 
-    $duration = date_diff(new DateTimeImmutable($event->start_date), new DateTimeImmutable($event->end_date));
     $resource = CRM_Event_BAO_Participant::findById($params->resource_participant_id);
     $eventList = [];
     $responsible = false;
@@ -148,23 +139,86 @@ class CRM_ResourceManagement_Page_BatchOperations extends CRM_Core_Page {
           "Save Event at {$newEvent['start_date']}" // title
       ));
     }
-//    $insertedEvents = CRM_Event_BAO_Event::writeRecords($newEvents);
-//    $par = [];
-//    foreach ($insertedEvents as $newEvent) {
-//      $eventList[$newEvent->id] = $newEvent->title;
-//      $pr = get_object_vars($resource);
-//      unset($pr['id']);
-//      $pr['event_id'] = $newEvent->id;
-//      $par[] = $pr;
-//      if ($responsible) {
-//        $pr = get_object_vars($responsible);
-//        unset($pr['id']);
-//        $pr['event_id'] = $newEvent->id;
-//        $par[] = $pr;
-//      }
-//    }
-//    $pRes = CRM_Event_BAO_Participant::writeRecords($par);
-//    $result['events'] = $eventList;
+  }
+
+  public function CreateCloneItems($queue, $params) {
+    $calendarSettings = CRM_ResourceManagement_Page_AJAX::getResourceCalendarSettings($params->calendar_id);
+    foreach ($params->dates as $newBaseDate) {
+      $baseDate = new DateTimeImmutable($newBaseDate);
+      foreach ($params->resources as $res) {
+        $resource = CRM_Contact_BAO_Contact::findById($res);
+        $queue->createItem(new CRM_Queue_Task(
+            ['CRM_ResourceManagement_Page_BatchOperations', 'doCloneEvent'], // callback
+            [
+            $params->event_id, //base-event
+            $newBaseDate, //base start date
+            $res, //resource_id
+            $calendarSettings['resource_role_id'],
+            ], // arguments
+            "Clone Event for {$resource->display_name} at  {$baseDate->format("Y-m-d H:i:s")}" // title
+        ));
+      }
+    }
+  }
+
+  static function doCloneEvent(CRM_Queue_TaskContext $ctx,
+    $base_event_id,
+    $new_start_date,
+    $resource_id,
+    $res_role_id) {
+    $event = CRM_Event_BAO_Event::findById($base_event_id);
+
+    $parentId = $event->id == $event->parent_event_id ? $event->parent_event_id : false;
+    $newEvent = $event->toArray();
+    unset($newEvent['id']);
+    unset($newEvent['parent_event_id']);
+    $duration = date_diff(new DateTimeImmutable($event->start_date),
+      new DateTimeImmutable($event->end_date));
+    $newEvent['start_date'] = $new_start_date;
+    $newEndDate = (new DateTimeImmutable($new_start_date))->add($duration);
+    $newEvent['end_date'] = $newEndDate->format("Y-m-d H:i:s");
+    $insertedEvent = CRM_Event_BAO_Event::writeRecord($newEvent);
+
+    $participants = \Civi\Api4\Participant::get(TRUE)
+      ->addWhere('event_id', '=', $base_event_id)
+      ->addWhere('role_id', '=', $res_role_id)
+      ->execute();
+    foreach ($participants as $res) {
+      unset($res['id']);
+      $res['event_id'] = $insertedEvent->id;
+      $res['contact_id'] = $resource_id;
+      CRM_Event_BAO_Participant::writeRecord($res);
+      break;
+    }
+    if ($parentId) {
+      $resource = CRM_Contact_BAO_Contact::findById($resource_id);
+
+      $insEvent = CRM_Event_BAO_Event::findById($insertedEvent->id);
+      $insEvent->parent_event_id = $insEvent->id;
+      $insEvent->save();
+      $children = \Civi\Api4\Event::get(TRUE)
+        ->addSelect('start_date')
+        ->addWhere('parent_event_id', '=', $base_event_id)
+        ->addWhere('id', '!=', $base_event_id)
+        ->execute();
+      foreach ($children as $child) {
+        $d = new DateTimeImmutable($insEvent->start_date);
+        $off = date_diff(new DateTimeImmutable($event->start_date),
+          new DateTimeImmutable($child['start_date']));
+        $newStartDate = $d->add($off);
+        $ctx->queue->createItem(new CRM_Queue_Task(
+            ['CRM_ResourceManagement_Page_BatchOperations', 'doCloneEvent'], // callback
+            [
+            $child['id'], //base-event
+            $newStartDate->format("Y-m-d H:i:s"), //base start date
+            $resource_id, //resource_id
+            $res_role_id,
+            ], // arguments
+            "Clone Event for {$resource->display_name} at  {$newStartDate->format("Y-m-d H:i:s")}" // title
+        ));
+      }
+    }
+    return TRUE;
   }
 
 }

@@ -23,8 +23,6 @@
       var hs = $scope.hs = crmUiHelp({file: 'CRM/resource_management/ResourceEvent'}); // See: templates/CRM/resource_management/ResourceEvent.hlp
 
       const chunkSize = 5;
-
-
       $scope.parameters = $location.search();
       $scope.masterEventId = null;
       $scope.masterEvent = null;
@@ -73,11 +71,9 @@
         date: ts('Date'),
       };
       $scope.participantEventQueue = null;
-
       $scope.repeatedEventsQueue = [];
       $scope.repeatedEventsCount = 0;
       $scope.repeatedEventsDone = 0;
-
       // Local variable for this controller (needed when inside a callback fn where `this` is not available).
       var ctrl = this;
       function hideAllTabs() {
@@ -184,7 +180,7 @@
           where: [["id", "=", $scope.masterEventId]],
         }).then(function (events) {
           $scope.masterEvent = events[0];
-          $scope.cloneDate = moment($scope.masterEvent.start_date).format('YYYY-MM-DD');
+          $scope.cloneDate = $scope.masterEvent.start_date;
           $scope.repetition_start_date = $scope.masterEvent.start_date;
           $scope.repeatChanged(0);
           $scope.showRepeats($scope.masterEvent.parent_event_id);
@@ -283,46 +279,28 @@
             });
         });
       };
-
       $scope.saveRepeatedEvents = function () {
-        var params = {
-          action: 'repeat',
-          ret_url: window.location.href,
-          title: 'Save Repeated Events',
-          calendar_id: $scope.calendar_id,
-          event_id: $scope.masterEventId,
-          new_title: $scope.newTitle,
-          resource_participant_id: $scope.masterEvent['p_res.id'],
-          responsible_participant_id: $scope.masterEvent['p_resp.id'],
-          dates: $scope.expandDates()
-        };
+        event.preventDefault();
+        const title = ts('Save repeats');
+        const message = ts('Save will take some time - do not close or leave next page until all events are saved!');
+        CRM.confirm({title: title,
+          message: message
+        }).on('crmConfirm:yes', function () {
+          var params = {
+            action: 'repeat',
+            ret_url: window.location.href,
+            title: 'Save Repeated Events',
+            calendar_id: $scope.calendar_id,
+            event_id: $scope.masterEventId,
+            new_title: $scope.newTitle,
+            resource_participant_id: $scope.masterEvent['p_res.id'],
+            responsible_participant_id: $scope.masterEvent['p_resp.id'],
+            dates: $scope.expandDates()
+          };
           window.location.replace(CRM.url('civicrm/resource-job', {
-          params: JSON.stringify(params)}));
+            params: JSON.stringify(params)}));
+        });
       };
-//        var req = {
-//          method: 'POST',
-//          url: '/civicrm/resource-job',
-//          data: 'params=' + JSON.stringify(params)
-//        };
-//        $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
-//        $http(req)
-//          .then(function successCallback(response) {
-//            $scope.repeatedEventsDone = $scope.repeatedEventsCount - $scope.repeatedEventsQueue.length * chunkSize;
-//            if ($scope.repeatedEventsQueue.length === 0) {
-//              $scope.showRepeats($scope.masterEvent.parent_event_id);
-//            } else {
-//              $scope.handleRepeatQueue();
-//            }
-//          }, function errorCallback(response) {
-//            console.log(response);
-//          });
-//      };
-
-
-
-
-
-
       $scope.pasted = function () {
         if (!$scope.paste_area) {
           return;
@@ -416,7 +394,6 @@
         $scope.participantEventQueue = queue;
         $scope.queueChanged();
       };
-
       $scope.queueChanged = function () {
         if ($scope.participantEventQueue.length === 0) {
           $scope.participantEventQueue = null;
@@ -479,53 +456,26 @@
         $scope.pickedDates.splice(index, 1);
       };
       $scope.cloneEvents = function () {
-        $scope.cloneEventQueue = [];
-        $scope.pickedDates.forEach((date) => {
-          $scope.selectedResources.forEach((res) => {
-            console.log(date + ' ' + res);
-            if ($scope.masterEvent['resource.id'] != res ||
-              moment($scope.masterEvent.start_date).format('YYYY-MM-DD') != date) {
-              $scope.cloneEventQueue.push({
-                resource_id: res,
-                resource: $scope.resources[res]['contact_id.display_name'],
-                date: date,
-              });
-            }
-          });
+        event.preventDefault();
+        const title = ts('Save Cloned Events');
+        const message = ts('Save will take some time - do not close or leave next page until all events are saved!');
+        CRM.confirm({title: title,
+          message: message
+        }).on('crmConfirm:yes', function () {
+          var params = {
+            action: 'clone_event',
+            ret_url: window.location.href,
+            title: 'Save Cloned Events',
+            calendar_id: $scope.calendar_id,
+            event_id: $scope.masterEventId,
+            resource_participant_id: $scope.masterEvent['p_res.id'],
+            resources: $scope.selectedResources,
+            dates: $scope.pickedDates,
+          };
+          window.location.replace(CRM.url('civicrm/resource-job', {
+            params: JSON.stringify(params)}));
         });
-        $scope.cloneEventQueueChanged();
       };
-
-      $scope.cloneEventQueueChanged = function () {
-        if ($scope.cloneEventQueue.length === 0) {
-          $scope.cloneEventQueue = null;
-          $scope.selectedResources = null;
-          $scope.pickedDates = [];
-          return;
-        }
-
-        var params = {
-          action: 'clone_event',
-          calendar_id: $scope.calendar_id,
-          from: $scope.masterEvent,
-          resource: $scope.cloneEventQueue[0].resource_id,
-          start_date: $scope.cloneEventQueue[0].date,
-        };
-        var req = {
-          method: 'POST',
-          url: '/civicrm/ajax/resource-advanced',
-          data: 'params=' + JSON.stringify(params)
-        };
-        $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
-        $http(req)
-          .then(function successCallback(response) {
-            $scope.cloneEventQueue.shift();
-            $scope.cloneEventQueueChanged();
-          }, function errorCallback(response) {
-            console.log(response);
-          });
-      };
-
 
       $scope.repeats[0] = {
         rep_freq: "1",
