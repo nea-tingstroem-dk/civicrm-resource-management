@@ -31,6 +31,9 @@ class CRM_ResourceManagement_BAO_ResourceCalendarSettings extends CRM_ResourceMa
         $dao->find();
         while ($dao->fetch()) {
             $setting = $dao->config_value;
+            if ($setting === null) {
+              continue;
+            }
             if (str_starts_with($setting, '[')) {
                 $settings[$dao->config_key] =  explode(',', substr($setting, 1, strlen($setting) - 1));
             } else {

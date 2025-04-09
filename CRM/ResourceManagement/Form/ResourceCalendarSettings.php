@@ -179,6 +179,11 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
               'placeholder' => ts('- select template -')
           ]);
           $elementGroups["cs_event_template"] = 'none';
+
+          $this->add('text', 'cs_event_link', E::ts('Link'));
+          $elementGroups["cs_event_link"] = 'none';
+          $descriptions['cs_event_link'] = ts('Link to action when event is clicked in calendar');
+
           if (isset($this->_calendar_settings['cs_event_template'])) {
             $tId = $this->explodeIfArray($this->_calendar_settings['cs_event_template']);
           } else {
@@ -235,6 +240,11 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
                 'placeholder' => ts('- select template -')
             ]);
             $elementGroups["cs_event_template_{$res_id}"] = 'none';
+            
+            $this->add('text', "cs_event_link_{$res_id}", E::ts('Link'));
+            $elementGroups["cs_event_link_{$res_id}"] = 'none';
+            $descriptions["cs_event_link_{$res_id}"] = ts('Link to action when event is clicked in calendar');
+
             $priceFields = [];
             if (isset($this->_calendar_settings["cs_event_template_{$res_id}"])) {
               $eId = $this->_calendar_settings["cs_event_template_{$res_id}"];
@@ -556,7 +566,7 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
   }
 
   private function explodeIfArray($setting) {
-    if (str_starts_with($setting, '[')) {
+    if ($setting != null && str_starts_with($setting, '[')) {
       return explode(',', substr($setting, 1, strlen($setting) - 2));
     } else {
       return $setting;

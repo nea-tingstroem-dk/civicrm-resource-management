@@ -128,32 +128,24 @@
             localStorage.setItem("fcDefaultStartDate", view.start);
           },
           eventClick: function (info) {
-            if (isAdmin) {
-              info.jsEvent.preventDefault();
-              CRM.loadForm(CRM.url(info.event.url, {
-                action: 'edit',
-                calendar_id: calendarId,
-              }),
-                {
-                  cancelButton: '.cancel.crm-form-submit'
+            info.jsEvent.preventDefault();
+            CRM.loadForm(CRM.url(info.event.url, {
+              action: 'edit',
+              calendar_id: calendarId,
+            }),
+              {
+                cancelButton: '.cancel.crm-form-submit'
+              }
+            )
+              .on('crmFormSuccess', function (event, data) {
+                if (data.openpage) {
+                  window.open(data.openpage);
                 }
-              )
-                .on('crmFormSuccess', function (event, data) {
-                  if (data.openpage) {
-                    window.open(data.openpage);
-                  }
-                  calendar.refetchEvents();
-                })
-                .on('crmFormCancel', function (event, data) {
-                  concole.log('Canceled');
-                });
-            } else {
-              info.jsEvent.preventDefault();
-              CRM.loadPage(CRM.url(info.event.url, {
-                calendar_id: calendarId,
-                snippet: 'json'
-              }));
-            }
+                calendar.refetchEvents();
+              })
+              .on('crmFormCancel', function (event, data) {
+                concole.log('Canceled');
+              });
           }
         });
         calendar.render();

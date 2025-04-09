@@ -167,6 +167,7 @@ class CRM_ResourceManagement_Page_AJAX {
               break;
           }
         }
+        $columnCount = count($columnNames);
         $inList = [];
         $outList = [];
         for ($j = 1; $j < count($lines); $j++) {
@@ -175,6 +176,9 @@ class CRM_ResourceManagement_Page_AJAX {
             continue;
           }
           $fields = explode("\t", $line);
+          while (count($fields) < $columnCount) {
+            $fields[] = ' ';
+          }
           if ($externalIndex >= 0) {
             $contacts = \Civi\Api4\Contact::get(TRUE)
               ->addSelect('id', 'external_identifier', 'display_name')
@@ -223,15 +227,15 @@ class CRM_ResourceManagement_Page_AJAX {
         /*
          * Parameter when called from
           var params = {
-            action: 'repeat',
-            calendar_id: $scope.calendar_id,
-            event_id: $scope.masterEventId,
-            new_title: $scope.newTitle,
-            resource_participant_id: $scope.masterEvent['p_res.id'],
-            responsible_participant_id: $scope.masterEvent['p_resp.id'],
-            dates: $scope.expandDates();
+          action: 'repeat',
+          calendar_id: $scope.calendar_id,
+          event_id: $scope.masterEventId,
+          new_title: $scope.newTitle,
+          resource_participant_id: $scope.masterEvent['p_res.id'],
+          responsible_participant_id: $scope.masterEvent['p_resp.id'],
+          dates: $scope.expandDates();
           };
-        */
+         */
         $calendarSettings = self::getResourceCalendarSettings($params->calendar_id);
         $resourceRoleId = $calendarSettings['resource_role_id'];
         $event = CRM_Event_BAO_Event::findById($params->event_id);
@@ -365,14 +369,11 @@ class CRM_ResourceManagement_Page_AJAX {
 
     $events = [];
     $eventsArray = $eventsGet->execute();
+    $now = time();
+    $eventLink = isset($settings['event_link']) ? $settings['event_link'] : 'civicrm/resource/eventdetails';
     foreach ($eventsArray as $event) {
       $eventData = array();
-      if ($superUser) {
-        $eventData['url'] = "civicrm/book-resource?calendar_id={$calendarId}&event_id={$event['id']}&snippet=json";
-      } else {
-        $eventData['url'] = "/civicrm/resource/show-responsible?reset=1&cid={$event['host.id']}";
-      }
-
+      $eventData['url'] = "{$eventLink}?calendar_id={$calendarId}&event_id={$event['id']}&snippet=json";
       $eventData['title'] = "{$event['title']}";
       $eventData['start'] = str_replace(' ', 'T', $event['start_date']);
       $eventData['end'] = str_replace(' ', 'T', $event['end_date']);
