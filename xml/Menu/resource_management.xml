@@ -53,4 +53,10 @@
     <title>BatchOperations</title>
     <access_arguments>access CiviCRM</access_arguments>
   </item>
+  <item>
+    <path>civicrm/resource/eventdetails</path>
+    <page_callback>CRM_ResourceManagement_Form_EventDetails</page_callback>
+    <title>EventDetails</title>
+    <access_arguments>access CiviCRM</access_arguments>
+  </item>
 </menu>
