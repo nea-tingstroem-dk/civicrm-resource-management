@@ -42,7 +42,7 @@ return [
     ],
     'config_key' => [
       'title' => E::ts('Config Key'),
-      'sql_type' => 'varchar(20)',
+      'sql_type' => 'varchar(64)',
       'input_type' => 'Text',
       'required' => TRUE,
       'description' => E::ts('Configuration key'),

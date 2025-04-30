@@ -139,13 +139,13 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
       parent::buildQuickForm();
       return;
     }
-    $this->_resorurces = $this->getResources($this->_calendar_id);
+    $this->_resources = $this->getResources($this->_calendar_id);
     $resource_options = [];
     $priceSets = [];
-    foreach ($this->_resorurces as $id => $res) {
+    foreach ($this->_resources as $id => $res) {
       $resource_options[$id] = $res['name'];
     }
-    $this->add('hidden', 'resource_source', json_encode($this->_resorurces));
+    $this->add('hidden', 'resource_source', json_encode($this->_resources));
     if ($this->_eventId) {
       $this->add('hidden', 'event_id', $this->_eventId);
       $this->add('static', 'res_label', ts('Resource'), $this->_event['res.display_name']);
@@ -169,8 +169,8 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
     }
     $filter = $this->_filter;
     if ($filter) {
-      $this->add('hidden', 'min_start', $this->_resorurces[$filter]['min_start']);
-      $this->add('hidden', 'max_end', $this->_resorurces[$filter]['max_end']);
+      $this->add('hidden', 'min_start', $this->_resources[$filter]['min_start']);
+      $this->add('hidden', 'max_end', $this->_resources[$filter]['max_end']);
       $this->add('hidden', 'resources', $filter);
       $this->add('static', 'resource', ts("Selected Resource"), $resource_options[$filter]);
     } else {
@@ -192,37 +192,36 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
       }
       $this->_selectTemplates = $selectTemplates;
     }
+    $this->add('hidden', 'event_titles', json_encode($this->_eventTitles));
     if ($this->_superUser) {
       $this->buildAdminForm();
     } else {
       $this->buildUserForm();
     }
+    $this->add('text', 'price_sum', E::ts('Total'));
 
     parent::buildQuickForm();
   }
 
   public function buildAdminForm() {
-    $this->add('hidden', 'event_titles', json_encode($this->_eventTitles));
     $resStatuses = C::getConfig('resource_status_ids');
     $statusses = [];
 
     if (!$this->_eventId) {
-    if (!isset($this->_calendarSettings['common_template']) || !$this->_calendarSettings['common_template']) {
-      $this->add('select',
-        'event_template',
-        ts('Select template for event'),
-        ['' => ts('- select -')] + $this->_selectTemplates, FALSE, ['class' => 'crm-select2 huge']);
-    }
+      $eventTemplates = \Civi\Api4\Event::get(FALSE)
+        ->addWhere('id', 'IN', $this->_calendarSettings['available_templates'])
+        ->execute()
+        ->indexBy('id')
+        ->column('template_title');
 
-//      $this->addEntityRef('event_template', ts('Select Event Template'), [
-//        'entity' => 'event',
-//        'placeholder' => ts('- Select Event -'),
-//        'select' => ['minimumInputLength' => 0],
-//        'api' => [
-//          'params' => ['is_template' => TRUE,
-//            'is_active' => TRUE],
-//        ]
-//      ]);
+      if (isset($this->_calendarSettings['common_template']) &&
+        $this->_calendarSettings['common_template'] &&
+        count($eventTemplates) > 1) {
+        $this->add('select',
+          'event_template',
+          ts('Select Event Type'),
+          ['' => ts('- select -')] + $this->_selectTemplates, FALSE, ['class' => 'crm-select2 huge']);
+      }
     }
     $sql = "SELECT `id`,`name`,`label`
                     FROM `civicrm_participant_status_type`
@@ -273,13 +272,12 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
     $this->assign('groupTrees', $groupTrees);
     $this->assign('adminFld', $this->_superUser);
 
-    $buttons = [
-      [
-        'type' => 'submit',
-        'subName' => 'submit',
-        'name' => E::ts('Submit'),
-        'isDefault' => TRUE,
-      ]
+    $buttons = [];
+    $buttons[] = [
+      'type' => 'submit',
+      'subName' => 'submit',
+      'name' => E::ts('Submit'),
+      'isDefault' => TRUE,
     ];
     $buttons[] = [
       'type' => 'submit',
@@ -305,6 +303,23 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
   public function buildUserForm() {
     $this->add('hidden', 'responsible_contact', $this->_userId);
     $this->add('hidden', 'host_status_id', $this->_calendarSettings['host_status_id']);
+    if (!$this->_eventId && isset($this->_calendarSettings['event_template'])) {
+      $eventTemplates = \Civi\Api4\Event::get(FALSE)
+        ->addSelect('title', 'template_title')
+        ->addWhere('id', 'IN', $this->_calendarSettings['event_template'])
+        ->execute()
+        ->indexBy('id')
+        ->column('template_title');
+      if (isset($this->_calendarSettings['common_template']) &&
+        $this->_calendarSettings['common_template'] &&
+        count($eventTemplates) > 1) {
+        $this->add('select',
+          'event_template',
+          ts('Select Event Type'),
+          ['' => ts('- select -')] + $eventTemplates, FALSE, ['class' => 'crm-select2 huge']);
+      }
+    }
+
     $this->add('static', 'user_info', ts('Responsible'),
       $this->_userExternalId . ' ' . $this->_userName);
     $this->add('text', 'event_title', ts('Event Title'));
@@ -366,9 +381,11 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
           $key = 'event_template_' . $resource_id;
           $template_id = $this->_calendarSettings[$key];
         }
-        $template = new CRM_Event_BAO_Event();
-        $template->id = $template_id;
-        $template->find(true);
+        if (!($template_id ?? 0)) {
+          return;
+        }
+
+        $template = CRM_Event_BAO_Event::findById($template_id);
 
         $params = [];
         $params['start_date'] = $values['event_start_date'] ?? NULL;
@@ -660,12 +677,6 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
       $defaults['event_end_date'] = date('Y-m-d H:i:s', $this->_end_time);
       $defaults['responsible_contact'] = $this->_currentUser;
       $defaults['host_status_id'] = $this->_calendarSettings['host_status_id'];
-      if (isset($this->_calendarSettings['common_template']) &&
-        $this->_calendarSettings['common_template'] &&
-        isset($this->_calendarSettings['event_template'])) {
-        $defaults['event_template'] = $this->_calendarSettings['event_template'];
-        $defaults['event_title'] = $this->_eventTitles[$this->_calendarSettings['event_template']];
-      }
       if ($this->_filter) {
         $defaults['resources'] = $this->_filter;
       }
@@ -681,38 +692,41 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
     if ($this->_eventId) {
       $psId = CRM_Price_BAO_PriceSet::getFor('civicrm_event', $this->_eventId);
       if ($psId) {
-        $eventId = $this->_eventId;
+        $tId = $this->_eventId;
         $resId = $this->_event['pr.contact_id'];
         $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
         $this->add('static',
-          'res_' . $eventId . '_pre_help',
+          'res_' . $tId . '_pre_help',
           ts('Price info'),
           $groupTree['help_pre']);
         foreach ($groupTree[$psId]['fields'] as $pfId => $pField) {
-          $eId = 'pf_' . $eventId . '_' . $psId . '_' . $pfId;
+          $eId = 'pf_' . $tId . '_' . $psId . '_' . $pfId;
           $pField['elementId'] = $eId;
           CRM_Price_BAO_PriceField::addQuickFormElement($this,
             $eId,
             $pfId,
             FALSE,
           );
+          $optionsKey = array_key_first($pField['options']);
+          $unitPrice = (float) $pField['options'][$optionsKey]['amount'];
+          $this->add("hidden", "price_unit_amount_{$tId}_{$psId}_{$pfId}", $unitPrice);
         }
-        $elementGroups[] = 'group_' . $eventId;
-        $groupTrees[$eventId] = $groupTree;
+        $this . add('text', "sum_amount_{$tId}_{$psId}", E::ts('Sum'));
+        $elementGroups[] = 'group_' . $tId;
+        $groupTrees[$tId] = $groupTree;
         if (isset($this->_calendarSettings["price_calc_{$resId}"]) &&
           isset($this->_calendarSettings["price_field_{$resId}"]) &&
           isset($this->_calendarSettings["price_qty_{$resId}"])) {
-          $this->add('hidden', "price_field_{$resId}",
-            'pf_' . $eventId . '_' . $psId . '_' . $this->_calendarSettings["price_field_{$resId}"]);
+          $pfId = $tId . '_' . $psId . '_' . $this->_calendarSettings["price_field_{$resId}"];
+          $this->add('hidden', "price_field_{$resId}", "pf_{$pfId}");
           $calcParms = explode('_', $this->_calendarSettings["price_qty_{$resId}"]);
-          $this->add('hidden', "price_period_{$resId}", $calcParms[0]);
-          $this->add('hidden', "price_factor_{$resId}", $calcParms[1]);
+          $this->add('hidden', "price_period_{$pfId}", $calcParms[0]);
+          $this->add('hidden', "price_factor_{$pfId}", $calcParms[1]);
         }
       }
     } else {
       $eventTemplates = \Civi\Api4\Event::get(FALSE)
-        ->addWhere('is_template', '=', TRUE)
-        ->addWhere('is_active', '=', TRUE)
+        ->addWhere('id', 'IN', $this->_calendarSettings['available_templates'])
         ->execute()
         ->indexBy('id')
         ->column('template_title');
@@ -723,41 +737,49 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
           $templatePricesets[$eId] = $psId;
         }
       }
-      if (isset($this->_calendarSettings['common_template'])  &&
+      if (isset($this->_calendarSettings['common_template']) &&
         $this->_calendarSettings['common_template'] &&
         isset($this->_calendarSettings['event_template'])) {
-        $tId = $this->_calendarSettings['event_template'];
-        $psId = isset($templatePricesets[$tId]) ? $templatePricesets[$tId] : false;
-        if ($psId) {
-          $ps = CRM_Price_BAO_PriceSet::findById($psId);
-          $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
-          $this->add('static',
-            'res_' . $tId . '_pre_help',
-            ts('Price info'),
-            $ps->help_pre);
-          foreach ($groupTree[$psId]['fields'] as $pfId => $pField) {
-            $eId = 'pf_' . $tId . '_' . $psId . '_' . $pfId;
-            $pField['elementId'] = $eId;
-            CRM_Price_BAO_PriceField::addQuickFormElement($this,
-              $eId,
-              $pfId,
-              FALSE,
-            );
+        $templates = $this->_calendarSettings['event_template'];
+        if (!is_array($templates)) {
+          $templates = [$templates];
+        }
+        foreach ($templates as $tId) {
+          $psId = isset($templatePricesets[$tId]) ? $templatePricesets[$tId] : false;
+          if ($psId) {
+            $ps = CRM_Price_BAO_PriceSet::findById($psId);
+            $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
+            $this->add('static',
+              'res_' . $tId . '_pre_help',
+              ts('Price info'),
+              $ps->help_pre);
+            foreach ($groupTree[$psId]['fields'] as $pfId => $pField) {
+              $eId = 'pf_' . $tId . '_' . $psId . '_' . $pfId;
+              $pField['elementId'] = $eId;
+              CRM_Price_BAO_PriceField::addQuickFormElement($this,
+                $eId,
+                $pfId,
+                FALSE,
+              );
+              $optionsKey = array_key_first($pField['options']);
+              $unitPrice = (float) $pField['options'][$optionsKey]['amount'];
+              $this->add("hidden", "price_unit_amount_{$tId}_{$psId}_{$pfId}", $unitPrice);
+            }
+            if (isset($this->_calendarSettings["price_calc_{$tId}"]) &&
+              isset($this->_calendarSettings["price_field_{$tId}"]) &&
+              isset($this->_calendarSettings["price_qty_{$tId}"])) {
+              $pfId = $tId . '_' . $psId . '_' . $this->_calendarSettings["price_field_{$tId}"];
+              $this->add('hidden', "price_field_{$tId}", "pf_{$pfId}");
+              $calcParms = explode('_', $this->_calendarSettings["price_qty_{$tId}"]);
+              $this->add('hidden', "price_period_{$pfId}", $calcParms[0]);
+              $this->add('hidden', "price_factor_{$pfId}", $calcParms[1]);
+            }
+            $elementGroups[] = 'group_' . $tId;
+            $groupTrees[$tId] = $groupTree;
           }
-          if (isset($this->_calendarSettings["price_calc_t{$tId}"]) &&
-            isset($this->_calendarSettings["price_field_t{$tId}"]) &&
-            isset($this->_calendarSettings["price_qty_t{$tId}"])) {
-            $this->add('hidden', "price_field_t{$tId}",
-              'pf_' . $tId . '_' . $psId . '_' . $this->_calendarSettings["price_field_t{$tId}"]);
-            $calcParms = explode('_', $this->_calendarSettings["price_qty_t{$tId}"]);
-            $this->add('hidden', "price_period_t{$tId}", $calcParms[0]);
-            $this->add('hidden', "price_factor_t{$tId}", $calcParms[1]);
-          }
-          $elementGroups[] = 'group_' . $tId;
-          $groupTrees[$tId] = $groupTree;
         }
       } else {
-        foreach ($this->_resorurces as $resId => $res) {
+        foreach ($this->_resources as $resId => $res) {
           $tId = $res['template_id'];
           if (!is_null($tId) && $tId !== '') {
             $psId = $templatePricesets[$tId];
@@ -775,16 +797,17 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
                 $pfId,
                 FALSE,
               );
+              $optionsKey = array_key_first($pField['options']);
+              $unitPrice = (float) $pField['options'][$optionsKey]['amount'];
+              $pfIdent = "{$tId}_{$psId}_{$pfId}";
+              $this->add("hidden", "price_unit_amount_{$pfIdent}", $unitPrice);
+              $this->add('hidden', "price_field_{$tId}", "pf_{$pfIdent}");
+              if (isset($this->_calendarSettings["price_calc_{$pfIdent}"])) {
+                $calcParms = explode('_', $this->_calendarSettings["price_qty_{$pfIdent}"]);
+                $this->add('hidden', "price_period_{$pfIdent}", $calcParms[0]);
+                $this->add('hidden', "price_factor_{$pfIdent}", $calcParms[1]);
+              }
             }
-          }
-          if (isset($this->_calendarSettings["price_calc_{$resId}"]) &&
-            isset($this->_calendarSettings["price_field_{$resId}"]) &&
-            isset($this->_calendarSettings["price_qty_{$resId}"])) {
-            $this->add('hidden', "price_field_{$resId}",
-              'pf_' . $tId . '_' . $psId . '_' . $this->_calendarSettings["price_field_{$resId}"]);
-            $calcParms = explode('_', $this->_calendarSettings["price_qty_{$resId}"]);
-            $this->add('hidden', "price_period_{$resId}", $calcParms[0]);
-            $this->add('hidden', "price_factor_{$resId}", $calcParms[1]);
           }
           $elementGroups[] = 'group_' . $tId;
           $groupTrees[$tId] = $groupTree;

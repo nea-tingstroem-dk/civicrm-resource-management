@@ -139,7 +139,7 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
       }
       $this->add('select', "cs_available_templates",
         ts("Select Available Event templates"), $eventTemplates,
-        FALSE, ['class' => 'crm-select2', 'multiple' => TRUE,
+        TRUE, ['class' => 'crm-select2', 'multiple' => TRUE,
         'placeholder' => ts('- select template -')]);
       $elementGroups["cs_available_templates"] = 'none';
 
@@ -170,13 +170,13 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
           $this->_calendar_settings['cs_common_template'] === "1" : FALSE;
         if ($commonTemplate) {
           $this->add('select', "cs_event_template",
-            ts("Select User Template"),
+            ts("Select User Template(s)"),
             $availableTemplates,
-            FALSE,
+            TRUE,
             [
               'class' => 'crm-select2 user-template',
-              'multiple' => false,
-              'placeholder' => ts('- select template -')
+              'multiple' => true,
+              'placeholder' => ts('- select template(s) -')
           ]);
           $elementGroups["cs_event_template"] = 'none';
 
@@ -190,98 +190,70 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
             $tId = false;
           }
           if ($tId) {
-            $psId = CRM_Price_BAO_PriceSet::getFor('civicrm_event', $tId);
-            if ($psId) {
-              $groupId = "group_t{$tId}";
-//                        $group_labels[$groupId] = $eventTemplates[$tId];
-              $this->add('advcheckbox', "cs_price_calc_t{$tId}", ts("Price Calculation"));
-              $descriptions["cs_price_calc_t{$tId}"] = ts('For: ') . $eventTemplates[$tId];
-              $elementGroups["cs_price_calc_t{$tId}"] = 'none';
-              $priceFields = [];
-              $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
-              foreach ($groupTree[$psId]['fields'] as $pfId => $pField) {
-                $priceFields[$pfId] = $pField['label'];
-              }
-              $this->add('select',
-                "cs_price_field_t{$tId}",
-                ts("Price Field"),
-                $priceFields,
-                ['class' => "crm-select2",
-                  'multiple' => FALSE,
-                  'placeholder' => ts("- select pricefield -")]
-              );
-              $elementGroups["cs_price_field_t{$tId}"] = $groupId;
+            if (!is_array($tId)) {
+              $tId = [$tId];
+            }
+            foreach ($tId as $temp) {
+              $psId = CRM_Price_BAO_PriceSet::getFor('civicrm_event', $temp);
+              if ($psId) {
+                $groupId = "none";
+                $this->add('advcheckbox', "cs_price_calc_{$temp}", ts("Price Calculation"));
+                $descriptions["cs_price_calc_{$temp}"] = ts('For: ') . $eventTemplates[$temp];
+                $elementGroups["cs_price_calc_{$temp}"] = 'none';
+                $priceFields = [];
+                $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
+                foreach ($groupTree[$psId]['fields'] as $pfId => $pField) {
+                  $priceFields[$pfId] = $pField['label'];
+                }
+                $this->add('select',
+                  "cs_price_field_{$temp}",
+                  ts("Price Field"),
+                  $priceFields,
+                  ['class' => "crm-select2",
+                    'multiple' => FALSE,
+                    'placeholder' => ts("- select pricefield -")]
+                );
+                $elementGroups["cs_price_field_{$temp}"] = $groupId;
 
-              $this->add('select',
-                "cs_price_qty_t{$tId}",
-                ts("Quantity in"),
-                [
-                  'days_0.5' => ts('Started Half Days'),
-                  'days_1.0' => ts('Started Whole Days'),
-                  'hours_2.0' => ts('Started Hours')
-                ],
-                ['class' => 'crm-select2',
-                  'multiple' => FALSE,
-              ]);
-              $elementGroups["cs_price_qty_t{$tId}"] = $groupId;
+                $this->add('select',
+                  "cs_price_qty_{$temp}",
+                  ts("Quantity in"),
+                  [
+                    'days_0.5' => ts('Started Half Days'),
+                    'days_1.0' => ts('Started Whole Days'),
+                    'hours_2.0' => ts('Started Hours')
+                  ],
+                  ['class' => 'crm-select2',
+                    'multiple' => FALSE,
+                ]);
+                $elementGroups["cs_price_qty_{$temp}"] = $groupId;
+              }
             }
           }
         } else {
           foreach ($calendarResources as $res_id) {
-            $groupId = "group_{$res_id}";
+            $groupId = "none";
             $res = CRM_Contact_BAO_Contact::findById($res_id);
             $this->add('select', "cs_event_template_{$res_id}",
               ts("Select User Template for ") . $res->display_name,
               $availableTemplates,
-              FALSE,
+              TRUE,
               [
                 'class' => 'crm-select2 user-template',
                 'multiple' => FALSE,
                 'placeholder' => ts('- select template -')
             ]);
-            $elementGroups["cs_event_template_{$res_id}"] = 'none';
-            
+            $elementGroups["cs_event_template_{$res_id}"] = $groupId;
+
             $this->add('text', "cs_event_link_{$res_id}", E::ts('Link'));
-            $elementGroups["cs_event_link_{$res_id}"] = 'none';
+            $elementGroups["cs_event_link_{$res_id}"] = $groupId;
             $descriptions["cs_event_link_{$res_id}"] = ts('Link to action when event is clicked in calendar');
 
             $priceFields = [];
             if (isset($this->_calendar_settings["cs_event_template_{$res_id}"])) {
-              $eId = $this->_calendar_settings["cs_event_template_{$res_id}"];
-              $psId = CRM_Price_BAO_PriceSet::getFor('civicrm_event', $eId);
-              $this->add('advcheckbox', "cs_price_calc_{$res_id}", ts("Price Calculation"));
-              $descriptions["cs_price_calc_{$res_id}"] = ts('For: ') . $eventTemplates[$eId];
-              $elementGroups["cs_price_calc_{$res_id}"] = 'none';
-
-              if ($psId) {
-                $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
-                foreach ($groupTree[$psId]['fields'] as $pfId => $pField) {
-                  $priceFields[$pfId] = $pField['label'];
-                }
-              }
+              $tId = $this->_calendar_settings["cs_event_template_{$res_id}"];
+              $this->addPriceSetGroup($tId, $descriptions, $elementGroups);
             }
-            $this->add('select',
-              "cs_price_field_{$res_id}",
-              ts("Price Field"),
-              $priceFields,
-              ['class' => "crm-select2",
-                'multiple' => FALSE,
-                'placeholder' => ts("- select pricefield -")]
-            );
-            $elementGroups["cs_price_field_{$res_id}"] = $groupId;
-
-            $this->add('select',
-              "cs_price_qty_{$res_id}",
-              ts("Quantity in"),
-              [
-                'days_0.5' => ts('Started Half Days'),
-                'days_1.0' => ts('Started Whole Days'),
-                'hours_2.0' => ts('Started Hours')
-              ],
-              ['class' => 'crm-select2',
-                'multiple' => FALSE,
-            ]);
-            $elementGroups["cs_price_qty_{$res_id}"] = $groupId;
           }
         }
         $this->add('advcheckbox', 'cs_show_end_date', ts('Show End Date?'));
@@ -570,6 +542,33 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
       return explode(',', substr($setting, 1, strlen($setting) - 2));
     } else {
       return $setting;
+    }
+  }
+
+  public function addPriceSetGroup($tId, &$descriptions, &$elementGroups) {
+    $psId = CRM_Price_BAO_PriceSet::getFor('civicrm_event', $tId);
+    $ps = CRM_Price_BAO_PriceSet::findById($psId);
+    $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
+    foreach ($groupTree as $gtId => $gt) {
+      foreach ($gt['fields'] as $field) {
+        $pfIdent = "{$tId}_{$psId}_{$field['id']}";
+        $this->add('advcheckbox', "cs_price_calc_{$pfIdent}", ts("Price Calculation"));
+        $descriptions["cs_price_calc_{$pfIdent}"] = ts('For: ') . $field['label'];
+        $elementGroups["cs_price_calc_{$pfIdent}"] = 'none';
+
+        $this->add('select',
+          "cs_price_qty_{$pfIdent}",
+          ts("Quantity in"),
+          [
+            'days_0.5' => ts('Started Half Days'),
+            'days_1.0' => ts('Started Whole Days'),
+            'hours_2.0' => ts('Started Hours')
+          ],
+          ['class' => 'crm-select2',
+            'multiple' => FALSE,
+        ]);
+        $elementGroups["cs_price_qty_{$pfIdent}"] = "group_{$pfIdent}";
+      }
     }
   }
 

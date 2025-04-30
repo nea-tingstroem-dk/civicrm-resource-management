@@ -43,7 +43,7 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
       ->execute();
     foreach ($events as $event) {
       $contactId = $event['participant.contact_id'];
-      if ($contactId == $currentUser) {
+      if ($contactId == $this->_userId) {
         $isParticipant = true;
       }
       if (in_array($calendarSettings['resource_role_id'], $event['participant.role_id'])) {
@@ -87,7 +87,7 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
       ];
       $buttons[] = [
         'type' => 'submit',
-        'subName' => $this->_eventId ? 'expand' : 'advanced',
+        'subName' => 'advanced',
         'name' => E::ts('Advanced'),
       ];
     }
@@ -100,8 +100,27 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
 
   public function postProcess(): void {
     $buttonName = $this->controller->getButtonName();
-    $action = substr($buttonName, strrpos($buttonName, '_')+1);
+    $action = substr($buttonName, strrpos($buttonName, '_') + 1);
     $values = $this->exportValues();
+    switch ($action) {
+      case 'edit-event':
+        CRM_Utils_JSON::output(['openpage' => 'civicrm/event/manage/settings?' .
+          'reset=1&action=update&id=' . $this->_eventId]);
+        break;
+      case 'delete-event':
+        $event = CRM_Event_BAO_Event::findById($this->_eventId);
+        if ($event) {
+          $event->delete();
+          CRM_Utils_JSON::output(['result' => 'OK']);
+        } else {
+          CRM_Utils_JSON::output(['result' => 'ERROR']);
+        }
+        break;
+      case 'advanced':
+        CRM_Utils_JSON::output(['openpage' => "civicrm/a/#/resource/manage-event?" .
+          "event_id={$this->_eventId}&calendar_id={$this->_calendarId}"]);
+        break;
+    }
     parent::postProcess();
   }
 

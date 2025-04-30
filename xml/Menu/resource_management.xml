@@ -16,7 +16,8 @@
     <path>civicrm/showresourceevents</path>
     <page_callback>CRM_ResourceManagement_Page_ShowResourceEvents</page_callback>
     <title>ShowResourceEvents</title>
-    <access_arguments>view Calendars;administer CiviCRM</access_arguments>
+    <access_callback>1</access_callback>
+    <is_public>true</is_public>
   </item>
   <item>
     <path>civicrm/ajax/resource-events</path>

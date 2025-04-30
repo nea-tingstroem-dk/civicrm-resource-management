@@ -4,15 +4,21 @@
       <label for="resource_selector">{$page_title}</label>
     </div>
     <div class="content">
-      <select name="resource_selector" id="resource_selector" class="crm-form-select required">
+      {html_options name=resource_selector id=resource_selector options=$resource_list selected=$default_resource}
+{*      <select name="resource_selector" id="resource_selector" class="crm-form-select required">
         {if (count($resource_list) gt 1)}
           <option value="0">{ts}All{/ts}</option>
+          {foreach from=$resource_list item=resource}
+            <option value="{$resource.id}">{$resource.title}</option>
+          {/foreach}
+        {else}
+          {foreach from=$resource_list item=resource}
+            <option selected value="{$resource.id}">{$resource.title}</option>
+            {break}
+          {/foreach}
         {/if}
-        {foreach from=$resource_list item=resource}
-          <option value="{$resource.id}">{$resource.title}</option>
-        {/foreach}
       </select>
-    </div>
+*}    </div>
     <div class="clear"></div>
   </div>  
 {/if}

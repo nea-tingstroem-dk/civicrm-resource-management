@@ -54,21 +54,7 @@
                 {if $element.is_display_amounts}
                   <span class="price-field-amount{if $form.$element_name.frozen EQ 1} sold-out-option{/if}">
                     {foreach item=option from=$element.options}
-                      {if ($option.tax_amount || $option.tax_amount == "0") && $displayOpt && $invoicing}
-                        {assign var="amount" value=$option.amount+$option.tax_amount}
-                        {if $displayOpt == 'Do_not_show'}
-                          {$amount|crmMoney:$currency}
-                        {elseif $displayOpt == 'Inclusive'}
-                          {$amount|crmMoney:$currency}
-                          <span class='crm-price-amount-tax'> {ts 1=$taxTerm 2=$option.tax_amount|crmMoney:$currency}(includes %1 of %2){/ts}</span>
-                        {else}
-                          {$option.amount|crmMoney:$currency}
-                          <span class='crm-price-amount-tax'> + {$option.tax_amount|crmMoney:$currency} {$taxTerm}</span>
-                        {/if}
-                      {else}
-                        {$option.amount|crmMoney:$currency} {$fieldHandle} {$form.$fieldHandle.frozen}
-                      {/if}
-                      {if $form.$element_name.frozen EQ 1} ({ts}Sold out{/ts}){/if}
+                        {$option.amount|crmMoney:$currency} 
                     {/foreach}
                   </span>
                 {else}
@@ -85,185 +71,60 @@
           {/if}
         {/if}
       {/foreach}
+
     {/foreach}
   </div>
 {/foreach}
+<div class="crm-section" id="sum_container">
+  <div class="label">{$form.price_sum.label}</div>
+  <div class="content">{$form.price_sum.html}</div>
+  <div class="clear"></div>
+</div>
 
 {* FOOTER *}
 <div class="crm-submit-buttons">
   {include file="CRM/common/formButtons.tpl" location="bottom"}
 </div>
 
+{crmScript ext="resource-management" file="js/create-resource-event.js"}
 {literal}
   <script type="text/javascript">
     CRM.$(function ($) {
-      const start_str = $('input[name=start_date]').val();
-      const end_str = $('input[name=end_date]').val();
-      const resources = JSON.parse($('input[name=resource_source]').val());
-      const titles_json = $('input[name=event_titles]').val();
-      const event_titles = titles_json ? JSON.parse($('input[name=event_titles]').val()) : '';
-      const start_date = new Date(Date.parse(start_str));
-      const end_date = new Date(Date.parse(end_str));
-//
-//  Calculate duration and price
-//
-      function calculate() {
-        var res_id = $('input[name=resources]').val();
-        if (!res_id) {
-          res_id = $('#resources').val();
-        }
-        var start = new Date($('#event_start_date').val());
-        var end = new Date($('#event_end_date').val());
-        var ms = end.getTime() - start.getTime();
-        var interval = '';
-        var factor = 0.0;
-        var field = '';
-        if ($('input[name=common_templates]').val()) {
-          let tId = $('#event_template').val();
-          interval = $('input[name=price_period_t' + tId + ']').val();
-          factor = parseFloat($('input[name=price_factor_t' + tId + ']').val());
-          field = $('input[name=price_field_t' + tId + ']').val();
-        } else {
-          interval = $('input[name=price_period_' + res_id + ']').val();
-          factor = parseFloat($('input[name=price_factor_' + res_id + ']').val());
-          field = $('input[name=price_field_' + res_id + ']').val();
-        }
-        var dur = 0.0;
-        if (interval === 'days') {
-          dur = ms / (1000 * 3600 * 24);
-        } else {
-          dur = ms / (1000 * 3600);
-        }
-        var qty = Math.floor((dur + factor - 0.0001) / factor) * factor;
-        $('#' + field).val(qty);
-        $('#' + field).change();
-      };
-//
-// When resource selection changes
-//
-      $('#resources').change(function () {
-        let min_start = Date.now();
-        let max_end = start_date;
-        let res_id = $(this).val();
-        if (res_id !== '') {
-          $.each($("div[name='pricegroup'"), function(k, el){
-            $("#" + el.id).hide();
-          });
-          var tId = resources[res_id].template_id;
-          $('#event_template').val(tId);
-          $('#event_template').change();
-          $('#grp_' + tId).show();
-          let obj = resources[res_id];
-          let min = Date.parse(obj.min_start);
-          let max = Date.parse(obj.max_end);
-          min_start = Math.max(min, min_start);
-          max_end = Math.min(max, max_end);
-      } else {
-        for (key in resources) {
-          let obj = resources[key];
-          let min = Date.parse(obj.min_start);
-          let max = Date.parse(obj.max_end);
-          min_start = Math.max(min, min_start);
-          max_end = Math.min(max, max_end);
-        }
-      }
-      let startPick = CRM.$('#event_start_date');
-      calculate();
-    });
-    
-//
-// When template selection changes
-//
-    $('#event_template').change(function () {
-      $.each($("div[name='pricegroup'"), function(k, el){
-        $("#" + el.id).hide();
-      });
-      let tId = $(this).val();
-      $('#grp_' + tId).show();
-      $('#event_title').val(event_titles[tId]);
-      calculate();
-      $(".ui-dialog").height("auto");
-    });
-//
-// When start date changes
-//
-    $('#event_start_date').change(function () {
-      if (moment($(this).val()).diff($('input[name=min_start]').val(), 'seconds') < 0) {
-        alert(ts('Erliest start is ' + $('input[name=min_start]').val()));
-        $('#event_start_date').val($('input[name=min_start]').val()).trigger('change');
-        return;
-      }
-      const start = new Date($(this).val());
-      var seconds = parseInt($('input[name=duration]').val());
-      calculate();
-    });
-//
-// Submit
-//
-    $('#CreateResourceEvent').on('submit', function (event) {
-      if (event.originalEvent.submitter.classList.contains('validate') &&
-        event.originalEvent.submitter.name.endsWith('submit_submit')) {
-        var emptyFields = '';
-        var z = $('#CreateResourceEvent').find('.required');
-        for (let i = 0; i < z.length; i++) {
-          if (!z[i].value) {
-            var lab = $('label[for="' + z[i].id + '"]').text();
-            if (lab) {
-              emptyFields += (emptyFields ? ' "' : '"') + lab.replace('*', '').trim() + '"';
-            }
-          }
-        }
-        if (emptyFields) {
-          event.preventDefault();
-            alert(ts('Please fill fields: ' + emptyFields, ts('Missing values')));
-        }
-      }
-    });
-//
-// Enddate changed
-//  
-    $('#event_end_date').change(function () {
-      if (moment($(this).val()).diff($('input[name=max_end]').val(), 'seconds') > 0) {
-        alert(ts('Latest end is ' + $('input[name=max_end]').val()));
-        $('#event_end_date').val($('input[name=max_end]').val()).trigger('change');
-      }
-      calculate();
-    });
-//
-// Delete button
-//
-    $('button').click(function (event) {
+      //
+      // Delete button
+      //
+      $('button').click(function (event) {
       if ($(this)[0].name.endsWith('delete') && $(this).val() == "1") {
         event.preventDefault();
         const title = {/literal}{ts}'Delete Event?'{/ts}{literal};
-        const message = {/literal}{ts}'Delete cannot be reversed!'{/ts}{literal};
-        const thisOne = $(this);
-        CRM.confirm({ title: title,
-            message: message
-          }).on('crmConfirm:yes', function () {
+          const message = {/literal}{ts}'Delete cannot be reversed!'{/ts}{literal};
+          const thisOne = $(this);
+          CRM.confirm({ title: title,
+            message: message})
+          .on('crmConfirm:yes', function () {
             thisOne.val(0);
-              thisOne.trigger('click');
+            thisOne.trigger('click');
           });
         };
       });
-//
-// Initialize
-//
-      setTimeout(function() {
-        var eId = $("[name=event_id]").val();
-        if (eId) {
-          $('#grp_' + eId).show();
-        } else {
-          var id = $('input[name=resources]').val();
-          if (id) {
+      //
+      // Initialize
+      //
+      setTimeout(function () {
+      var eId = $("[name=event_id]").val();
+      if (eId) {
+        $('#grp_' + eId).show();
+      } else {
+        var id = $('input[name=resources]').val();
+        if (id) {
           var tId = resources[id].template_id;
           $('#grp_' + tId).show();
         } else {
           $('#resources').change();
         }
       }
-      calculate();
-    }, 1000);
-  });
+      }, 1000);
+      $('#sum_container').hide();
+    });
   </script>
 {/literal}

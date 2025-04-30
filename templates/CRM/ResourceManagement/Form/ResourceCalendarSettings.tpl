@@ -7,7 +7,7 @@
         </div>
         {else}
             {if isset($group_labels.$groupName)}
-                <div id="{$groupName}" style="border:1px solid gray; margin-bottom: 10px; padding-top: 10px" >
+                <div id="{$groupName}" style="margin-bottom: 10px; padding-top: 10px" >
                 <div class="crm-section">
                     <span class="content">{$group_labels.$groupName}</span> 
                 </div>
@@ -61,33 +61,18 @@
           let groupId = id.replace('cs_price_calc', 'group');
           let fieldId = id.replace('cs_price_calc', 'cs_price_field');
           if (value) {
-            let templateId = id.replace('cs_price_calc_t', '');
-            if (isNaN(templateId)) {
-                let tempId = id.replace('cs_price_calc', 'cs_event_template');
-                templateId = $('#' + tempId).val();
-            }
-            $.ajax({
-              url: 'civicrm/ajax/event-pricefields?event_id=' + templateId,
-              type: "GET",
-              dataType: "json",
-              success: function (data) {
-                $('#' + fieldId).empty();
-                $.each(data, function (i, f) {
-                  $('#' + fieldId).append('<option value="' + i + '">' + f + '</option>');
-                });
-                console.log(data);
-                $('#' + groupId).show();
-              },
-              error: function (error) {
-                console.log(error);
-              }
-            });
+            $('#' + groupId).show();
           } else {
             $('#' + groupId).hide();
+            $("#" + id.replace('cs_price_calc','cs_price_qty')).val(null);
           }
           console.log(id + ' changed to ' + value);
         }
       });
       $('#cs_available_templates').trigger('change');
+      var checkboxes = $('[id^=cs_price_calc]');
+      $('[id^=cs_price_calc]').each(function() {
+        $(this).trigger('change');
+      });
     });
 </script>{/literal}
