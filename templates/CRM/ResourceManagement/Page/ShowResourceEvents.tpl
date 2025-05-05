@@ -1,27 +1,17 @@
-{if $resource_list == TRUE}
-  <div class="crm-section">
-    <div class="label">
-      <label for="resource_selector">{$page_title}</label>
-    </div>
-    <div class="content">
-      {html_options name=resource_selector id=resource_selector options=$resource_list selected=$default_resource}
-{*      <select name="resource_selector" id="resource_selector" class="crm-form-select required">
-        {if (count($resource_list) gt 1)}
-          <option value="0">{ts}All{/ts}</option>
-          {foreach from=$resource_list item=resource}
-            <option value="{$resource.id}">{$resource.title}</option>
-          {/foreach}
-        {else}
-          {foreach from=$resource_list item=resource}
-            <option selected value="{$resource.id}">{$resource.title}</option>
-            {break}
-          {/foreach}
-        {/if}
-      </select>
-*}    </div>
-    <div class="clear"></div>
-  </div>  
-{/if}
+
+<span>
+  {if $resource_list == TRUE}
+    <div class="crm-section">
+      <div class="label">
+        <label for="resource_selector">{$page_title}</label>
+      </div>
+      <div class="content">
+        {html_options name=resource_selector id=resource_selector options=$resource_list selected=$default_resource}
+      </div>
+      <div class="clear"></div>
+    </div>  
+  {/if}
+</span>
 <div id="calendar" style="height:auto " ></div>
 {literal}
   <script type="text/javascript">
@@ -36,11 +26,13 @@
         let scroll = {/literal}{$scroll}{literal};
         let eventSourceId = "events";
         const isAdmin = {/literal}{$is_admin}{literal}
-        const defaultStartDate = (localStorage.getItem("fcDefaultStartDate") !== null ? localStorage.getItem("fcDefaultStartDate") : moment());
+        const defaultStartDate = (localStorage.getItem("fcDefaultStartDate") ? localStorage.getItem("fcDefaultStartDate") : moment().format('YYYY-MM-DD'));
+        const defaultView = (localStorage.getItem("fcDefaultView") ? localStorage.getItem("fcDefaultView") : 'timeGridWeek');
         var isLoading = true;
         let calendarEl = document.getElementById("calendar");
         let calendar = new FullCalendar.Calendar(calendarEl, {
-          initialView: 'timeGridWeek',
+          initialView: defaultView,
+          initialDate: defaultStartDate,
           scrollTime: scroll,
           headerToolbar: {
             left: 'prev,next today',
@@ -103,24 +95,38 @@
             if (typeof $filter === "string" && $filter.length === 0) {
               $filter = $('#resource_selector').children().first().val();
             }
-            CRM.loadForm(CRM.url('civicrm/book-resource', {
-              calendar_id: calendarId,
-              filter: $filter,
-              start: info.start.toISOString(),
-              end: info.end.toISOString(),
-              allday: info.allDay}),
-              {
-                cancelButton: '.cancel.crm-form-submit'
-              })
-              .on('crmFormSuccess', function (event, data) {
-                if (data.openpage) {
-                  window.open(data.openpage);
-                }
-                calendar.refetchEvents();
-              })
-              .on('crmFormCancel', function (event, data) {
-                concole.log('Canceled');
-              });
+            if (true) {
+              var params = {
+                calendar_id: calendarId,
+                filter: $filter,
+                start: info.start.toISOString(),
+                end: info.end.toISOString(),
+                allday: info.allDay,
+                ret_url: window.location.href,
+              };
+              window.location.replace(CRM.url('civicrm/book-resource',
+                params));
+            } else {
+              CRM.loadForm(CRM.url('civicrm/book-resource', {
+                calendar_id: calendarId,
+                filter: $filter,
+                start: info.start.toISOString(),
+                end: info.end.toISOString(),
+                allday: info.allDay}),
+                {
+                  cancelButton: '.cancel.crm-form-submit',
+                  autoResize: true
+                })
+                .on('crmFormSuccess', function (event, data) {
+                  if (data.openpage) {
+                    window.open(data.openpage);
+                  }
+                  calendar.refetchEvents();
+                })
+                .on('crmFormCancel', function (event, data) {
+                  concole.log('Canceled');
+                });
+            }
           },
           eventContent: function (info) {
             let spanEl = document.createElement('span');
@@ -128,10 +134,11 @@
             let arrayOfDomNodes = [spanEl];
             return {domNodes: arrayOfDomNodes};
           },
-          viewRender: function (view, element) {
+          viewClassNames: function (view, element) {
             // when the view changes, we update our localStorage value with the new view name
-            localStorage.setItem("fcDefaultView", view.name);
-            localStorage.setItem("fcDefaultStartDate", view.start);
+            localStorage.setItem("fcDefaultView", view.view.type);
+            let startTime = moment(view.view.activeStart).format('YYYY-MM-DD');
+            localStorage.setItem("fcDefaultStartDate", startTime);
           },
           eventClick: function (info) {
             info.jsEvent.preventDefault();

@@ -34,10 +34,15 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
 
   public function preProcess() {
     $buttonName = $this->controller->getButtonName();
-    if (substr_compare($buttonName, 'delete', -6) === 0) {
+    $action = substr($buttonName, strrpos($buttonName, '_') + 1);
+    if ($action === 'delete') {
       $this->_suppressValidate = true;
+    } else if ($action === 'cancel') {
+      $session = CRM_Core_Session::singleton();
+      $session->pushUserContext(CRM_Utils_System::url(CRM_Utils_Request::retrieve('ret_url', 'String'), 'reset=1', true));
+      CRM_Utils_System::civiExit();
     }
-
+    $this->add('hidden', 'ret_url', CRM_Utils_Request::retrieve('ret_url', 'String'));
     parent::preProcess();
     $this->_currentUser = (int) CRM_Core_Session::singleton()->getLoggedInContactID();
     $user = civicrm_api3('Contact', 'get', [
@@ -84,7 +89,13 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
       $this->_filter = CRM_Utils_Request::retrieve('filter', 'Integer');
       $allDay = CRM_Utils_Request::retrieve('allday', 'Integer');
       $start = CRM_Utils_Request::retrieve('start', 'String');
+      if (!$start) {
+      $start = CRM_Utils_Request::retrieve('start_date', 'String');
+      }
       $end = CRM_Utils_Request::retrieve('end', 'String');
+      if (!$end) {
+        $end = CRM_Utils_Request::retrieve('end_date', 'String');
+      }
       if ($allDay) {
         $this->_all_day = true;
       } else {
@@ -151,7 +162,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
       $this->add('static', 'res_label', ts('Resource'), $this->_event['res.display_name']);
       $this->add('hidden', 'resources', "{$this->_event['pr.contact_id']}");
       $this->add('hidden', 'edit_url', 'civicrm/event/manage/settings?reset=1&action=update&id=' . $this->_eventId);
-    } else if (!$this->_filter) {
+    } else {
       $this->add('select', 'resources', ts("Select Resource"), $resource_options,
         TRUE, ['class' => 'crm-select2',
         'multiple' => false,
@@ -171,8 +182,6 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
     if ($filter) {
       $this->add('hidden', 'min_start', $this->_resources[$filter]['min_start']);
       $this->add('hidden', 'max_end', $this->_resources[$filter]['max_end']);
-      $this->add('hidden', 'resources', $filter);
-      $this->add('static', 'resource', ts("Selected Resource"), $resource_options[$filter]);
     } else {
       $this->add('hidden', 'min_start', $this->_min_start);
       $this->add('hidden', 'max_end', $this->_max_end);
@@ -296,6 +305,12 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
       'subName' => $this->_eventId ? 'expand' : 'advanced',
       'name' => E::ts('Advanced'),
     ];
+    $buttons[] = [
+      'type' => 'submit',
+      'subName' => 'cancel',
+      'name' => E::ts('Cancel'),
+      'isDefault' => TRUE,
+    ];
 
     $this->addButtons($buttons);
   }
@@ -349,6 +364,12 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
         'subName' => 'submit',
         'name' => E::ts('Submit'),
         'isDefault' => TRUE,
+      ],
+      [
+        'type' => 'submit',
+        'subName' => 'cancel',
+        'name' => E::ts('Cancel'),
+        'isDefault' => TRUE,
       ]
     ];
 
@@ -359,6 +380,13 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
 
   public function postProcess() {
     $buttonName = $this->controller->getButtonName();
+    $action = substr($buttonName, strrpos($buttonName, '_') + 1);
+    if ($action === 'cancel') {
+      return;
+    }
+    $session = CRM_Core_Session::singleton();
+    $session->pushUserContext(CRM_Utils_System::url(CRM_Utils_Request::retrieve('ret_url', 'String'), 'reset=1', true));
+
     if (substr_compare($buttonName, 'delete', -6) === 0) {
       if ($this->_eventId) {
         $event = CRM_Event_BAO_Event::findById($this->_eventId);
@@ -375,7 +403,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
         $template_id = 0;
         if (isset($values['event_template'])) {
           $template_id = $values['event_template'];
-        } else if ($this->_calendarSettings['common_template']) {
+        } else if (isset($this->_calendarSettings['common_template']) && $this->_calendarSettings['common_template']) {
           $template_id = $this->_calendarSettings['event_template'];
         } else {
           $key = 'event_template_' . $resource_id;
@@ -426,8 +454,8 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
           $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
           $params = [];
           foreach ($groupTree[$psId]['fields'] as $pfId => $pField) {
-            $eId = 'pf_' . $template_id . '_' . $psId . '_' . $pfId;
-            $val = $values[$eId];
+            $eId = '' . $template_id . '_' . $psId . '_' . $pfId;
+            $val = isset($values['pf_'.$eId]) ? $values['pf_'.$eId] : $values['pf_qty_'.$eId];
             if ($val) {
               $optionsKey = array_key_first($pField['options']);
               $qty = (float) $val;
@@ -556,16 +584,16 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
         }
       }
 
-      if (substr_compare($buttonName, 'advanced', -8) === 0 ||
-        substr_compare($buttonName, 'expand', -6) === 0) {
-        CRM_Utils_JSON::output(['openpage' => "civicrm/a/#/resource/manage-event?" .
-          "event_id={$event->id}&calendar_id={$this->_calendar_id}"]);
-      } else if (substr_compare($buttonName, 'edit_event', -10) === 0) {
-        CRM_Utils_JSON::output(['openpage' => 'civicrm/event/manage/settings?' .
-          'reset=1&action=update&id=' . $this->_eventId]);
-      } else {
-        CRM_Utils_JSON::output(['result' => 'OK']);
-      }
+//      if (substr_compare($buttonName, 'advanced', -8) === 0 ||
+//        substr_compare($buttonName, 'expand', -6) === 0) {
+//        CRM_Utils_JSON::output(['openpage' => "civicrm/a/#/resource/manage-event?" .
+//          "event_id={$event->id}&calendar_id={$this->_calendar_id}"]);
+//      } else if (substr_compare($buttonName, 'edit_event', -10) === 0) {
+//        CRM_Utils_JSON::output(['openpage' => 'civicrm/event/manage/settings?' .
+//          'reset=1&action=update&id=' . $this->_eventId]);
+//      } else {
+//        CRM_Utils_JSON::output(['result' => 'OK']);
+//      }
     }
   }
 
@@ -719,6 +747,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
           isset($this->_calendarSettings["price_qty_{$resId}"])) {
           $pfId = $tId . '_' . $psId . '_' . $this->_calendarSettings["price_field_{$resId}"];
           $this->add('hidden', "price_field_{$resId}", "pf_{$pfId}");
+          $this->add('hidden', "pf_qty_{$pfId}");
           $calcParms = explode('_', $this->_calendarSettings["price_qty_{$resId}"]);
           $this->add('hidden', "price_period_{$pfId}", $calcParms[0]);
           $this->add('hidden', "price_factor_{$pfId}", $calcParms[1]);
@@ -770,6 +799,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
               isset($this->_calendarSettings["price_qty_{$tId}"])) {
               $pfId = $tId . '_' . $psId . '_' . $this->_calendarSettings["price_field_{$tId}"];
               $this->add('hidden', "price_field_{$tId}", "pf_{$pfId}");
+              $this->add('hidden', "pf_qty_{$pfId}");
               $calcParms = explode('_', $this->_calendarSettings["price_qty_{$tId}"]);
               $this->add('hidden', "price_period_{$pfId}", $calcParms[0]);
               $this->add('hidden', "price_factor_{$pfId}", $calcParms[1]);
@@ -799,13 +829,14 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
               );
               $optionsKey = array_key_first($pField['options']);
               $unitPrice = (float) $pField['options'][$optionsKey]['amount'];
-              $pfIdent = "{$tId}_{$psId}_{$pfId}";
-              $this->add("hidden", "price_unit_amount_{$pfIdent}", $unitPrice);
-              $this->add('hidden', "price_field_{$tId}", "pf_{$pfIdent}");
-              if (isset($this->_calendarSettings["price_calc_{$pfIdent}"])) {
-                $calcParms = explode('_', $this->_calendarSettings["price_qty_{$pfIdent}"]);
-                $this->add('hidden', "price_period_{$pfIdent}", $calcParms[0]);
-                $this->add('hidden', "price_factor_{$pfIdent}", $calcParms[1]);
+              $pfId = "{$tId}_{$psId}_{$pfId}";
+              $this->add("hidden", "price_unit_amount_{$pfId}", $unitPrice);
+              $this->add('hidden', "price_field_{$tId}", "pf_{$pfId}");
+              if (isset($this->_calendarSettings["price_calc_{$pfId}"])) {
+                $this->add('hidden', "pf_qty_{$pfId}");
+                $calcParms = explode('_', $this->_calendarSettings["price_qty_{$pfId}"]);
+                $this->add('hidden', "price_period_{$pfId}", $calcParms[0]);
+                $this->add('hidden', "price_factor_{$pfId}", $calcParms[1]);
               }
             }
           }

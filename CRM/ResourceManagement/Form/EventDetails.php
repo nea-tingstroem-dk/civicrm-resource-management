@@ -19,6 +19,8 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
   private $_isSuperUser = false;
 
   public function preProcess() {
+    $buttonName = $this->controller->getButtonName();
+    $action = substr($buttonName, strrpos($buttonName, '_') + 1);
     $this->_userId = (int) CRM_Core_Session::singleton()->getLoggedInContactID();
     $this->_eventId = CRM_Utils_Request::retrieve('event_id', 'Integer');
     $this->_calendarId = CRM_Utils_Request::retrieve('calendar_id', 'Integer');
@@ -33,28 +35,39 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
    */
   public function buildQuickForm(): void {
     $participants = [];
-
+    $responsibleContact = false;
+    $participants = [];
     $events = \Civi\Api4\Event::get(TRUE)
-      ->addSelect('title', 'participant.contact_id', 'participant.status_id', 'participant.status_id:label', 'participant.role_id', 'participant.role_id:label', 'contact.display_name')
+      ->addSelect('title',
+        'participant.contact_id',
+        'participant.status_id',
+        'participant.status_id:label',
+        'participant.role_id',
+        'participant.role_id:label',
+        'contact.display_name')
       ->addJoin('Participant AS participant', 'LEFT', ['participant.event_id', '=', 'id'])
       ->addJoin('Contact AS contact', 'LEFT', ['participant.contact_id', '=', 'contact.id'])
       ->addWhere('id', '=', $this->_eventId)
-      ->setLimit(1)
       ->execute();
     foreach ($events as $event) {
       $contactId = $event['participant.contact_id'];
       if ($contactId == $this->_userId) {
-        $isParticipant = true;
+        $this->_isParticipant = true;
       }
-      if (in_array($calendarSettings['resource_role_id'], $event['participant.role_id'])) {
+      if (in_array($this->_calendarSettings['resource_role_id'], $event['participant.role_id'])) {
         $this->assign('resource_name', $event['contact.display_name']);
         CRM_Utils_System::setTitle(E::ts("Details for {$event['title']} with {$event['contact.display_name']}"));
-      } else if (in_array($calendarSettings['host_role_id'], $event['participant.role_id'])) {
-        $this->assign('responsible', $event['contact.display_name']);
+      } else if (in_array($this->_calendarSettings['host_role_id'], $event['participant.role_id'])) {
+        $responsibleContact = [
+          
+          reset($event['participant.role_id:label']) => $event['contact.display_name']
+          ];
       } else {
-        $participants[$contactId] = $event['contact.display_name'];
+       $participants[reset($event['participant.role_id:label'])] =  $event['contact.display_name'];
       }
-      break;
+    }
+    if (count($responsibleContact) >0 || count($participants)) {
+      $this->assign('participants', array_merge($responsibleContact, $participants));
     }
 
     $buttons = [];
@@ -64,12 +77,6 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
         'subName' => 'confirm',
         'name' => E::ts('Confirm'),
         'icon' => 'fa-check',
-      ];
-      $buttons[] = [
-        'type' => 'submit',
-        'subName' => 'cancellation',
-        'name' => E::ts('Cancel'),
-        'icon' => 'fa-times',
       ];
     }
     if ($this->_isSuperUser) {
@@ -91,6 +98,12 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
         'name' => E::ts('Advanced'),
       ];
     }
+    $buttons[] = [
+      'type' => 'submit',
+      'subName' => 'cancellation',
+      'name' => E::ts('Cancel'),
+      'icon' => 'fa-times',
+    ];
 
     $this->addButtons($buttons);
     // export form elements

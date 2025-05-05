@@ -30,15 +30,14 @@ class CRM_ResourceManagement_Page_ShowResourceEvents extends CRM_Core_Page {
     CRM_Utils_System::setTitle(ts($settings['calendar_title']));
 
     $resources = [];
+    if (count($settings['resources']) > 1) {
+      $resources[0] = E::ts('All');
+    }    
     foreach ($settings['resources'] as $id => $title) {
       $resources[$id] = $title;
     }
     $this->assign('page_title', $settings['calendar_title']);
-    if (count($resources) === 1) {
-      $this->assign('resource_list', $resources);
-    } else {
-      $this->assign('resource_list', array_merge([0 => E::ts('All')], $resources));
-    }
+    $this->assign('resource_list', $resources);
     $this->assign('calendar_id', $calendarId);
     $this->assign('time_display', !empty($settings['event_time']) ?: 'false');
     $this->assign('displayEventEnd', $settings['event_end_date'] ?? 0);

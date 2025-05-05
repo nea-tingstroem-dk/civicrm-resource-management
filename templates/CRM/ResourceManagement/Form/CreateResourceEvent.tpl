@@ -75,7 +75,7 @@
     {/foreach}
   </div>
 {/foreach}
-<div class="crm-section" id="sum_container">
+<div class="crm-section hidden" id="sum_container">
   <div class="label">{$form.price_sum.label}</div>
   <div class="content">{$form.price_sum.html}</div>
   <div class="clear"></div>
@@ -124,7 +124,7 @@
         }
       }
       }, 1000);
-      $('#sum_container').hide();
+      $(".ui-dialog").height("auto");
     });
   </script>
 {/literal}

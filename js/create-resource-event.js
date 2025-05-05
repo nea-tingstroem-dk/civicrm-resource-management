@@ -50,6 +50,7 @@ CRM.$(function ($) {
     }
     var qty = Math.floor((dur + factor - 0.0001) / factor) * factor;
     $('#' + field).val(qty);
+    $('[name=pf_qty_'+fieldId).val(qty);
     $('#' + field).prop('disabled', true);
     $('#' + field).change();
     let pricesId = 'pf_' + fieldId.substring(0, fieldId.lastIndexOf('_'));
@@ -59,11 +60,11 @@ CRM.$(function ($) {
       let unitAmount = $('[name=' + this.id.replace('pf_', 'price_unit_amount_') + ']').val();
       sum += num * unitAmount;
     });
+    $('#sum_container').show();
     $('#price_sum').val(sum);
     $('#price_sum').prop('disabled', true);
     $('#price_sum').change();
-    $('#sum_container').show();
-
+    $('window').trigger('resize');
   }
   ;
 //
@@ -117,7 +118,6 @@ CRM.$(function ($) {
     $('#grp_' + tId).show();
     $('#event_title').val(event_titles[tId]);
     calculate();
-    $(".ui-dialog").height("auto");
   });
 //
 //When price field count changes
@@ -174,7 +174,7 @@ CRM.$(function ($) {
     }
     calculate();
   });
-
+  $(".ui-dialog").height("autoResize");
 });
 
 

@@ -2,7 +2,10 @@
 
 ![Screenshot](/images/screenshot.png)
 
-(*FIXME: In one or two paragraphs, describe what the extension does and why one would download it. *)
+With this extension you can manage resources registered as organisations like rooms, boats and show it
+as calendars.
+
+Users may book in the calendar
 
 The extension is licensed under [AGPL-3.0](LICENSE.txt).
 
@@ -22,7 +25,7 @@ install it with the command-line tool [cv](https://github.com/civicrm/cv).
 
 ```bash
 cd <extension-dir>
-cv dl resource-management@https://github.com/FIXME/resource-management/archive/master.zip
+cv dl resource-management@https://github.com/nea-tingstroem-dk/resource-management/archive/master.zip
 ```
 
 ## Installation (CLI, Git)
@@ -31,14 +34,14 @@ Sysadmins and developers may clone the [Git](https://en.wikipedia.org/wiki/Git) 
 install it with the command-line tool [cv](https://github.com/civicrm/cv).
 
 ```bash
-git clone https://github.com/FIXME/resource-management.git
+git clone https://github.com/nea-tingstroem-dk/resource-management.git
 cv en resource_management
 ```
 
 ## Getting Started
 
-(* FIXME: Where would a new user navigate to get started? What changes would they see? *)
+After installation go to the admin forms using the Administer/Resource Management submenu
 
 ## Known Issues
 
-(* FIXME *)
+
