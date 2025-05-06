@@ -34,8 +34,15 @@
           initialView: defaultView,
           initialDate: defaultStartDate,
           scrollTime: scroll,
-          headerToolbar: {
-            left: 'prev,next today',
+          customButtons: {
+            refresh: {
+              text: 'Refresh',
+              click: function () {
+                calendar.refetchEvents();
+              }
+            }
+          }, headerToolbar: {
+            left: 'prev,next today refresh',
             center: 'title',
             right: 'timeGridDay,timeGridWeek,dayGridMonth'
           },

@@ -90,7 +90,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
       $allDay = CRM_Utils_Request::retrieve('allday', 'Integer');
       $start = CRM_Utils_Request::retrieve('start', 'String');
       if (!$start) {
-      $start = CRM_Utils_Request::retrieve('start_date', 'String');
+        $start = CRM_Utils_Request::retrieve('start_date', 'String');
       }
       $end = CRM_Utils_Request::retrieve('end', 'String');
       if (!$end) {
@@ -396,6 +396,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
       $values = $this->_submitValues;
       $resourceRole = (int) $this->_calendarSettings['resource_role_id'];
       $hostRole = (int) $values['host_role_id'];
+      $hostStatus = isset($values['host_status_id']) ? $values['host_status_id'] : $this->_calendarSettings['host_status_id'];
       $statuses = explode(',', C::getConfig('resource_status_ids'));
       $today = date('Y-m-d H:i:s');
       if (!$this->_eventId) {
@@ -444,7 +445,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
             'role_id' => $hostRole,
             'contact_id' => $values['responsible_contact'],
             'event_id' => $event->id,
-            'status_id' => isset($values['host_status_id']) ? $values['host_status_id'] : $this->_calendarSettings['host_status_id'],
+            'status_id' => $hostStatus,
           ];
           $participant = CRM_Event_BAO_Participant::writeRecord($params);
         }
@@ -455,7 +456,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
           $params = [];
           foreach ($groupTree[$psId]['fields'] as $pfId => $pField) {
             $eId = '' . $template_id . '_' . $psId . '_' . $pfId;
-            $val = isset($values['pf_'.$eId]) ? $values['pf_'.$eId] : $values['pf_qty_'.$eId];
+            $val = isset($values['pf_' . $eId]) ? $values['pf_' . $eId] : $values['pf_qty_' . $eId];
             if ($val) {
               $optionsKey = array_key_first($pField['options']);
               $qty = (float) $val;
@@ -480,6 +481,21 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
           if (!empty($params)) {
             CRM_Price_BAO_LineItem::processPriceSet($participant->id,
               [$psId => $params], null, 'civicrm_participant');
+
+            $participantStatusTypes = \Civi\Api4\ParticipantStatusType::get(FALSE)
+              ->addSelect('name')
+              ->addWhere('id', '=', $hostStatus)
+              ->execute();
+            foreach ($participantStatusTypes as $participantStatusType) {
+              if ($participantStatusType['name'] === 'Pending from pay later') {
+                CRM_Core_Session::setStatus(E::ts('An Invoice will be sent later'), 
+                  E::ts('Saved'), 
+                 'success');
+              } else {
+                // Pay now
+              }
+              break;
+            }
           }
         }
       } else if ($this->_action === 0) { // Update
@@ -580,6 +596,20 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
           if (!empty($params)) {
             CRM_Price_BAO_LineItem::processPriceSet($participant->id,
               [$psId => $params], null, 'civicrm_participant');
+            $participantStatusTypes = \Civi\Api4\ParticipantStatusType::get(FALSE)
+              ->addSelect('name')
+              ->addWhere('id', '=', $hostStatus)
+              ->execute();
+            foreach ($participantStatusTypes as $participantStatusType) {
+              if ($participantStatusType['name'] === 'Pending from pay later') {
+                CRM_Core_Session::setStatus(E::ts('An invoice will be sent later'), 
+                  E::ts('Saved'), 
+                 'success');
+              } else {
+                // Pay now
+              }
+            break;
+            }
           }
         }
       }

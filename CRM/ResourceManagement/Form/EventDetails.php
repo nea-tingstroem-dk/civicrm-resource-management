@@ -66,7 +66,7 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
        $participants[reset($event['participant.role_id:label'])] =  $event['contact.display_name'];
       }
     }
-    if (count($responsibleContact) >0 || count($participants)) {
+    if (($responsibleContact && count($responsibleContact) >0) || count($participants)) {
       $this->assign('participants', array_merge($responsibleContact, $participants));
     }
 
