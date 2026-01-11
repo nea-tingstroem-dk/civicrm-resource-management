@@ -34,41 +34,43 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
    * @throws \CRM_Core_Exception
    */
   public function buildQuickForm(): void {
-    $participants = [];
     $responsibleContact = false;
-    $participants = [];
+
     $events = \Civi\Api4\Event::get(TRUE)
-      ->addSelect('title',
-        'participant.contact_id',
-        'participant.status_id',
-        'participant.status_id:label',
-        'participant.role_id',
-        'participant.role_id:label',
-        'contact.display_name')
-      ->addJoin('Participant AS participant', 'LEFT', ['participant.event_id', '=', 'id'])
-      ->addJoin('Contact AS contact', 'LEFT', ['participant.contact_id', '=', 'contact.id'])
-      ->addWhere('id', '=', $this->_eventId)
+      ->addSelect('title', 'start_date', 'end_date', 'event_type_id:label')
+      ->addWhere('id', '=', 328)
+      ->setLimit(25)
       ->execute();
     foreach ($events as $event) {
-      $contactId = $event['participant.contact_id'];
-      if ($contactId == $this->_userId) {
-        $this->_isParticipant = true;
-      }
-      if (in_array($this->_calendarSettings['resource_role_id'], $event['participant.role_id'])) {
-        $this->assign('resource_name', $event['contact.display_name']);
-        CRM_Utils_System::setTitle(E::ts("Details for {$event['title']} with {$event['contact.display_name']}"));
-      } else if (in_array($this->_calendarSettings['host_role_id'], $event['participant.role_id'])) {
-        $responsibleContact = [
-          
-          reset($event['participant.role_id:label']) => $event['contact.display_name']
-          ];
+      CRM_Utils_System::setTitle(E::ts("Details for {$event['title']}"));
+      $this->add('static', 'start_date', ts('Start'), $event['start_date']);
+      $this->add('static', 'end_date', ts('End'), $event['end_date']);
+      $this->add('static', 'event_type', ts('Event type'), $event['event_type_id:label']);
+      break;
+    }
+
+    $participants = \Civi\Api4\Participant::get(TRUE)
+      ->addSelect('contact_id.external_identifier', 'contact_id.display_name', 'role_id', 'role_id:label')
+      ->addWhere('event_id', '=', 328)
+      ->setLimit(25)
+      ->execute();
+    $resource = "";
+    $host = "";
+    $hostRole = "";
+    $pCount = 0;
+    foreach ($participants as $participant) {
+      if (in_array($this->_calendarSettings['resource_role_id'], $participant['role_id'])) {
+        $resource = $participant['contact_id.display_name'];
+      } else if (in_array($this->_calendarSettings['host_role_id'], $participant['role_id'])) {
+        $host = $participant['contact_id.external_identifier'] . ' - ' . $participant['contact_id.display_name'];
+        $hostRole = $participant['role_id:label'][0];
       } else {
-       $participants[reset($event['participant.role_id:label'])] =  $event['contact.display_name'];
+        $pCount++;
       }
     }
-    if (($responsibleContact && count($responsibleContact) >0) || count($participants)) {
-      $this->assign('participants', array_merge($responsibleContact, $participants));
-    }
+    $this->add('static', 'resource', ts('Resource'), $resource);
+    $this->add('static', 'host', ts("{$hostRole}"), $host);
+    $this->add('static', 'count', ts('Count'), $pCount);
 
     $buttons = [];
     if ($this->_isParticipant) {
@@ -157,5 +159,4 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
     }
     return $elementNames;
   }
-
 }
