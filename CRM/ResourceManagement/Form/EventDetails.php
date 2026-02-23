@@ -38,7 +38,7 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
 
     $events = \Civi\Api4\Event::get(TRUE)
       ->addSelect('title', 'start_date', 'end_date', 'event_type_id:label')
-      ->addWhere('id', '=', 328)
+      ->addWhere('id', '=', $this->_eventId)
       ->setLimit(25)
       ->execute();
     foreach ($events as $event) {
@@ -51,7 +51,7 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
 
     $participants = \Civi\Api4\Participant::get(TRUE)
       ->addSelect('contact_id.external_identifier', 'contact_id.display_name', 'role_id', 'role_id:label')
-      ->addWhere('event_id', '=', 328)
+      ->addWhere('event_id', '=', $this->_eventId)
       ->setLimit(25)
       ->execute();
     $resource = "";
@@ -73,15 +73,19 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
     $this->add('static', 'count', ts('Count'), $pCount);
 
     $buttons = [];
-    if ($this->_isParticipant) {
+    if ($this->_isSuperUser) {
       $buttons[] = [
         'type' => 'submit',
-        'subName' => 'confirm',
-        'name' => E::ts('Confirm'),
+        'subName' => 'add-participants',
+        'name' => E::ts('Participants'),
+        'icon' => 'fa-trash',
+      ];
+    $buttons[] = [
+        'type' => 'submit',
+        'subName' => 'reg-participants',
+        'name' => E::ts('Register Participants'),
         'icon' => 'fa-check',
       ];
-    }
-    if ($this->_isSuperUser) {
       $buttons[] = [
         'type' => 'submit',
         'subName' => 'delete-event',
@@ -99,7 +103,23 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
         'subName' => 'advanced',
         'name' => E::ts('Advanced'),
       ];
+    } else if ($this->_isResponsible) {
+      $buttons[] = [
+        'type' => 'submit',
+        'subName' => 'reg-participants',
+        'name' => E::ts('Register Participants'),
+        'icon' => 'fa-check',
+      ];
+      
+    } else if ($this->_isParticipant) {
+      $buttons[] = [
+        'type' => 'submit',
+        'subName' => 'confirm',
+        'name' => E::ts('Confirm'),
+        'icon' => 'fa-check',
+      ];
     }
+
     $buttons[] = [
       'type' => 'submit',
       'subName' => 'cancellation',
@@ -118,6 +138,14 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
     $action = substr($buttonName, strrpos($buttonName, '_') + 1);
     $values = $this->exportValues();
     switch ($action) {
+      case 'add-participants':
+        CRM_Utils_JSON::output(['openpage' => 'civicrm/participant/add?' .
+          "action=add&eid={$this->_eventId}"]);
+        break;
+      case 'reg-participants':
+        CRM_Utils_JSON::output(['openpage' => 'civicrm/event/search?' .
+          "event={$this->_eventId}&status=true"]);
+        break;
       case 'edit-event':
         CRM_Utils_JSON::output(['openpage' => 'civicrm/event/manage/settings?' .
           'reset=1&action=update&id=' . $this->_eventId]);
@@ -159,4 +187,5 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
     }
     return $elementNames;
   }
+
 }
