@@ -547,6 +547,9 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
 
   public function addPriceSetGroup($tId, &$descriptions, &$elementGroups) {
     $psId = CRM_Price_BAO_PriceSet::getFor('civicrm_event', $tId);
+    if (!$psId) {
+       return;
+    }
     $ps = CRM_Price_BAO_PriceSet::findById($psId);
     $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
     foreach ($groupTree as $gtId => $gt) {

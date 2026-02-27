@@ -76,7 +76,7 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
     if ($this->_isSuperUser) {
       $buttons[] = [
         'type' => 'submit',
-        'subName' => 'add-participants',
+        'subName' => 'show-participants',
         'name' => E::ts('Participants'),
         'icon' => 'fa-trash',
       ];
@@ -138,17 +138,20 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
     $action = substr($buttonName, strrpos($buttonName, '_') + 1);
     $values = $this->exportValues();
     switch ($action) {
-      case 'add-participants':
-        CRM_Utils_JSON::output(['openpage' => 'civicrm/participant/add?' .
-          "action=add&eid={$this->_eventId}"]);
+      case 'show-participants':
+        // https://d11.internal/civicrm/event/search?reset=1&force=1&event=351&status=true
+        CRM_Utils_JSON::output(['openpage' => 'civicrm/search?reset=1&force=1&status=true' .
+          "&action=add&eid={$this->_eventId}"]);
         break;
       case 'reg-participants':
-        CRM_Utils_JSON::output(['openpage' => 'civicrm/event/search?' .
-          "event={$this->_eventId}&status=true"]);
+        // https://d11.internal/civicrm/participant/add?reset=1&action=add&context=standalone&eid=351
+        CRM_Utils_JSON::output(['openpage' => 'civicrm//participant/add?reset=1&action=add&context=standalone' .
+          "&eid={$this->_eventId}"]);
         break;
       case 'edit-event':
+        // https://d11.internal/civicrm/event/manage/settings?reset=1&action=update&id=351&selectedChild=settings
         CRM_Utils_JSON::output(['openpage' => 'civicrm/event/manage/settings?' .
-          'reset=1&action=update&id=' . $this->_eventId]);
+          "?reset=1&action=update&id={$this->_eventId}&selectedChild=settings"]);
         break;
       case 'delete-event':
         $event = CRM_Event_BAO_Event::findById($this->_eventId);

@@ -41,6 +41,7 @@
         addButton: 'Add'
       };
       $scope.repeats = Array(1);
+      $scope.showTab = "";
       $scope.hideTabs = {
         repeat: true,
         import: true,
@@ -82,9 +83,13 @@
         }
       }
 
-      $scope.selectTab = function (tab) {
-        hideAllTabs();
-        $scope.hideTabs[tab] = false;
+      $scope.selectTab = function (e, tab) {
+        let tablinks = $(".tablinks");
+        for (var j = 0; j < tablinks.length; j++) {
+          tablinks[j].style['bacground-color'] = '#000000';
+        }
+        $scope.showTab = tab;
+        $("#tab_" + tab)[0].style["background-color"] = "#F0F8FF";
       };
       $scope.repeatChanged = function (index) {
         var date = moment($scope.masterEvent.start_date);
@@ -182,6 +187,9 @@
           $scope.masterEvent = events[0];
           $scope.cloneDate = $scope.masterEvent.start_date;
           $scope.repetition_start_date = $scope.masterEvent.start_date;
+          if (!$scope.showTab) {
+            $("#tab_info").trigger("click");
+          }
           $scope.repeatChanged(0);
           $scope.showRepeats($scope.masterEvent.parent_event_id);
           $scope.newTitle = $scope.masterEvent.title;
@@ -235,7 +243,9 @@
                 select: fieldNames,
                 where: [["event_id", "=", $scope.masterEvent.id]]
               }).then(function (participants) {
-                $scope.masterEventParticipants = participants;
+                let filteredParticipants = participants.filter((p) => p.id !== $scope.masterEvent['p_res.id'] &&
+                    p.id !== $scope.masterEvent['p_resp.id']);
+                $scope.masterEventParticipants = filteredParticipants;
               }, function (failure) {
                 console.log('Error');
               });
@@ -246,7 +256,7 @@
             console.log('Error');
           });
         }, function (failure) {
-          // handle failure
+          console.log('Error ');
         });
       };
       $scope.deleteRepeatedEvents = function () {

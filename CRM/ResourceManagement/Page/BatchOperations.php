@@ -104,10 +104,8 @@ class CRM_ResourceManagement_Page_BatchOperations extends CRM_Core_Page {
     $eventList = [];
     $responsible = false;
     if ($params->responsible_participant_id) {
-      $responsible = $params->responsible_participant_id;
+      $responsible = CRM_Event_BAO_Participant::findById($params->responsible_participant_id);
     }
-
-
 
     foreach ($params->dates as $date) {
       $newEvent = $event->toArray();

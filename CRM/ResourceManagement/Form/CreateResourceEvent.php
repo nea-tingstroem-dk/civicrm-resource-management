@@ -240,7 +240,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
       $statusses[$dao->id] = $dao->label;
     }
     $this->add('select', 'resource_status', ts('Select Resource Status'),
-      $statusses, FALSE, ['class' => 'crm-select2', 'multiple' => false,
+      $statusses, TRUE, ['class' => 'crm-select2', 'multiple' => false,
       'placeholder' => ts('- select status -')]);
 
     $this->addEntityRef('responsible_contact', ts('Select responsible contact'), NULL, FALSE);
@@ -488,9 +488,9 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
               ->execute();
             foreach ($participantStatusTypes as $participantStatusType) {
               if ($participantStatusType['name'] === 'Pending from pay later') {
-                CRM_Core_Session::setStatus(E::ts('An Invoice will be sent later'), 
-                  E::ts('Saved'), 
-                 'success');
+                CRM_Core_Session::setStatus(E::ts('An Invoice will be sent later'),
+                  E::ts('Saved'),
+                  'success');
               } else {
                 // Pay now
               }
@@ -602,13 +602,13 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
               ->execute();
             foreach ($participantStatusTypes as $participantStatusType) {
               if ($participantStatusType['name'] === 'Pending from pay later') {
-                CRM_Core_Session::setStatus(E::ts('An invoice will be sent later'), 
-                  E::ts('Saved'), 
-                 'success');
+                CRM_Core_Session::setStatus(E::ts('An invoice will be sent later'),
+                  E::ts('Saved'),
+                  'success');
               } else {
                 // Pay now
               }
-            break;
+              break;
             }
           }
         }
@@ -839,10 +839,14 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
           }
         }
       } else {
+        $groupTree = false;
         foreach ($this->_resources as $resId => $res) {
           $tId = $res['template_id'];
-          if (!is_null($tId) && $tId !== '') {
+          if (!is_null($tId) && $tId !== '' && isset($templatePricesets[$tId])) {
             $psId = $templatePricesets[$tId];
+            if (!$psId) {
+              continue;
+            }
             $ps = CRM_Price_BAO_PriceSet::findById($psId);
             $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
             $this->add('static',
@@ -870,8 +874,10 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
               }
             }
           }
-          $elementGroups[] = 'group_' . $tId;
-          $groupTrees[$tId] = $groupTree;
+          if ($groupTree) {
+            $elementGroups[] = 'group_' . $tId;
+            $groupTrees[$tId] = $groupTree;
+          }
         }
       }
     }

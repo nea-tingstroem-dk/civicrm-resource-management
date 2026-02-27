@@ -153,6 +153,7 @@ class CRM_ResourceManagement_Page_AJAX {
         $emailIndex = -1;
         for ($i = 0; $i < count($columnNames); $i++) {
           $colName = trim($columnNames[$i]);
+          $colName = preg_replace('/(M\.\s?Nr\.?)/i', 'konto', $colName);
           switch (strtolower($colName)) {
             case 'konto':
               $externalIndex = $i;

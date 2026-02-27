@@ -29,6 +29,7 @@
         const defaultStartDate = (localStorage.getItem("fcDefaultStartDate") ? localStorage.getItem("fcDefaultStartDate") : moment().format('YYYY-MM-DD'));
         const defaultView = (localStorage.getItem("fcDefaultView") ? localStorage.getItem("fcDefaultView") : 'timeGridWeek');
         var isLoading = true;
+        var refreshColor = null;
         let calendarEl = document.getElementById("calendar");
         let calendar = new FullCalendar.Calendar(calendarEl, {
           initialView: defaultView,
@@ -91,6 +92,13 @@
           ],
           loading: function (is_loading) {
             isLoading = is_loading;
+            if (refreshColor !== null) {
+              if (isLoading) {
+                $('.fc-refresh-button').css("background", "red");
+              } else {
+                $('.fc-refresh-button').css("background", refreshColor);
+              }
+            }
           },
           select: function (info) {
             if (isLoading) {
@@ -169,6 +177,10 @@
           }
         });
         calendar.render();
+        refreshColor = $('.fc-refresh-button').css("background");
+        if (isLoading) {
+          $('.fc-refresh-button').css("background", "red");
+        }
         $("#resource_selector").change(function () {
           let source = calendar.getEventSourceById(eventSourceId);
           source.internalEventSource._raw.extraParams.filter = this.value;
