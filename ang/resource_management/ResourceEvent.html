@@ -62,7 +62,15 @@
                   </thead>
                   <tbody> 
                     <tr ng-repeat="repeat in existingRepeats" >
-                      <td  ng-repeat="(key, value) in existingRepeatsDisplay">{{repeat[key]}}</td>
+                      <td  ng-repeat="(key, value) in existingRepeatsDisplay">
+                        <span ng-if="repeat.id==masterEventId" style="background-color: #F0F8FF">
+                        {{repeat[key]}}
+                        </span>
+                        <span ng-if="repeat.id!=masterEventId">
+                        {{repeat[key]}}
+                        </span>
+                        
+                      </td>
                       <td>
                         <span title="{{ts('Open this')}}">
                           <a class="crm-hover-button" 
@@ -98,7 +106,7 @@
       <div class="tab">
         <button id="tab_info" class="tablinks" ng-click="selectTab($event, 'info')" style="background: none" >{{ts('Event Info')}}</button>
         <button id="tab_participants" class="tablinks" ng-click="selectTab($event, 'participants')" style="background-color: none">{{ts('Participants')}}</button>
-        <button id="tab_addrepeat" class="tablinks" ng-click="selectTab($event, 'addrepeat')" style="background-color: none">{{ts('Add Repeat')}}</button>
+        <button id="tab_addrepeat" class="tablinks" ng-click="selectTab($event, 'add_repeat')" style="background-color: none">{{ts('Add Repeat')}}</button>
         <button id="tab_clone" class="tablinks" ng-click="selectTab($event, 'clone')" style="background-color: none">{{ts('Clone')}}</button>
         <button id="tab_import" class="tablinks" ng-click="selectTab($event, 'import')" style="background-color: none">{{ts('Import Partiticipants')}}</button>
       </div>
@@ -127,6 +135,7 @@
                     class="form-control huge big disabled"
                     id="masterTitle"
                     ng-model="masterEvent.title"
+                    title="Event id: {{masterEvent.id}}"
                     />
                 </td>
               </tr>
@@ -212,7 +221,7 @@
         </div>
       </div>
 
-      <div id="add_repeats_tab" class="ng-hide" ng-hide="showTab != 'addRepeat'">
+      <div id="add_repeats_tab" class="ng-hide" ng-hide="showTab != 'add_repeat'">
         <form name="repeat_event">
           <div class="section crmresource-event-area">
             <div class="label bold">
@@ -538,7 +547,7 @@
               </div>
             </div>
           </div>
-          <table>
+          <table ng-hide="">
             <thead>
               <tr class="columnheader">
                 <th width="25%" >{{ts("Input Column")}}</th>

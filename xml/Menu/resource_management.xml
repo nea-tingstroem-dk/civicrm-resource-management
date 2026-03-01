@@ -58,6 +58,7 @@
     <path>civicrm/resource/eventdetails</path>
     <page_callback>CRM_ResourceManagement_Form_EventDetails</page_callback>
     <title>EventDetails</title>
-    <access_arguments>access CiviCRM;access CiviEvent</access_arguments>
+    <access_callback>1</access_callback>
+    <is_public>true</is_public>
   </item>
 </menu>

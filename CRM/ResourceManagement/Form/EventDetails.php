@@ -36,7 +36,7 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
   public function buildQuickForm(): void {
     $responsibleContact = false;
 
-    $events = \Civi\Api4\Event::get(TRUE)
+    $events = \Civi\Api4\Event::get(FALSE)
       ->addSelect('title', 'start_date', 'end_date', 'event_type_id:label')
       ->addWhere('id', '=', $this->_eventId)
       ->setLimit(25)
@@ -49,7 +49,7 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
       break;
     }
 
-    $participants = \Civi\Api4\Participant::get(TRUE)
+    $participants = \Civi\Api4\Participant::get(FALSE)
       ->addSelect('contact_id.external_identifier', 'contact_id.display_name', 'role_id', 'role_id:label')
       ->addWhere('event_id', '=', $this->_eventId)
       ->setLimit(25)
@@ -72,15 +72,14 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
     $this->add('static', 'host', ts("{$hostRole}"), $host);
     $this->add('static', 'count', ts('Count'), $pCount);
 
-    $buttons = [];
+    $buttons = [[
+      'type' => 'submit',
+      'subName' => 'show-participants',
+      'name' => E::ts('Participants'),
+      'icon' => 'fa-trash',
+    ]];
     if ($this->_isSuperUser) {
       $buttons[] = [
-        'type' => 'submit',
-        'subName' => 'show-participants',
-        'name' => E::ts('Participants'),
-        'icon' => 'fa-trash',
-      ];
-    $buttons[] = [
         'type' => 'submit',
         'subName' => 'reg-participants',
         'name' => E::ts('Register Participants'),
@@ -110,7 +109,6 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
         'name' => E::ts('Register Participants'),
         'icon' => 'fa-check',
       ];
-      
     } else if ($this->_isParticipant) {
       $buttons[] = [
         'type' => 'submit',
@@ -139,9 +137,15 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
     $values = $this->exportValues();
     switch ($action) {
       case 'show-participants':
+        if ($this->_isSuperUser) {
         // https://d11.internal/civicrm/event/search?reset=1&force=1&event=351&status=true
-        CRM_Utils_JSON::output(['openpage' => 'civicrm/search?reset=1&force=1&status=true' .
+        CRM_Utils_JSON::output(['openpage' => 'event/search?reset=1&force=1' .
           "&action=add&eid={$this->_eventId}"]);
+        } else {
+        // https://d11.internal/civicrm/event/participant?reset=1&id=374
+        CRM_Utils_JSON::output(['openpage' => 'event/participant?reset=1' .
+          "&id={$this->_eventId}"]);
+        }
         break;
       case 'reg-participants':
         // https://d11.internal/civicrm/participant/add?reset=1&action=add&context=standalone&eid=351

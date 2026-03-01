@@ -52,8 +52,12 @@ class CRM_ResourceManagement_Page_BatchOperations extends CRM_Core_Page {
    * @return bool
    */
   static function doSaveEvent(CRM_Queue_TaskContext $ctx, $newEvent, $resource, $responsible) {
-    $insertedEvent = CRM_Event_BAO_Event::writeRecord($newEvent);
-    $resource['event_id'] = $insertedEvent->id;
+    $results = civicrm_api4('Event', 'create', [
+      'values' => $newEvent,
+      'checkPermissions' => TRUE,
+    ]);
+    $insEvent = $results[0];
+    $resource['event_id'] = $insEvent['id'];
     $par = [$resource];
     if ($responsible) {
       $responsible['event_id'] = $insertedEvent->id;
@@ -79,14 +83,28 @@ class CRM_ResourceManagement_Page_BatchOperations extends CRM_Core_Page {
 
     $calendarSettings = CRM_ResourceManagement_Page_AJAX::getResourceCalendarSettings($params->calendar_id);
     $resourceRoleId = $calendarSettings['resource_role_id'];
-    $event = CRM_Event_BAO_Event::findById($params->event_id);
-    $duration = date_diff(new DateTimeImmutable($event->start_date), new DateTimeImmutable($event->end_date));
-    if (!$event->parent_event_id || $event->parent_event_id != $event->id) {
-      $event->parent_event_id = $event->id;
-      $event->save();
+    $event = false;
+    $events = \Civi\Api4\Event::get(TRUE)
+      ->addSelect('*', 'custom.*')
+      ->addWhere('id', '=', $params->event_id)
+      ->setLimit(25)
+      ->execute();
+    foreach ($events as $e) {
+      $event = $e;
+      break;
     }
+    if (!$event["parent_event_id"]) {
+      $results = \Civi\Api4\Event::update(TRUE)
+        ->addValue('parent_event_id', $event['id'])
+        ->addWhere('id', '=', $event['id'])
+        ->execute();
+      foreach ($results as $result) {
+        // do something
+      }
+    }
+
     $masterResources = \Civi\Api4\Participant::get(TRUE)
-      ->addWhere('event_id', '=', $event->id)
+      ->addWhere('event_id', '=', $event["id"])
       ->addWhere('role_id', '=', $resourceRoleId)
       ->execute();
     $masterResource = false;
@@ -100,6 +118,7 @@ class CRM_ResourceManagement_Page_BatchOperations extends CRM_Core_Page {
       break;
     }
 
+    $duration = date_diff(new DateTimeImmutable($event["start_date"]), new DateTimeImmutable($event["end_date"]));
     $resource = CRM_Event_BAO_Participant::findById($params->resource_participant_id);
     $eventList = [];
     $responsible = false;
@@ -108,14 +127,14 @@ class CRM_ResourceManagement_Page_BatchOperations extends CRM_Core_Page {
     }
 
     foreach ($params->dates as $date) {
-      $newEvent = $event->toArray();
+      $newEvent = $event;
       unset($newEvent['id']);
       $newEvent['title'] = $params->new_title;
       $start = new DateTimeImmutable($date);
       $newEvent['start_date'] = $start->format("Y-m-d H:i:s");
       $end = $start->add($duration);
       $newEvent['end_date'] = $end->format("Y-m-d H:i:s");
-      $newEvent['parent_event_id'] = $event->parent_event_id;
+      $newEvent['parent_event_id'] = $event["parent_event_id"];
 
       $res = get_object_vars($resource);
       unset($res['id']);
@@ -164,14 +183,23 @@ class CRM_ResourceManagement_Page_BatchOperations extends CRM_Core_Page {
     $new_start_date,
     $resource_id,
     $res_role_id) {
-    $event = CRM_Event_BAO_Event::findById($base_event_id);
+    $event = false;
+    $events = \Civi\Api4\Event::get(TRUE)
+      ->addSelect('*', 'custom.*')
+      ->addWhere('id', '=', $params->event_id)
+      ->setLimit(25)
+      ->execute();
+    foreach ($events as $e) {
+      $event = $e;
+      break;
+    }
 
-    $parentId = $event->id == $event->parent_event_id ? $event->parent_event_id : false;
-    $newEvent = $event->toArray();
+    $parentId = $event["id"] == $event["parent_event_id"] ? $event["parent_event_id"] : false;
+    $newEvent = $event;
     unset($newEvent['id']);
     unset($newEvent['parent_event_id']);
-    $duration = date_diff(new DateTimeImmutable($event->start_date),
-      new DateTimeImmutable($event->end_date));
+    $duration = date_diff(new DateTimeImmutable($event["start_date"]),
+      new DateTimeImmutable($event["end_date"]));
     $newEvent['start_date'] = $new_start_date;
     $newEndDate = (new DateTimeImmutable($new_start_date))->add($duration);
     $newEvent['end_date'] = $newEndDate->format("Y-m-d H:i:s");
@@ -201,7 +229,7 @@ class CRM_ResourceManagement_Page_BatchOperations extends CRM_Core_Page {
         ->execute();
       foreach ($children as $child) {
         $d = new DateTimeImmutable($insEvent->start_date);
-        $off = date_diff(new DateTimeImmutable($event->start_date),
+        $off = date_diff(new DateTimeImmutable($event["start_date"]),
           new DateTimeImmutable($child['start_date']));
         $newStartDate = $d->add($off);
         $ctx->queue->createItem(new CRM_Queue_Task(

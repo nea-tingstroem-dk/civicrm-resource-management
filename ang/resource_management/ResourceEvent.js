@@ -77,19 +77,13 @@
       $scope.repeatedEventsDone = 0;
       // Local variable for this controller (needed when inside a callback fn where `this` is not available).
       var ctrl = this;
-      function hideAllTabs() {
-        for (var tab in $scope.hideTabs) {
-          $scope.hideTabs[tab] = true;
-        }
-      }
-
       $scope.selectTab = function (e, tab) {
         let tablinks = $(".tablinks");
         for (var j = 0; j < tablinks.length; j++) {
-          tablinks[j].style['bacground-color'] = '#000000';
+          tablinks[j].style.backgroundColor = "";
         }
         $scope.showTab = tab;
-        $("#tab_" + tab)[0].style["background-color"] = "#F0F8FF";
+        $("#tab_" + tab)[0].style.backgroundColor = "#F0F8FF";
       };
       $scope.repeatChanged = function (index) {
         var date = moment($scope.masterEvent.start_date);
@@ -170,13 +164,20 @@
             console.log(response);
           });
       };
+      //
+      // Event selected handler
+      //
       $scope.eventSelected = function () {
+        event.preventDefault();
+        $scope.masterEvent = null;
+        $scope.masterEventParticipants = [];
         crmApi4('Event', 'get', {
           select: ["title", "start_date", "end_date",
             "p_res.id", "p_resp.id",
             "resource.id", "resource.display_name",
             "resp.id", "resp.display_name",
-            "parent_event_id"],
+            "parent_event_id",
+            'Listefelter.Feltgrupper'],
           join: [
             ["Participant AS p_res", "LEFT", ["p_res.event_id", "=", "id"], ["p_res.role_id", "=", 5]],
             ["Contact AS resource", "LEFT", ["resource.id", "=", "p_res.contact_id"]],
@@ -193,62 +194,88 @@
           $scope.repeatChanged(0);
           $scope.showRepeats($scope.masterEvent.parent_event_id);
           $scope.newTitle = $scope.masterEvent.title;
-          crmApi4('UFGroup', 'get', {
-            select: [
-              "uf_field.id",
-              "uf_field.field_name",
-              "uf_field.field_name:label",
-              "event.default_role_id",
-              "SUBSTRING(uf_field.field_name, 8) AS custom_id"
-            ],
-            join: [
-              ["Event AS event", "LEFT", "UFJoin"],
-              ["UFField AS uf_field", "LEFT", ["uf_field.uf_group_id", "=", "id"]]],
-            where: [
-              ["event.id", "=", $scope.masterEvent.id],
-              ["uf_field.field_name", "LIKE", "custom_%"]
-            ],
-          }).then(function (uFGroups) {
-            var customIds = [];
-            for (var field of uFGroups) {
-              customIds.push(field['custom_id']);
-              $scope.fieldMap[field['custom_id']] = {
-                name: field['uf_field.field_name'],
-                label: field['uf_field.field_name:label']
-              };
-            }
-            var fieldNames = [
-              "contact_id", "contact_id.external_identifier",
-              "contact_id.display_name"];
-            var fieldLabels = {
-              id: "Id",
-              contact_id: ts("Contact Id"),
-              'contact_id.external_identifier': ts("External Identifier"),
-              'contact_id.display_name': ts("Display Name"),
-            };
-            crmApi4('Participant', 'getFields', {
-              where: [["custom_field_id", "IN", customIds]],
-              select: ["custom_field_id", "name", "title"]
-            }).then(function (fields) {
-              var targets = {};
-              for (var field of fields) {
-                fieldNames.push(field.name);
-                fieldLabels[field.name] = field.title;
-                targets[field.name] = field.title;
+          $scope.fieldMap.clear();
+          var customIds = [];
+          if ($scope.masterEvent['Listefelter.Feltgrupper']) {
+            crmApi4('CustomField', 'get', {
+              select: ["name", "label", "custom_group_id:name", "column_name"],
+              where: [
+                ["custom_group_id", "=", $scope.masterEvent['Listefelter.Feltgrupper']]
+              ],
+            }).then(function (customFields) {
+              for (var field of customFields) {
+                customIds.push(field['id']);
+                $scope.fieldMap[field['id']] = {
+                  name: field['name'],
+                  label: field['label']
+                };
               }
-              targets['role'] = ts("Participant Role");
-              $scope.targetFieldsMap = targets;
-              $scope.masterEventParticipantLabels = fieldLabels;
-              crmApi4('Participant', 'get', {
-                select: fieldNames,
-                where: [["event_id", "=", $scope.masterEvent.id]]
-              }).then(function (participants) {
-                let filteredParticipants = participants.filter((p) => p.id !== $scope.masterEvent['p_res.id'] &&
-                    p.id !== $scope.masterEvent['p_resp.id']);
-                $scope.masterEventParticipants = filteredParticipants;
-              }, function (failure) {
-                console.log('Error');
-              });
+              fillEventDeps(customIds);
+            }, function (failure) {
+              console.log('Error');
+            });
+          } else {
+            fillEventDeps(customIds);
+          }
+        }, function (failure) {
+          console.log('Error');
+        });
+      };
+
+
+      function fillEventDeps(customIds) {
+        crmApi4('UFGroup', 'get', {
+          select: [
+            "uf_field.id",
+            "uf_field.field_name",
+            "uf_field.field_name:label",
+            "event.default_role_id",
+            "SUBSTRING(uf_field.field_name, 8) AS custom_id"
+          ],
+          join: [
+            ["Event AS event", "LEFT", "UFJoin"],
+            ["UFField AS uf_field", "LEFT", ["uf_field.uf_group_id", "=", "id"]]],
+          where: [
+            ["event.id", "=", $scope.masterEvent.id],
+            ["uf_field.field_name", "LIKE", "custom_%"]
+          ],
+        }).then(function (uFGroups) {
+          for (var field of uFGroups) {
+            customIds.push(field['custom_id']);
+            $scope.fieldMap[field['custom_id']] = {
+              name: field['uf_field.field_name'],
+              label: field['uf_field.field_name:label']
+            };
+          }
+          var fieldNames = [
+            "contact_id", "contact_id.external_identifier",
+            "contact_id.display_name"];
+          var fieldLabels = {
+            id: "Id",
+            contact_id: ts("Contact Id"),
+            'contact_id.external_identifier': ts("External Identifier"),
+            'contact_id.display_name': ts("Display Name"),
+          };
+          crmApi4('Participant', 'getFields', {
+            where: [["custom_field_id", "IN", customIds]],
+            select: ["custom_field_id", "name", "title"]
+          }).then(function (fields) {
+            var targets = {};
+            for (var field of fields) {
+              fieldNames.push(field.name);
+              fieldLabels[field.name] = field.title;
+              targets[field.name] = field.title;
+            }
+            targets['role'] = ts("Participant Role");
+            $scope.targetFieldsMap = targets;
+            $scope.masterEventParticipantLabels = fieldLabels;
+            crmApi4('Participant', 'get', {
+              select: fieldNames,
+              where: [["event_id", "=", $scope.masterEvent.id]]
+            }).then(function (participants) {
+              let filteredParticipants = participants.filter((p) => p.id !== $scope.masterEvent['p_res.id'] &&
+                  p.id !== $scope.masterEvent['p_resp.id']);
+              $scope.masterEventParticipants = filteredParticipants;
             }, function (failure) {
               console.log('Error');
             });
@@ -258,7 +285,10 @@
         }, function (failure) {
           console.log('Error ');
         });
-      };
+      }
+      //
+      //
+      //
       $scope.deleteRepeatedEvents = function () {
         event.preventDefault();
         const title = ts('Delete All');
@@ -486,7 +516,6 @@
             params: JSON.stringify(params)}));
         });
       };
-
       $scope.repeats[0] = {
         rep_freq: "1",
         rep_every: 'week',

@@ -97,7 +97,6 @@ class CRM_ResourceManagement_Page_AJAX {
         $pRequest = \Civi\Api4\Participant::get(TRUE)
           ->addSelect('contact_id')
           ->addSelect('event_id')
-          ->addSelect('contact_id')
           ->addSelect('register_date')
           ->addWhere('event_id', '=', $params->event_id);
         foreach ($params->mappings as $m) {
@@ -125,7 +124,9 @@ class CRM_ResourceManagement_Page_AJAX {
           }
           $c = (array) $contact;
           foreach ($params->mappings as $m) {
-            if ("{$c[$m->input_field]}" !== "{$participant[$m->target]}") {
+            if (isset($c[$m->input_field])&&
+              isset($participant[$m->target]) &&
+              "{$c[$m->input_field]}" !== "{$participant[$m->target]}") {
               $participant[$m->target] = $c[$m->input_field];
               $changed = true;
             }
@@ -239,13 +240,28 @@ class CRM_ResourceManagement_Page_AJAX {
          */
         $calendarSettings = self::getResourceCalendarSettings($params->calendar_id);
         $resourceRoleId = $calendarSettings['resource_role_id'];
-        $event = CRM_Event_BAO_Event::findById($params->event_id);
-        if (!$event->parent_event_id || $event->parent_event_id != $event->id) {
-          $event->parent_event_id = $event->id;
-          $event->save();
+        $event = false;
+        $events = \Civi\Api4\Event::get(TRUE)
+          ->addSelect('*', 'custom.*')
+          ->addWhere('id', '=', $params->event_id)
+          ->setLimit(25)
+          ->execute();
+        foreach ($events as $e) {
+          $event = $e;
+          break;
         }
+        if (!$event["parent_event_id"]) {
+          $results = \Civi\Api4\Event::update(TRUE)
+            ->addValue('parent_event_id', $event['id'])
+            ->addWhere('id', '=', $event['id'])
+            ->execute();
+          foreach ($results as $result) {
+            // do something
+          }
+        }
+
         $masterResources = \Civi\Api4\Participant::get(TRUE)
-          ->addWhere('event_id', '=', $event->id)
+          ->addWhere('event_id', '=', $event["id"])
           ->addWhere('role_id', '=', $resourceRoleId)
           ->execute();
         $masterResource = false;
@@ -258,7 +274,7 @@ class CRM_ResourceManagement_Page_AJAX {
           break;
         }
 
-        $duration = date_diff(new DateTimeImmutable($event->start_date), new DateTimeImmutable($event->end_date));
+        $duration = date_diff(new DateTimeImmutable($event["start_date"]), new DateTimeImmutable($event["end_date"]));
         $resource = CRM_Event_BAO_Participant::findById($params->resource_participant_id);
         $eventList = [];
         $responsible = false;
@@ -270,14 +286,14 @@ class CRM_ResourceManagement_Page_AJAX {
         $copyEvent = CRM_Event_BAO_Event::findById($params->event_id);
         foreach ($params->dates as $date) {
           $i++;
-          $newEvent = $event->toArray();
+          $newEvent = $event;
           unset($newEvent['id']);
           $newEvent['title'] = $params->new_title;
           $start = new DateTimeImmutable($date);
           $newEvent['start_date'] = $start->format("Y-m-d H:i:s");
           $end = $start->add($duration);
           $newEvent['end_date'] = $end->format("Y-m-d H:i:s");
-          $newEvent['parent_event_id'] = $event->parent_event_id;
+          $newEvent['parent_event_id'] = $event["parent_event_id"];
           $newEvents[] = $newEvent;
         }
         $insertedEvents = CRM_Event_BAO_Event::writeRecords($newEvents);

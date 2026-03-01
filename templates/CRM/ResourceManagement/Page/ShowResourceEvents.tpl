@@ -167,7 +167,10 @@
             )
               .on('crmFormSuccess', function (event, data) {
                 if (data.openpage) {
-                  window.open(data.openpage, "_blank");
+                  if (!data.mode) {
+                    window.open(data.openpage, "_blank");
+                  } else {
+                  }
                 }
                 calendar.refetchEvents();
               })
