@@ -15,6 +15,7 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
   private $_calendar_id = 0;
   private $_calendar_settings = [];
   private $_deleting = FALSE;
+  private $action = '';
 
   public function preProcess() {
     $this->_calendar_id = CRM_Utils_Request::retrieve('id', 'Integer') ??

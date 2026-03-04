@@ -62,7 +62,7 @@
                   </thead>
                   <tbody> 
                     <tr ng-repeat="repeat in existingRepeats" >
-                      <td  ng-repeat="(key, value) in existingRepeatsDisplay">
+                      <td  ng-repeat="(key, value) in existingRepeatsDisplay" title="Event id: {{repeat.id}}">
                         <span ng-if="repeat.id==masterEventId" style="background-color: #F0F8FF">
                         {{repeat[key]}}
                         </span>

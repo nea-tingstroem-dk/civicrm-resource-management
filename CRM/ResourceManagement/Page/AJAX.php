@@ -124,8 +124,8 @@ class CRM_ResourceManagement_Page_AJAX {
           }
           $c = (array) $contact;
           foreach ($params->mappings as $m) {
-            if (isset($c[$m->input_field])&&
-              isset($participant[$m->target]) &&
+            if (!is_null($m) &&
+              isset($c[$m->input_field])&&
               "{$c[$m->input_field]}" !== "{$participant[$m->target]}") {
               $participant[$m->target] = $c[$m->input_field];
               $changed = true;
