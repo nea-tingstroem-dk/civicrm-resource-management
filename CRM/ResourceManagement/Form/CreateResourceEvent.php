@@ -290,23 +290,6 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
     ];
     $buttons[] = [
       'type' => 'submit',
-      'subName' => 'delete',
-      'name' => E::ts('Delete'),
-      'icon' => 'fa-trash',
-    ];
-    $buttons[] = [
-      'type' => 'submit',
-      'subName' => 'edit_event',
-      'name' => E::ts('Edit Event'),
-      'icon' => 'fa-pencil',
-    ];
-    $buttons[] = [
-      'type' => 'submit',
-      'subName' => $this->_eventId ? 'expand' : 'advanced',
-      'name' => E::ts('Advanced'),
-    ];
-    $buttons[] = [
-      'type' => 'submit',
       'subName' => 'cancel',
       'name' => E::ts('Cancel'),
       'isDefault' => TRUE,

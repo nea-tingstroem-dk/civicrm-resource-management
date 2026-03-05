@@ -93,7 +93,8 @@ class CRM_ResourceManagement_Page_BatchOperations extends CRM_Core_Page {
       $event = $e;
       break;
     }
-    if (!isset($event["parent_event_id"]) || !$event["parent_event_id"]) {
+    if (!isset($event['parent_event_id'])) {
+      $event['parent_event_id'] = $event['id']; 
       $results = \Civi\Api4\Event::update(TRUE)
         ->addValue('parent_event_id', $event['id'])
         ->addWhere('id', '=', $event['id'])
