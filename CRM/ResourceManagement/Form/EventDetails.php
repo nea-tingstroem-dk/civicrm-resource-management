@@ -139,23 +139,23 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
       case 'show-participants':
         if ($this->_isSuperUser) {
         // https://d11.internal/civicrm/event/search?reset=1&force=1&event=351&status=true
-        CRM_Utils_JSON::output(['openpage' => 'event/search?reset=1&force=1' .
+        CRM_Utils_JSON::output(['openpage' => '/civicrm/event/search?reset=1&force=1' .
           "&action=add&eid={$this->_eventId}"]);
         } else {
         // https://d11.internal/civicrm/event/participant?reset=1&id=374
-        CRM_Utils_JSON::output(['openpage' => 'event/participant?reset=1' .
+        CRM_Utils_JSON::output(['openpage' => '/civicrm/event/participant?reset=1' .
           "&id={$this->_eventId}"]);
         }
         break;
       case 'reg-participants':
         // https://d11.internal/civicrm/participant/add?reset=1&action=add&context=standalone&eid=351
-        CRM_Utils_JSON::output(['openpage' => 'civicrm//participant/add?reset=1&action=add&context=standalone' .
+        CRM_Utils_JSON::output(['openpage' => '/civicrm/participant/add?reset=1&action=add&context=standalone' .
           "&eid={$this->_eventId}"]);
         break;
       case 'edit-event':
         // https://d11.internal/civicrm/event/manage/settings?reset=1&action=update&id=351&selectedChild=settings
-        CRM_Utils_JSON::output(['openpage' => 'civicrm/event/manage/settings?' .
-          "?reset=1&action=update&id={$this->_eventId}&selectedChild=settings"]);
+        CRM_Utils_JSON::output(['openpage' => '/civicrm/event/manage/settings?reset=1&action=update' .
+          "&id={$this->_eventId}&selectedChild=settings"]);
         break;
       case 'delete-event':
         $event = CRM_Event_BAO_Event::findById($this->_eventId);
@@ -167,7 +167,7 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
         }
         break;
       case 'advanced':
-        CRM_Utils_JSON::output(['openpage' => "civicrm/a/#/resource/manage-event?" .
+        CRM_Utils_JSON::output(['openpage' => "/civicrm/a/#/resource/manage-event?" .
           "event_id={$this->_eventId}&calendar_id={$this->_calendarId}"]);
         break;
     }

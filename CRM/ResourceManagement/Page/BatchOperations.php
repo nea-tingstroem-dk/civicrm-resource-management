@@ -60,7 +60,7 @@ class CRM_ResourceManagement_Page_BatchOperations extends CRM_Core_Page {
     $resource['event_id'] = $insEvent['id'];
     $par = [$resource];
     if ($responsible) {
-      $responsible['event_id'] = $insertedEvent->id;
+      $responsible['event_id'] = $insEvent['id'];
       $par[] = $responsible;
     }
     $pRes = CRM_Event_BAO_Participant::writeRecords($par);
@@ -93,7 +93,7 @@ class CRM_ResourceManagement_Page_BatchOperations extends CRM_Core_Page {
       $event = $e;
       break;
     }
-    if (!$event["parent_event_id"]) {
+    if (!isset($event["parent_event_id"]) || !$event["parent_event_id"]) {
       $results = \Civi\Api4\Event::update(TRUE)
         ->addValue('parent_event_id', $event['id'])
         ->addWhere('id', '=', $event['id'])
