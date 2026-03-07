@@ -109,6 +109,7 @@ class CRM_ResourceManagement_Page_AJAX {
         foreach ($participants as $newResources) {
           $existingParticipants[$newResources['contact_id']] = $newResources;
         }
+        $newParticipants = [];
         foreach ($params->contacts as $contact) {
           $changed = false;
           $participant = [];
@@ -125,7 +126,7 @@ class CRM_ResourceManagement_Page_AJAX {
           $c = (array) $contact;
           foreach ($params->mappings as $m) {
             if (!is_null($m) &&
-              isset($c[$m->input_field])&&
+              isset($c[$m->input_field]) &&
               "{$c[$m->input_field]}" !== "{$participant[$m->target]}") {
               $participant[$m->target] = $c[$m->input_field];
               $changed = true;
@@ -133,17 +134,15 @@ class CRM_ResourceManagement_Page_AJAX {
           }
 
           if ($changed) {
-            if (isset($participant['id'])) {
-              $op = 'update';
-            } else {
-              $op = 'create';
-            }
-            $res = civicrm_api4('Participant', $op, [
-              'values' => $participant,
-              'checkPermissions' => TRUE,
-            ]);
-            $result[] = $res;
+              $newParticipants[] = $participant;
           }
+        }
+        if (count($newParticipants) > 0) {
+          $res = civicrm_api4('Participant', 'save', [
+            'records' => $newParticipants,
+            'checkPermissions' => TRUE,
+          ]);
+          $result[] = $res;
         }
 
         break;

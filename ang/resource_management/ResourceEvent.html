@@ -1,5 +1,5 @@
 <div class="crm-container">
-  <!--  <div crm-ui-debug="$ctrl.myContact"></div>-->
+  <div crm-ui-debug="$ctrl.myContact"></div>
 
   <h1 crm-page-title>{{ts('Advanced Event Management')}}</h1>
 
@@ -33,7 +33,7 @@
                         name="eventId"
                         ng-model="masterEventId"
                         ng-required="false"
-                        ng-change="eventSelected()"
+                        ng-change="masterEventSelected()"
                         />
                     </td>
                   </tr>  
@@ -63,10 +63,10 @@
                   <tbody> 
                     <tr ng-repeat="repeat in existingRepeats" >
                       <td  ng-repeat="(key, value) in existingRepeatsDisplay" title="Event id: {{repeat.id}}">
-                        <span ng-if="repeat.id==masterEventId" style="background-color: #F0F8FF">
+                        <span ng-if="repeat.id==selectedEventId" style="background-color: #F0F8FF">
                         {{repeat[key]}}
                         </span>
-                        <span ng-if="repeat.id!=masterEventId">
+                        <span ng-if="repeat.id!=selectedEventId">
                         {{repeat[key]}}
                         </span>
                         
@@ -74,7 +74,7 @@
                       <td>
                         <span title="{{ts('Open this')}}">
                           <a class="crm-hover-button" 
-                             ng-click="changeMasterEvent(repeat.id)"
+                             ng-click="changeSelectedEvent(repeat.id)"
                              style="visibility: visible;">
                             <i class="crm-i fa-folder-open-o" aria-hidden="true">
                             </i>
@@ -134,8 +134,8 @@
                     type="text" 
                     class="form-control huge big disabled"
                     id="masterTitle"
-                    ng-model="masterEvent.title"
-                    title="Event id: {{masterEvent.id}}"
+                    ng-model="selectedEvent.title"
+                    title="Event id: {{selectedEvent.id}}"
                     />
                 </td>
               </tr>
@@ -148,7 +148,7 @@
                     type="text" 
                     class="form-control huge big disabled"
                     id="masterStart"
-                    ng-model="masterEvent.start_date"
+                    ng-model="selectedEvent.start_date"
                     />
                 </td>
               </tr>
@@ -161,7 +161,7 @@
                     type="text"
                     class="form-control huge big disabled"
                     id="masterEnd"
-                    ng-model="masterEvent.end_date"
+                    ng-model="selectedEvent.end_date"
                     />
                 </td>
               </tr>
@@ -174,7 +174,7 @@
                     type="text"
                     class="form-control huge big disabled"
                     id="masterEnd"
-                    ng-model="masterEvent['resource.display_name']"
+                    ng-model="selectedEvent['resource.display_name']"
                     />
                 </td>
               </tr>
@@ -187,7 +187,7 @@
                     type="text"
                     class="form-control huge big disabled"
                     id="masterEnd"
-                    ng-model="masterEvent['resp.display_name']"
+                    ng-model="selectedEvent['resp.display_name']"
                     />
                 </td>
               </tr>
@@ -206,12 +206,12 @@
           <table>
             <thead>
               <tr>
-                <th ng-repeat="(key, value) in masterEventParticipantLabels">{{value}}</th>
+                <th ng-repeat="(key, value) in selectedEventParticipantLabels">{{value}}</th>
               </tr>
             </thead>
             <tbody> 
-              <tr ng-repeat="repeat in masterEventParticipants" >
-                <td  ng-repeat="(key, value) in masterEventParticipantLabels">{{repeat[key]}}</td>
+              <tr ng-repeat="repeat in selectedEventParticipants" >
+                <td  ng-repeat="(key, value) in selectedEventParticipantLabels">{{repeat[key]}}</td>
                 <td>
 
                 </td>
@@ -237,7 +237,7 @@
                     type="text" 
                     class="form-control huge big disabled"
                     id="repetition_start_date"
-                    ng-model="masterEvent.start_date"
+                    ng-model="selectedEvent.start_date"
                     />
                 </td>
               </tr>
