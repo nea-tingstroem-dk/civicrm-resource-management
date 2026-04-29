@@ -35,13 +35,9 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
   public function preProcess() {
     $buttonName = $this->controller->getButtonName();
     $action = substr($buttonName, strrpos($buttonName, '_') + 1);
-    if ($action === 'delete') {
+    if ($action === 'delete' || $action === 'return') {
       $this->_suppressValidate = true;
-    } else if ($action === 'cancel') {
-      $session = CRM_Core_Session::singleton();
-      $session->pushUserContext(CRM_Utils_System::url(CRM_Utils_Request::retrieve('ret_url', 'String'), 'reset=1', true));
-      CRM_Utils_System::civiExit();
-    }
+    } 
     $this->add('hidden', 'ret_url', CRM_Utils_Request::retrieve('ret_url', 'String'));
     parent::preProcess();
     $this->_currentUser = (int) CRM_Core_Session::singleton()->getLoggedInContactID();
@@ -290,7 +286,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
     ];
     $buttons[] = [
       'type' => 'submit',
-      'subName' => 'cancel',
+      'subName' => 'return',
       'name' => E::ts('Cancel'),
       'isDefault' => TRUE,
     ];
@@ -350,7 +346,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
       ],
       [
         'type' => 'submit',
-        'subName' => 'cancel',
+        'subName' => 'return',
         'name' => E::ts('Cancel'),
         'isDefault' => TRUE,
       ]
@@ -362,13 +358,13 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
   }
 
   public function postProcess() {
-    $buttonName = $this->controller->getButtonName();
-    $action = substr($buttonName, strrpos($buttonName, '_') + 1);
-    if ($action === 'cancel') {
-      return;
-    }
     $session = CRM_Core_Session::singleton();
     $session->pushUserContext(CRM_Utils_System::url(CRM_Utils_Request::retrieve('ret_url', 'String'), 'reset=1', true));
+    $buttonName = $this->controller->getButtonName();
+    $action = substr($buttonName, strrpos($buttonName, '_') + 1);
+    if ($action === 'return') {
+      return;
+    }
 
     if (substr_compare($buttonName, 'delete', -6) === 0) {
       if ($this->_eventId) {

@@ -32,7 +32,7 @@
     <path>civicrm/book-resource</path>
     <page_callback>CRM_ResourceManagement_Form_CreateResourceEvent</page_callback>
     <title>CreateResourceEvent</title>
-    <access_arguments>book own event;administer CiviCRM</access_arguments>
+    <access_arguments>register for events;administer CiviCRM</access_arguments>
   </item>
   <item>
     <path>civicrm/admin/resource-management</path>
