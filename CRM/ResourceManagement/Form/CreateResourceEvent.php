@@ -37,7 +37,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
     $action = substr($buttonName, strrpos($buttonName, '_') + 1);
     if ($action === 'delete' || $action === 'return') {
       $this->_suppressValidate = true;
-    } 
+    }
     $this->add('hidden', 'ret_url', CRM_Utils_Request::retrieve('ret_url', 'String'));
     parent::preProcess();
     $this->_currentUser = (int) CRM_Core_Session::singleton()->getLoggedInContactID();
@@ -128,23 +128,21 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
     $duration = ($this->_end_time - $this->_start_time) / (60 * 60 * 24);
     $this->add('hidden', 'duration', $duration);
     $this->controller->_destination = CRM_Utils_System::url('civicrm/showresourceevents',
-        ['id' => $this->_calendar_id]);
+      ['id' => $this->_calendar_id]);
     $this->add('hidden', 'start_time', $startTime);
     if ($this->_start_time <= time()) {
       if ($this->_eventId) {
         $this->assign('error_message', E::ts('You cannot change event that has started'));
-      } else {
-        $this->assign('error_message', E::ts('You can only reserve future events'));
+        $this->addButtons([
+          [
+            'type' => 'cancel',
+            'name' => E::ts('Cancel'),
+            'class' => 'return',
+          ]
+        ]);
+        parent::buildQuickForm();
+        return;
       }
-      $this->addButtons([
-        [
-          'type' => 'cancel',
-          'name' => E::ts('Cancel'),
-          'class' => 'return',
-        ]
-      ]);
-      parent::buildQuickForm();
-      return;
     }
     $this->_resources = $this->getResources($this->_calendar_id);
     $resource_options = [];
@@ -220,12 +218,16 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
         ->column('template_title');
 
       if (isset($this->_calendarSettings['common_template']) &&
-        $this->_calendarSettings['common_template'] &&
-        count($eventTemplates) > 1) {
-        $this->add('select',
-          'event_template',
-          ts('Select Event Type'),
-          ['' => ts('- select -')] + $this->_selectTemplates, FALSE, ['class' => 'crm-select2 huge']);
+        $this->_calendarSettings['common_template']) {
+        if (count($eventTemplates) > 1) {
+          $this->add('select',
+            'event_template',
+            ts('Select Event Type'),
+            ['' => ts('- select -')] + $eventTemplates, FALSE, ['class' => 'crm-select2 huge']);
+        } else if (count($eventTemplates) == 1) {
+          $this->add('static', 'template_info', ts('Event type'), array_first($eventTemplates));
+          $this->add('hidden', 'event_template', array_key_first($eventTemplates));
+        }
       }
     }
     $sql = "SELECT `id`,`name`,`label`
@@ -305,12 +307,15 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
         ->indexBy('id')
         ->column('template_title');
       if (isset($this->_calendarSettings['common_template']) &&
-        $this->_calendarSettings['common_template'] &&
-        count($eventTemplates) > 1) {
-        $this->add('select',
-          'event_template',
-          ts('Select Event Type'),
-          ['' => ts('- select -')] + $eventTemplates, FALSE, ['class' => 'crm-select2 huge']);
+        $this->_calendarSettings['common_template']) {
+        if (count($eventTemplates) > 1) {
+          $this->add('select',
+            'event_template',
+            ts('Select Event Type'),
+            ['' => ts('- select -')] + $eventTemplates, FALSE, ['class' => 'crm-select2 huge']);
+        } else if (count($eventTemplates) == 1) {
+          $this->add('hidden', 'event_template', array_key_first($eventTemplates));
+        }
       }
     }
 
@@ -643,7 +648,9 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
       if (!$this->_min_start || $this->_min_start < $min_time) {
         $this->_min_start = $min_time;
       }
-      $template_id = $this->_calendarSettings['event_template_' . $dao->contact_id] ?? NULL;
+      $template_id = $this->_calendarSettings['common_template'] ?
+        array_first($this->_calendarSettings['event_template']) ?? NULL :
+        $this->_calendarSettings['event_template_' . $dao->contact_id] ?? NULL;
       $title = "";
       if (!empty($template_id)) {
         $template = CRM_Event_BAO_Event::findById($template_id);
@@ -863,5 +870,4 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
     $this->assign('elementNames', $baseElements);
     return $groupTrees;
   }
-
 }
