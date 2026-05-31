@@ -88,9 +88,19 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
       if (!$start) {
         $start = CRM_Utils_Request::retrieve('start_date', 'String');
       }
+      if (!$start) {
+        $at = CRM_Utils_Request::retrieve('at', 'String');
+        if ($at) {
+          $start = date("Y-m-d H:i:s", strtotime("+ {$at} hours", strtotime(date("Y-m-d"))));
+        }
+      }
       $end = CRM_Utils_Request::retrieve('end', 'String');
       if (!$end) {
         $end = CRM_Utils_Request::retrieve('end_date', 'String');
+      }
+      if (!$end) {
+        $dur = CRM_Utils_Request::retrieve('dur', 'String');
+        $end = date("Y-m-d H:i:s", strtotime("+ {$dur} hours", strtotime($start)));
       }
       if ($allDay) {
         $this->_all_day = true;
@@ -225,7 +235,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
             ts('Select Event Type'),
             ['' => ts('- select -')] + $eventTemplates, FALSE, ['class' => 'crm-select2 huge']);
         } else if (count($eventTemplates) == 1) {
-          $this->add('static', 'template_info', ts('Event type'), array_first($eventTemplates));
+          $this->add('static', 'template_info', ts('Event type'), $eventTemplates[array_key_first($eventTemplates)]);
           $this->add('hidden', 'event_template', array_key_first($eventTemplates));
         }
       }
@@ -586,7 +596,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
               ->execute();
             foreach ($participantStatusTypes as $participantStatusType) {
               if ($participantStatusType['name'] === 'Pending from pay later') {
-                CRM_Core_Session::setStatus(E::ts('An invoice will be sent later'),
+                CRM_Core_Session::setStatus(E::ts('An invoice will be sent soon'),
                   E::ts('Saved'),
                   'success');
               } else {
@@ -648,9 +658,15 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
       if (!$this->_min_start || $this->_min_start < $min_time) {
         $this->_min_start = $min_time;
       }
-      $template_id = $this->_calendarSettings['common_template'] ?
-        array_first($this->_calendarSettings['event_template']) ?? NULL :
-        $this->_calendarSettings['event_template_' . $dao->contact_id] ?? NULL;
+      if ($this->_calendarSettings['common_template']) {
+        if (is_array($this->_calendarSettings['event_template'])) {
+          $template_id = $this->_calendarSettings['event_template'][$eventTemplates[array_key_first($this->_calendarSettings['event_template'])]];
+        } else {
+          $template_id = $this->_calendarSettings['event_template'];
+        }
+      } else {
+        $template_id = $this->_calendarSettings['event_template_' . $dao->contact_id] ?? NULL;
+      }
       $title = "";
       if (!empty($template_id)) {
         $template = CRM_Event_BAO_Event::findById($template_id);

@@ -176,7 +176,7 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
             TRUE,
             [
               'class' => 'crm-select2 user-template',
-              'multiple' => true,
+              'multiple' => count($availableTemplates) > 1,
               'placeholder' => ts('- select template(s) -')
           ]);
           $elementGroups["cs_event_template"] = 'none';
@@ -333,13 +333,19 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
           $elementGroups["eventcolorid_{$id}"] = 'none';
         }
       }
-      $this->addButtons(array(
-        array(
-          'type' => 'submit',
-          'name' => ts('Submit'),
-          'isDefault' => TRUE,
-        ),
-      ));
+      $this->addButtons(
+        [
+          ['type' => 'submit',
+            'name' => ts('Submit'),
+            'subName' => 'stay',
+            'isDefault' => TRUE,
+          ],
+          ['type' => 'submit',
+            'name' => ts('Submit & Exit'),
+            'subName' => 'exit',
+            'isDefault' => TRUE,
+          ],
+      ]);
     }
 
     // export form element
@@ -459,7 +465,10 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
 
       CRM_Core_Session::setStatus(ts('The Calendar has been saved.'), ts('Saved'), 'success');
     }
-    if ((int) $this->action == CRM_Core_Action::ADD) {
+    $buttonName = $this->controller->getButtonName();
+    $subName = substr($buttonName, strrpos($buttonName, '_') + 1);
+
+    if ($subName != 'exit') {
       CRM_Utils_System::redirect(CRM_Utils_System::url('civicrm/resource-calendarsettings', "action=update&id={$this->_calendar_id}"));
     }
     parent::postProcess();
@@ -491,7 +500,7 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
    * cs_see CRM_Core_Form::setDefaultValues()
    */
   public function setDefaultValues() {
-    if ($this->_calendar_id && ( (int) $this->action != CRM_Core_Action::DELETE)) {
+    if ($this->_calendar_id && ((int) $this->action != CRM_Core_Action::DELETE)) {
       $existing = array();
       $sql = "SELECT * FROM civicrm_resource_calendar WHERE id = {$this->_calendar_id} LIMIT 1;";
       $dao = CRM_Core_DAO::executeQuery($sql);
@@ -549,7 +558,7 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
   public function addPriceSetGroup($tId, &$descriptions, &$elementGroups) {
     $psId = CRM_Price_BAO_PriceSet::getFor('civicrm_event', $tId);
     if (!$psId) {
-       return;
+      return;
     }
     $ps = CRM_Price_BAO_PriceSet::findById($psId);
     $groupTree = CRM_Price_BAO_PriceSet::getSetDetail($psId);
@@ -575,5 +584,4 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
       }
     }
   }
-
 }
