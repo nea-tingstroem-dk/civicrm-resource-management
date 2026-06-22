@@ -7,7 +7,7 @@ use CRM_ResourceManagement_ExtensionUtil as E;
 class CRM_ResourceManagement_Page_BatchOperations extends CRM_Core_Page {
 
   function run() {
-    $queueName = E::QUEUE_NAME . time();
+    $queueName = E::SHORT_NAME . time();
     $getContactId = (int) CRM_Core_Session::singleton()->getLoggedInContactID();
     $superUser = CRM_Core_Permission::check('edit all events', $getContactId);
     if (!$superUser) {
