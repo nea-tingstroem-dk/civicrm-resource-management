@@ -405,10 +405,6 @@ class CRM_ResourceManagement_Page_AJAX {
       $eventData['allDay'] = false;
       $eventData['title'] .= "<br >{$event['res.display_name']}" .
         "<br >{$event['host.external_identifier']} {$event['host.display_name']}";
-      if ($superUser) {
-        $eventData['title'] .= "<br >{$event['ph.status_id:label']}";
-      }
-
       $events[] = $eventData;
     }
     CRM_Utils_JSON::output($events);
