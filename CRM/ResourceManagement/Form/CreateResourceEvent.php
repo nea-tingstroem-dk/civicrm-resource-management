@@ -83,7 +83,8 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
       $this->_end_time = strtotime($this->_event['end_date']);
     } else {
       $this->_filter = CRM_Utils_Request::retrieve('filter', 'Integer');
-      $allDay = CRM_Utils_Request::retrieve('allday', 'Integer');
+      $allDayVal = CRM_Utils_Request::retrieve('allday', 'String');
+      $allDay = $allDayVal === 'true';
       $start = CRM_Utils_Request::retrieve('start', 'String');
       if (!$start) {
         $start = CRM_Utils_Request::retrieve('start_date', 'String');
