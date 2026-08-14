@@ -397,8 +397,6 @@ class CRM_ResourceManagement_Page_AJAX {
 
       if (isset($settings['status_colors'][$event['pr.status_id']])) {
         $color = $settings['status_colors'][$event['pr.status_id']];
-      }
-      if (isset($eventData['backgroundColor'])) {
         $eventData['backgroundColor'] = "#{$color}";
         $eventData['textColor'] = self::_getContrastTextColor($eventData['backgroundColor']);
       }
