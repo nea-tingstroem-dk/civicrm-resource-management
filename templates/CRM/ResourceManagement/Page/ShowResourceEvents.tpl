@@ -70,7 +70,7 @@
                     }
                 },
                 fixedWeekCount: false,
-                height: 600,
+                contentHeight: 600,
                 aspectRation: 1.8,
                 locale: 'da',
                 selectable: true,

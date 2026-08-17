@@ -228,17 +228,14 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
         ->indexBy('id')
         ->column('template_title');
 
-      if (isset($this->_calendarSettings['common_template']) &&
-        $this->_calendarSettings['common_template']) {
-        if (count($eventTemplates) > 1) {
-          $this->add('select',
-            'event_template',
-            ts('Select Event Type'),
-            ['' => ts('- select -')] + $eventTemplates, FALSE, ['class' => 'crm-select2 huge']);
-        } else if (count($eventTemplates) == 1) {
-          $this->add('static', 'template_info', ts('Event type'), $eventTemplates[array_key_first($eventTemplates)]);
-          $this->add('hidden', 'event_template', array_key_first($eventTemplates));
-        }
+      if (count($eventTemplates) > 1) {
+        $this->add('select',
+          'event_template',
+          ts('Select Event Type'),
+          ['' => ts('- select -')] + $eventTemplates, FALSE, ['class' => 'crm-select2 huge']);
+      } else if (count($eventTemplates) == 1) {
+        $this->add('static', 'template_info', ts('Event type'), $eventTemplates[array_key_first($eventTemplates)]);
+        $this->add('hidden', 'event_template', array_key_first($eventTemplates));
       }
     }
     $sql = "SELECT `id`,`name`,`label`

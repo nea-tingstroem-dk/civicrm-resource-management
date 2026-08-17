@@ -17,6 +17,7 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
   private $_isParticipant = false;
   private $_isResponsible = false;
   private $_isSuperUser = false;
+  private $_resStatusId = 0;
 
   public function preProcess() {
     $buttonName = $this->controller->getButtonName();
@@ -50,7 +51,7 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
     }
 
     $participants = \Civi\Api4\Participant::get(FALSE)
-      ->addSelect('contact_id.external_identifier', 'contact_id.display_name', 'role_id', 'role_id:label')
+      ->addSelect('contact_id.external_identifier', 'contact_id.display_name', 'role_id', 'role_id:label', 'status_id')
       ->addWhere('event_id', '=', $this->_eventId)
       ->setLimit(25)
       ->execute();
@@ -61,6 +62,8 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
     foreach ($participants as $participant) {
       if (in_array($this->_calendarSettings['resource_role_id'], $participant['role_id'])) {
         $resource = $participant['contact_id.display_name'];
+        $this->_resStatusId = $participant['status_id'];
+        $this->add('hidden', 'resource_id', $participant['id']);
       } else if (in_array($this->_calendarSettings['host_role_id'], $participant['role_id'])) {
         $host = $participant['contact_id.external_identifier'] . ' - ' . $participant['contact_id.display_name'];
         $hostRole = $participant['role_id:label'][0];
@@ -68,6 +71,19 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
         $pCount++;
       }
     }
+
+    if ($this->_isSuperUser) {
+      $this->add('select',
+        'resource_status', ts("Select status"),
+        $this->_calendarSettings['status_labels'],
+        FALSE,
+        [
+          'class' => 'crm-select2',
+          'multiple' => FALSE,
+          'placeholder' => ts('- select status -')
+      ]);
+    }
+
     $this->add('static', 'resource', ts('Resource'), $resource);
     $this->add('static', 'host', ts("{$hostRole}"), $host);
     $this->add('static', 'count', ts('Count'), $pCount);
@@ -121,7 +137,7 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
     $buttons[] = [
       'type' => 'submit',
       'subName' => 'cancellation',
-      'name' => E::ts('Cancel'),
+      'name' => E::ts('Exit'),
       'icon' => 'fa-times',
     ];
 
@@ -138,13 +154,13 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
     switch ($action) {
       case 'show-participants':
         if ($this->_isSuperUser) {
-        // https://d11.internal/civicrm/event/search?reset=1&force=1&event=351&status=true
-        CRM_Utils_JSON::output(['openpage' => '/civicrm/event/search?reset=1&force=1' .
-          "&action=add&eid={$this->_eventId}"]);
+          // https://d11.internal/civicrm/event/search?reset=1&force=1&event=351&status=true
+          CRM_Utils_JSON::output(['openpage' => '/civicrm/event/search?reset=1&force=1' .
+            "&action=add&eid={$this->_eventId}"]);
         } else {
-        // https://d11.internal/civicrm/event/participant?reset=1&id=374
-        CRM_Utils_JSON::output(['openpage' => '/civicrm/event/participant?reset=1' .
-          "&id={$this->_eventId}"]);
+          // https://d11.internal/civicrm/event/participant?reset=1&id=374
+          CRM_Utils_JSON::output(['openpage' => '/civicrm/event/participant?reset=1' .
+            "&id={$this->_eventId}"]);
         }
         break;
       case 'reg-participants':
@@ -174,6 +190,12 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
     parent::postProcess();
   }
 
+  #[\Override]
+  public function setDefaultValues(): array {
+    $default = ["resource_status" => $this->_resStatusId];
+    return $default;
+  }
+
   /**
    * Get the fields/elements defined in this form.
    *
@@ -194,5 +216,4 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
     }
     return $elementNames;
   }
-
 }
