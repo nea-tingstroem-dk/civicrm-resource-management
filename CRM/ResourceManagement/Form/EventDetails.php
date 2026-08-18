@@ -88,19 +88,21 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
     $this->add('static', 'host', ts("{$hostRole}"), $host);
     $this->add('static', 'count', ts('Count'), $pCount);
 
-    $buttons = [[
-      'type' => 'submit',
-      'subName' => 'show-participants',
-      'name' => E::ts('Participants'),
-      'icon' => 'fa-trash',
-    ]];
-    if ($this->_isSuperUser) {
-      $buttons[] = [
-        'type' => 'submit',
-        'subName' => 'reg-participants',
-        'name' => E::ts('Register Participants'),
-        'icon' => 'fa-check',
+    $buttons = [
+//      [
+//      'type' => 'submit',
+//      'subName' => 'show-participants',
+//      'name' => E::ts('Participants'),
+//      'icon' => 'fa-trash',
+//    ]
       ];
+    if ($this->_isSuperUser) {
+//      $buttons[] = [
+//        'type' => 'submit',
+//        'subName' => 'reg-participants',
+//        'name' => E::ts('Register Participants'),
+//        'icon' => 'fa-check',
+//      ];
       $buttons[] = [
         'type' => 'submit',
         'subName' => 'delete-event',
