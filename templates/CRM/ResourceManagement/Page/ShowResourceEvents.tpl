@@ -71,7 +71,7 @@
                 },
                 fixedWeekCount: false,
                 contentHeight: 600,
-                aspectRation: 1.8,
+                aspectRatio: 1.8,
                 locale: 'da',
                 selectable: true,
                 selectOverlap: false,
