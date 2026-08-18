@@ -63,7 +63,7 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
       if (in_array($this->_calendarSettings['resource_role_id'], $participant['role_id'])) {
         $resource = $participant['contact_id.display_name'];
         $this->_resStatusId = $participant['status_id'];
-        $this->add('hidden', 'resource_id', $participant['id']);
+        $this->add('hidden', 'res_part_id', $participant['id']);
       } else if (in_array($this->_calendarSettings['host_role_id'], $participant['role_id'])) {
         $host = $participant['contact_id.external_identifier'] . ' - ' . $participant['contact_id.display_name'];
         $hostRole = $participant['role_id:label'][0];
@@ -118,6 +118,10 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
         'subName' => 'advanced',
         'name' => E::ts('Advanced'),
       ];
+      $buttons[] = [
+        'type' => 'submit',
+        'name' => E::ts('OK'),
+      ];
     } else if ($this->_isResponsible) {
       $buttons[] = [
         'type' => 'submit',
@@ -137,7 +141,7 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
     $buttons[] = [
       'type' => 'submit',
       'subName' => 'cancellation',
-      'name' => E::ts('Exit'),
+      'name' => E::ts('Cancel'),
       'icon' => 'fa-times',
     ];
 
@@ -152,6 +156,16 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
     $action = substr($buttonName, strrpos($buttonName, '_') + 1);
     $values = $this->exportValues();
     switch ($action) {
+      case 'submit':
+        $results = \Civi\Api4\Participant::update(FALSE)
+          ->addValue('status_id', $values['resource_status'])
+          ->addWhere('id', '=', $values['res_part_id'])
+          ->execute();
+        foreach ($results as $result) {
+          CRM_Utils_JSON::output(['result' => 'OK']);
+        } 
+          CRM_Utils_JSON::output(['result' => 'ERROR']);
+        break;
       case 'show-participants':
         if ($this->_isSuperUser) {
           // https://d11.internal/civicrm/event/search?reset=1&force=1&event=351&status=true
@@ -162,6 +176,9 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
           CRM_Utils_JSON::output(['openpage' => '/civicrm/event/participant?reset=1' .
             "&id={$this->_eventId}"]);
         }
+                  CRM_Utils_JSON::output(['result' => 'OK']);
+          CRM_Utils_JSON::output(['result' => 'OK']);
+
         break;
       case 'reg-participants':
         // https://d11.internal/civicrm/participant/add?reset=1&action=add&context=standalone&eid=351
