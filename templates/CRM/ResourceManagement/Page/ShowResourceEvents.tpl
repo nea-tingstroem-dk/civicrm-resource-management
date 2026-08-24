@@ -25,7 +25,8 @@
             var calendarId = {/literal}{$calendar_id}{literal};
             let scroll = {/literal}{$scroll}{literal};
             let eventSourceId = "events";
-            const isAdmin = {/literal}{$is_admin}{literal}
+            const isAdmin = {/literal}{$is_admin}{literal};
+            const onlyAdmin = {/literal}{$only_admin}{literal};
             const defaultStartDate = (localStorage.getItem("fcDefaultStartDate") ? localStorage.getItem("fcDefaultStartDate") : moment().format('YYYY-MM-DD'));
             const defaultView = (localStorage.getItem("fcDefaultView") ? localStorage.getItem("fcDefaultView") : 'timeGridWeek');
             var isLoading = true;
@@ -102,7 +103,11 @@
                 },
                 select: function (info) {
                     if (isLoading) {
-                        alert(ts('Wait for data load'))
+                        alert(ts('Wait for data load'));
+                        return false;
+                    }
+                    if (onlyAdmin && !isAdmin) {
+                        alert(ts('Not allowed'));
                         return false;
                     }
                     $el = $('#calendar');

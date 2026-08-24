@@ -257,9 +257,11 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
             }
           }
         }
+        $this->add('advcheckbox', 'cs_super_only', ts('Limit booking?'));
+        $elementGroups['cs_super_only'] = 'none';
+        $descriptions['cs_super_only'] = ts('Booking only for superusers');
         $this->add('advcheckbox', 'cs_show_end_date', ts('Show End Date?'));
         $elementGroups['cs_show_end_date'] = 'none';
-
         $descriptions['cs_show_end_date'] = ts('Show the event with start and end dates on the calendar.');
         $this->add('advcheckbox', 'cs_show_public_events', ts('Show Public Events?'));
         $elementGroups['cs_show_public_events'] = 'none';
