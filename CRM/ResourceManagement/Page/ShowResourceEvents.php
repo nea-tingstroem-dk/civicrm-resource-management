@@ -28,6 +28,8 @@ class CRM_ResourceManagement_Page_ShowResourceEvents extends CRM_Core_Page {
     $settings = CRM_ResourceManagement_Page_AJAX::getResourceCalendarSettings($calendarId);
     //set title from settings; allow empty value so we don't duplicate titles
     CRM_Utils_System::setTitle(ts($settings['calendar_title']));
+    
+    $this->assign("only_admin", $settings['super_only']??0);
 
     $resources = [];
     if (count($settings['resources']) > 1) {
