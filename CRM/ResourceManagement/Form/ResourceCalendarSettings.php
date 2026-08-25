@@ -257,7 +257,7 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
             }
           }
         }
-        $this->add('advcheckbox', 'cs_super_only', ts('Limit booking?'));
+        $this->add('advcheckbox', 'cs_super_only', ts('Limit booking to superusers?'));
         $elementGroups['cs_super_only'] = 'none';
         $descriptions['cs_super_only'] = ts('Booking only for superusers');
         $this->add('advcheckbox', 'cs_show_end_date', ts('Show End Date?'));
