@@ -9,76 +9,96 @@ use CRM_ResourceManagement_ExtensionUtil as E;
  */
 class CRM_ResourceManagement_Form_AdminResourceManagement extends CRM_Core_Form {
 
-    public function buildQuickForm() {
-        CRM_Utils_System::setTitle(E::ts('Resource Management Settings'));
-        $descriptions = [];
-        $contactTypeOptions = [];
-        $query = 'SELECT * FROM `civicrm_contact_type`
+  public function buildQuickForm() {
+    CRM_Utils_System::setTitle(E::ts('Resource Management Settings'));
+    $descriptions = [];
+    $contactTypeOptions = [];
+    $query = 'SELECT * FROM `civicrm_contact_type`
                 WHERE `parent_id` is not null';
-        $dao = CRM_Core_DAO::executeQuery($query);
+    $dao = CRM_Core_DAO::executeQuery($query);
 
-        while ($dao->fetch()) {
-            $contactTypeOptions[$dao->id] = $dao->label;
-        }
-
-        // add form elements
-        $this->add('select',
-                'resource_types', ts("Select Resource Contact Types"),
-                $contactTypeOptions,
-                TRUE,
-                [
-                    'class' => 'crm-select2',
-                    'multiple' => TRUE,
-                    'placeholder' => ts('- select type(s) -')
-        ]);
-        $statusOptions = [];
-        $sql = "SELECT `id`,`label`,`name`
-                FROM `civicrm_participant_status_type`;";
-        $dao = CRM_Core_DAO::executeQuery($sql);
-        while ($dao->fetch()) {
-            $statusOptions[$dao->id] = $dao->label;
-        }
-        $this->add('select',
-                'resource_status_ids', ts("Select Resource Statuses"),
-                $statusOptions,
-                TRUE,
-                [
-                    'class' => 'crm-select2',
-                    'multiple' => true,
-                    'placeholder' => ts('- select status -')
-        ]);
-
-        $this->addButtons(array(
-            array(
-                'type' => 'submit',
-                'name' => E::ts('Submit'),
-                'isDefault' => TRUE,
-            ),
-        ));
-
-        // export form elements
-        $this->assign('elementNames', $this->getRenderableElementNames());
-        $this->assign('descriptions', $descriptions);
-        parent::buildQuickForm();
+    while ($dao->fetch()) {
+      $contactTypeOptions[$dao->id] = $dao->label;
     }
 
-    public function postProcess() {
-        $values = $this->exportValues();
-        $elements = $this->getRenderableElementNames();
-        $settings = [];
-        $oldSettings = CRM_ResourceManagement_BAO_ResourceConfiguration::getAllConfigs();
-        foreach ($elements as $key) {
-            if (is_array($values[$key])) {
-                $values[$key] = implode(',', $values[$key]);
-            }
-            if (!isset($oldSettings[$key]) ||
-                    $values[$key] !== $oldSettings[$key]) {
-                $settings[$key] = $values[$key];
-            }
-        }
-        if (!empty($settings)) {
-            CRM_ResourceManagement_BAO_ResourceConfiguration::setConfigs($settings);
-        }
+    // add form elements
+    $this->add('select',
+      'resource_types', ts("Select Resource Contact Types"),
+      $contactTypeOptions,
+      TRUE,
+      [
+        'class' => 'crm-select2',
+        'multiple' => TRUE,
+        'placeholder' => ts('- select type(s) -')
+    ]);
+    $statusOptions = [];
+    $sql = "SELECT `id`,`label`,`name`
+                FROM `civicrm_participant_status_type`;";
+    $dao = CRM_Core_DAO::executeQuery($sql);
+    while ($dao->fetch()) {
+      $statusOptions[$dao->id] = $dao->label;
+    }
+    $this->add('select',
+      'resource_status_ids', ts("Select Resource Statuses"),
+      $statusOptions,
+      TRUE,
+      [
+        'class' => 'crm-select2',
+        'multiple' => true,
+        'placeholder' => ts('- select status -')
+    ]);
+
+    $options = \Civi\Api4\OptionGroup::get(FALSE)
+      ->addSelect('ov.value', 'ov.label')
+      ->addJoin('OptionValue AS ov', 'LEFT', ['id', '=', 'ov.option_group_id'])
+      ->addWhere('name', '=', 'participant_role')
+      ->addOrderBy('ov.label', 'ASC')
+      ->execute();
+    $roleOptions = [];
+    foreach ($options as $option) {
+      $roleOptions[$option['ov.value']] = $option['ov.label'];
+    }
+    $this->add('select',
+      'host_roles', ts("Select Host Roles"),
+      $roleOptions,
+      TRUE,
+      [
+        'class' => 'crm-select2',
+        'multiple' => TRUE,
+        'placeholder' => ts('- select role -')
+    ]);
+
+    $this->addButtons(array(
+      array(
+        'type' => 'submit',
+        'name' => E::ts('Submit'),
+        'isDefault' => TRUE,
+      ),
+    ));
+
+    // export form elements
+    $this->assign('elementNames', $this->getRenderableElementNames());
+    $this->assign('descriptions', $descriptions);
+    parent::buildQuickForm();
+  }
+
+  public function postProcess() {
+    $values = $this->exportValues();
+    $elements = $this->getRenderableElementNames();
+    $settings = [];
+    $oldSettings = CRM_ResourceManagement_BAO_ResourceConfiguration::getAllConfigs();
+    foreach ($elements as $key) {
+      if (is_array($values[$key])) {
+        $values[$key] = implode(',', $values[$key]);
+      }
+      if (!isset($oldSettings[$key]) ||
+        $values[$key] !== $oldSettings[$key]) {
+        $settings[$key] = $values[$key];
+      }
+    }
+    if (!empty($settings)) {
+      CRM_ResourceManagement_BAO_ResourceConfiguration::setConfigs($settings);
+    }
 
 //        $sql = 'SELECT n.title, t.name, d.field_booking_dato_value, d.field_booking_dato_value2, a.field_ansvarlig_value, c.id
 //            FROM `node` n
@@ -94,33 +114,32 @@ class CRM_ResourceManagement_Form_AdminResourceManagement extends CRM_Core_Form 
 //        while ($dao->fetch()) {
 //            $titles .= "{$dao->title} / {$dao->name}\r\n";
 //        }
-        parent::postProcess();
-    }
+    parent::postProcess();
+  }
 
-    /**
-     * Get the fields/elements defined in this form.
-     *
-     * @return array (string)
-     */
-    public function getRenderableElementNames() {
-        // The _elements list includes some items which should not be
-        // auto-rendered in the loop -- such as "qfKey" and "buttons".  These
-        // items don't have labels.  We'll identify renderable by filtering on
-        // the 'label'.
-        $elementNames = array();
-        foreach ($this->_elements as $element) {
-            /** @var HTML_QuickForm_Element $element */
-            $label = $element->getLabel();
-            if (!empty($label)) {
-                $elementNames[] = $element->getName();
-            }
-        }
-        return $elementNames;
+  /**
+   * Get the fields/elements defined in this form.
+   *
+   * @return array (string)
+   */
+  public function getRenderableElementNames() {
+    // The _elements list includes some items which should not be
+    // auto-rendered in the loop -- such as "qfKey" and "buttons".  These
+    // items don't have labels.  We'll identify renderable by filtering on
+    // the 'label'.
+    $elementNames = array();
+    foreach ($this->_elements as $element) {
+      /** @var HTML_QuickForm_Element $element */
+      $label = $element->getLabel();
+      if (!empty($label)) {
+        $elementNames[] = $element->getName();
+      }
     }
+    return $elementNames;
+  }
 
-    public function setDefaultValues() {
-        $settings = CRM_ResourceManagement_BAO_ResourceConfiguration::getAllConfigs();
-        return $settings;
-    }
-
+  public function setDefaultValues() {
+    $settings = CRM_ResourceManagement_BAO_ResourceConfiguration::getAllConfigs();
+    return $settings;
+  }
 }

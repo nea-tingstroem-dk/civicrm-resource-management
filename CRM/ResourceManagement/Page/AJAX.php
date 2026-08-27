@@ -328,6 +328,7 @@ class CRM_ResourceManagement_Page_AJAX {
 
     $calendarId = CRM_Utils_Request::retrieve('calendar_id', 'Integer');
     $settings = self::getResourceCalendarSettings($calendarId);
+    $configs = CRM_ResourceManagement_BAO_ResourceConfiguration::getAllConfigs();
 
     $whereCondition = '';
     $resources = $settings['resources'];
@@ -352,6 +353,10 @@ class CRM_ResourceManagement_Page_AJAX {
 
     $resourceRoleId = isset($settings['resource_role_id']) ? $settings['resource_role_id'] : null;
     $responsibleRoleId = isset($settings['host_role_id']) ? $settings['host_role_id'] : null;
+    $hostRoles = [];
+    foreach (explode(',', $configs['host_roles']) as $value) {
+      $hostRoles[] = (int) $value;
+    }
 
     $eventsGet = \Civi\Api4\Event::get(FALSE)
       ->addSelect('id', 'title', 'start_date', 'end_date',
@@ -362,7 +367,7 @@ class CRM_ResourceManagement_Page_AJAX {
         'host.display_name',
         'host.external_identifier')
       ->addJoin('Participant AS pr', 'INNER', ['id', '=', 'pr.event_id'])
-      ->addJoin('Participant AS ph', 'LEFT', ['id', '=', 'ph.event_id'], ['ph.role_id', '=', $responsibleRoleId])
+      ->addJoin('Participant AS ph', 'LEFT', ['id', '=', 'ph.event_id'], ['ph.role_id', 'IN', $hostRoles])
       ->addJoin('Contact AS res', 'LEFT', ['pr.contact_id', '=', 'res.id'])
       ->addJoin('Contact AS host', 'LEFT', ['ph.contact_id', '=', 'host.id'])
       ->addWhere('pr.role_id', '=', $resourceRoleId)

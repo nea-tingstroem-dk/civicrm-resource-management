@@ -280,20 +280,23 @@ class CRM_ResourceManagement_Form_ResourceCalendarSettings extends CRM_Core_Form
             '08:00:00' => E::ts('Day time - from 08:00'),
             '17:00:00' => E::ts('Evening - from 17:00')
         ]);
-        $roleOptions = [];
-        $sql = "SELECT `id`,`option_group_id`,`label`,`value`,`name`
-                FROM `civicrm_option_value`
-                WHERE option_group_id = 
-                (SELECT id FROM `civicrm_option_group` 
-                WHERE name = 'participant_role');";
-        $dao = CRM_Core_DAO::executeQuery($sql);
-        while ($dao->fetch()) {
-          $roleOptions[$dao->value] = $dao->label;
+        $hostRoleConfig = CRM_ResourceManagement_BAO_ResourceConfiguration::getConfig('host_roles');
+        $hostRoles = [];
+        foreach (explode(',', $hostRoleConfig) as $value) {
+          $hostRoles[] = (int) $value;
         }
-
+        $roles = [];
+        $optionValues = \Civi\Api4\OptionValue::get(TRUE)
+          ->addSelect('label')
+          ->addWhere('option_group_id:name', '=', 'participant_role')
+          ->addWhere('value', 'IN', $hostRoles)
+          ->execute();
+        foreach ($optionValues as $o) {
+          $roles[$o['id']] = $o['label']; 
+        }
         $this->add('select',
-          'cs_host_role_id', ts("Select Host Role"),
-          $roleOptions,
+          'cs_host_role_id', ts("Select Default Host Role"),
+          $roles,
           TRUE,
           [
             'class' => 'crm-select2',
