@@ -656,7 +656,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
       if (!$this->_min_start || $this->_min_start < $min_time) {
         $this->_min_start = $min_time;
       }
-      if ($this->_calendarSettings['common_template']) {
+      if ($this->_calendarSettings['common_template'] ?? false) {
         if (is_array($this->_calendarSettings['event_template'])) {
           $template_id = $this->_calendarSettings['event_template'][$eventTemplates[array_key_first($this->_calendarSettings['event_template'])]];
         } else {

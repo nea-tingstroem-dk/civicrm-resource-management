@@ -25,9 +25,12 @@
     <title>AJAX</title>
     <access_callback>1</access_callback>
     <is_public>true</is_public>
+    <is_ajax>0</is_ajax>
   </item>
   <item><path>civicrm/ajax/event-pricefields</path><page_callback>CRM_ResourceManagement_Page_AJAX::getPricefieldsForEvent</page_callback><title>AJAX</title>s
-    <access_callback>1</access_callback><is_public>true</is_public></item>
+    <access_callback>1</access_callback>
+    <is_public>true</is_public>
+  </item>
   <item>
     <path>civicrm/book-resource</path>
     <page_callback>CRM_ResourceManagement_Form_CreateResourceEvent</page_callback>
