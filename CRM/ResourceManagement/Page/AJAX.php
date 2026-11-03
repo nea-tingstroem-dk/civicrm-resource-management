@@ -354,7 +354,7 @@ class CRM_ResourceManagement_Page_AJAX {
     $resourceRoleId = isset($settings['resource_role_id']) ? $settings['resource_role_id'] : null;
     $responsibleRoleId = isset($settings['host_role_id']) ? $settings['host_role_id'] : null;
     $hostRoles = [];
-    foreach (explode(',', $configs['host_roles']) as $value) {
+    foreach (explode(',', $configs['host_roles']) ?? '' as $value) {
       $hostRoles[] = (int) $value;
     }
 
