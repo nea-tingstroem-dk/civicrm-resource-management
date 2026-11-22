@@ -105,6 +105,12 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
 //      ];
       $buttons[] = [
         'type' => 'submit',
+        'subName' => 'edit-booking',
+        'name' => E::ts('Edit Booking'),
+        'icon' => 'fa-pencil',
+      ];
+      $buttons[] = [
+        'type' => 'submit',
         'subName' => 'delete-event',
         'name' => E::ts('Delete'),
         'icon' => 'fa-trash',
@@ -189,8 +195,13 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
         break;
       case 'edit-event':
         // https://d11.internal/civicrm/event/manage/settings?reset=1&action=update&id=351&selectedChild=settings
-        CRM_Utils_JSON::output(['openpage' => '/civicrm/event/manage/settings?reset=1&action=update' .
-          "&id={$this->_eventId}&selectedChild=settings"]);
+        CRM_Utils_JSON::output([
+          'openpage' => '/civicrm/event/manage/settings?reset=1&action=update' . "&id={$this->_eventId}&selectedChild=settings",
+          'target' => '_blank']);
+        break;
+      case 'edit-booking':
+        // https://d11.internal/civicrm/event/manage/settings?reset=1&action=update&id=351&selectedChild=settings
+        CRM_Utils_JSON::output(['openpage' => "/civicrm/book-resource?event_id={$this->_eventId}&calendar_id={$this->_calendarId}"]);
         break;
       case 'delete-event':
         $event = CRM_Event_BAO_Event::findById($this->_eventId);

@@ -175,6 +175,12 @@ CRM.$(function ($) {
     calculate();
   });
   $(".ui-dialog").height("autoResize");
+  if ($('input[name=event_id]').val()) {
+    $.each($("div[name='pricegroup'"), function (k, el) {
+      $("#" + el.id).show();
+    });
+  }
+  calculate();
 });
 
 

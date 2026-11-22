@@ -125,7 +125,7 @@ class CRM_ResourceManagement_Page_AJAX {
           $c = (array) $contact;
           foreach ($params->mappings as $m) {
             if (!is_null($m) &&
-              isset($c[$m->input_field])&&
+              isset($c[$m->input_field]) &&
               "{$c[$m->input_field]}" !== "{$participant[$m->target]}") {
               $participant[$m->target] = $c[$m->input_field];
               $changed = true;
@@ -372,12 +372,12 @@ class CRM_ResourceManagement_Page_AJAX {
       ->addJoin('Contact AS host', 'LEFT', ['ph.contact_id', '=', 'host.id'])
       ->addWhere('pr.role_id', '=', $resourceRoleId)
       ->addClause('OR',
-      ['start_date', 'BETWEEN', [$start, $end]],
-      ['end_date', 'BETWEEN', [$start, $end]],
-      ['AND',
-        [
-          ['start_date', '<', $start], ['end_date', '>', $end]
-        ]
+        ['start_date', 'BETWEEN', [$start, $end]],
+        ['end_date', 'BETWEEN', [$start, $end]],
+        ['AND',
+          [
+            ['start_date', '<', $start], ['end_date', '>', $end]
+          ]
     ]);
     if ($filter) {
       $eventsGet->addWhere('pr.contact_id', '=', $filter);
@@ -527,5 +527,4 @@ class CRM_ResourceManagement_Page_AJAX {
       return '#FFFFFF';
     }
   }
-
 }
