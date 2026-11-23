@@ -31,6 +31,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
   private $_selectTemplates = [];
   private $_eventTitles = [];
   private $_resources = [];
+  private $_dest ='';
 
   public function preProcess() {
     $buttonName = $this->controller->getButtonName();
@@ -38,7 +39,10 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
     if ($action === 'delete' || $action === 'return') {
       $this->_suppressValidate = true;
     }
-    $this->add('hidden', 'ret_url', CRM_Utils_Request::retrieve('ret_url', 'String'));
+    $this->_dest = CRM_Utils_Request::retrieve('dest', 'String');
+    if (!empty($this->_dest)) {
+      $this->add('hidden', 'dest', $this->_dest);
+    }
     parent::preProcess();
     $this->_currentUser = (int) CRM_Core_Session::singleton()->getLoggedInContactID();
     $user = civicrm_api3('Contact', 'get', [
@@ -131,6 +135,9 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
 
   public function buildQuickForm() {
     CRM_Core_Resources::singleton()->addScriptFile('resource-management', 'js/moment.js', 5);
+    if ($this->_dest) {
+       $this->controller->_destination = $this->_dest;
+    }
     $startTime = date('Y-m-d H:i:s', $this->_start_time);
     $this->add('hidden', 'start_date', $startTime);
     $endTime = date('Y-m-d H:i:s', $this->_end_time);
@@ -144,9 +151,10 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
         $this->assign('error_message', E::ts('You cannot change event that has started'));
         $this->addButtons([
           [
-            'type' => 'cancel',
+            'type' => 'submit',
+            'subName' => 'return',
             'name' => E::ts('Cancel'),
-            'class' => 'return',
+            'isDefault' => TRUE,
           ]
         ]);
         parent::buildQuickForm();
@@ -307,7 +315,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
       'type' => 'submit',
       'subName' => 'return',
       'name' => E::ts('Cancel'),
-      'isDefault' => TRUE,
+      'isDefault' => FALSE,
     ];
 
     $this->addButtons($buttons);
@@ -381,7 +389,9 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
 
   public function postProcess() {
     $session = CRM_Core_Session::singleton();
-    $session->pushUserContext(CRM_Utils_System::url(CRM_Utils_Request::retrieve('ret_url', 'String'), 'reset=1', true));
+    if ($this->_dest) {
+      $session->pushUserContext(CRM_Utils_System::url($this->_dest, true));
+    }
     $buttonName = $this->controller->getButtonName();
     $action = substr($buttonName, strrpos($buttonName, '_') + 1);
     if ($action === 'return') {
@@ -582,64 +592,8 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
               $lineItem->save();
             }
           }
-
-
-//          $params = [];
-//          foreach ($groupTree[$psId]['fields'] as $pfId => $pField) {
-//            $eId = $template_id . '_' . $psId . '_' . $pfId;
-//            $val = $values[$eId];
-//            if ($val) {
-//              $optionsKey = array_key_first($pField['options']);
-//              $qty = (float) $val;
-//              $unitPrice = (float) $pField['options'][$optionsKey]['amount'];
-//              $lineItem = [
-//                'price_field_id' => $pfId,
-//                'price_field_value_id' => $optionsKey,
-//                'label' => $pField['label'],
-//                'title' => $pField['name'],
-//                'qty' => $qty,
-//                'unit_price' => $unitPrice,
-//                'line_total' => $qty * $unitPrice,
-//                'partipiciant_count' => 0,
-//                'html_type' => $pField['html_type'],
-//                'financial_type_id' => (int) $pField['options'][$optionsKey]['financial_type_id'],
-//                'tax_amount' => 0,
-//                'non_deductible_amount' => '0.00'
-//              ];
-//              $params[$optionsKey] = $lineItem;
-//            }
-//          }
-//          if (!empty($params)) {
-//            CRM_Price_BAO_LineItem::processPriceSet($participant->id,
-//              [$psId => $params], null, 'civicrm_participant');
-//            $participantStatusTypes = \Civi\Api4\ParticipantStatusType::get(FALSE)
-//              ->addSelect('name')
-//              ->addWhere('id', '=', $hostStatus)
-//              ->execute();
-//            foreach ($participantStatusTypes as $participantStatusType) {
-//              if ($participantStatusType['name'] === 'Pending from pay later') {
-//                CRM_Core_Session::setStatus(E::ts('An invoice will be sent soon'),
-//                  E::ts('Saved'),
-//                  'success');
-//              } else {
-//                // Pay now
-//              }
-//              break;
-//            }
-//          }
         }
       }
-
-//      if (substr_compare($buttonName, 'advanced', -8) === 0 ||
-//        substr_compare($buttonName, 'expand', -6) === 0) {
-//        CRM_Utils_JSON::output(['openpage' => "civicrm/a/#/resource/manage-event?" .
-//          "event_id={$event->id}&calendar_id={$this->_calendar_id}"]);
-//      } else if (substr_compare($buttonName, 'edit_event', -10) === 0) {
-//        CRM_Utils_JSON::output(['openpage' => 'civicrm/event/manage/settings?' .
-//          'reset=1&action=update&id=' . $this->_eventId]);
-//      } else {
-//        CRM_Utils_JSON::output(['result' => 'OK']);
-//      }
     }
   }
 

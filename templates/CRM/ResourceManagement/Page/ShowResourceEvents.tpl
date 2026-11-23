@@ -122,7 +122,7 @@
                                   start: info.start.toISOString(),
                                   end: info.end.toISOString(),
                                   allday: info.allDay,
-                                  ret_url: window.location.href,
+                                  dest: window.location.href,
                               };
                               window.location.replace(CRM.url('civicrm/book-resource',
                                 params));
@@ -178,7 +178,9 @@
                                         CRM.loadForm(data.openpage)
                                           .on('crmFormSuccess', function (event, data) {
                                               calendar.refetchEvents();
-                                          });
+                                          }).on('crmFormCancel', function (event, data) {
+                                            concole.log('Canceled');
+                                        });
                                     }
                                   }
                                   calendar.refetchEvents();
