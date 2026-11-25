@@ -18,16 +18,33 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
   private $_isResponsible = false;
   private $_isSuperUser = false;
   private $_resStatusId = 0;
+  private $_resourceId = 0;
 
   public function preProcess() {
     $buttonName = $this->controller->getButtonName();
     $action = substr($buttonName, strrpos($buttonName, '_') + 1);
     $this->_userId = (int) CRM_Core_Session::singleton()->getLoggedInContactID();
-    $this->_eventId = CRM_Utils_Request::retrieve('event_id', 'Integer');
-    $this->_calendarId = CRM_Utils_Request::retrieve('calendar_id', 'Integer');
+    $this->_resourceId = CRM_Utils_Request::retrieve('resource_id', 'Integer');
+    if ($this->_resourceId) {
+      $participant = \Civi\Api4\Participant::get(FALSE)
+        ->addSelect('event_id', 'role_id')
+        ->addWhere('id', '=', $this->_resourceId)
+        ->execute()
+        ->first();
+      $resourceRole = \Civi\Api4\ResourceCalendarSettings::get(TRUE)
+        ->addSelect('calendar_id', 'config_value')
+        ->addWhere('config_key', '=', 'resource_role_id')
+        ->addWhere('config_value', '=', $participant['role_id'][0])
+        ->execute()
+        ->first();
+      $this->_eventId = $participant['event_id'];
+      $this->_calendarId = $resourceRole['calendar_id'];
+    } else {
+      $this->_eventId = CRM_Utils_Request::retrieve('event_id', 'Integer');
+      $this->_calendarId = CRM_Utils_Request::retrieve('calendar_id', 'Integer');
+    }
     $this->_calendarSettings = CRM_ResourceManagement_Page_AJAX::getResourceCalendarSettings($this->_calendarId);
     $this->_isSuperUser = CRM_Core_Permission::check('edit all events', $this->_userId);
-
     parent::preProcess();
   }
 
@@ -88,44 +105,33 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
     $this->add('static', 'host', ts("{$hostRole}"), $host);
     $this->add('static', 'count', ts('Count'), $pCount);
 
-    $buttons = [
-//      [
-//      'type' => 'submit',
-//      'subName' => 'show-participants',
-//      'name' => E::ts('Participants'),
-//      'icon' => 'fa-trash',
-//    ]
-      ];
+    $buttons = [];
     if ($this->_isSuperUser) {
-//      $buttons[] = [
-//        'type' => 'submit',
-//        'subName' => 'reg-participants',
-//        'name' => E::ts('Register Participants'),
-//        'icon' => 'fa-check',
-//      ];
-      $buttons[] = [
-        'type' => 'submit',
-        'subName' => 'edit-booking',
-        'name' => E::ts('Edit Booking'),
-        'icon' => 'fa-pencil',
-      ];
-      $buttons[] = [
-        'type' => 'submit',
-        'subName' => 'delete-event',
-        'name' => E::ts('Delete'),
-        'icon' => 'fa-trash',
-      ];
-      $buttons[] = [
-        'type' => 'submit',
-        'subName' => 'edit-event',
-        'name' => E::ts('Edit Event'),
-        'icon' => 'fa-pencil',
-      ];
-      $buttons[] = [
-        'type' => 'submit',
-        'subName' => 'advanced',
-        'name' => E::ts('Advanced'),
-      ];
+      if (!$this->_resourceId) {
+        $buttons[] = [
+          'type' => 'submit',
+          'subName' => 'edit-booking',
+          'name' => E::ts('Edit Booking'),
+          'icon' => 'fa-pencil',
+        ];
+        $buttons[] = [
+          'type' => 'submit',
+          'subName' => 'delete-event',
+          'name' => E::ts('Delete'),
+          'icon' => 'fa-trash',
+        ];
+        $buttons[] = [
+          'type' => 'submit',
+          'subName' => 'edit-event',
+          'name' => E::ts('Edit Event'),
+          'icon' => 'fa-pencil',
+        ];
+        $buttons[] = [
+          'type' => 'submit',
+          'subName' => 'advanced',
+          'name' => E::ts('Advanced'),
+        ];
+      }
       $buttons[] = [
         'type' => 'submit',
         'name' => E::ts('OK'),
@@ -171,8 +177,8 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
           ->execute();
         foreach ($results as $result) {
           CRM_Utils_JSON::output(['result' => 'OK']);
-        } 
-          CRM_Utils_JSON::output(['result' => 'ERROR']);
+        }
+        CRM_Utils_JSON::output(['result' => 'ERROR']);
         break;
       case 'show-participants':
         if ($this->_isSuperUser) {
@@ -184,8 +190,8 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
           CRM_Utils_JSON::output(['openpage' => '/civicrm/event/participant?reset=1' .
             "&id={$this->_eventId}"]);
         }
-                  CRM_Utils_JSON::output(['result' => 'OK']);
-          CRM_Utils_JSON::output(['result' => 'OK']);
+        CRM_Utils_JSON::output(['result' => 'OK']);
+        CRM_Utils_JSON::output(['result' => 'OK']);
 
         break;
       case 'reg-participants':
