@@ -191,7 +191,6 @@ class CRM_ResourceManagement_Form_EventDetails extends CRM_Core_Form {
             "&id={$this->_eventId}"]);
         }
         CRM_Utils_JSON::output(['result' => 'OK']);
-        CRM_Utils_JSON::output(['result' => 'OK']);
 
         break;
       case 'reg-participants':
