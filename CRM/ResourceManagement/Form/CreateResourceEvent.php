@@ -31,7 +31,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
   private $_selectTemplates = [];
   private $_eventTitles = [];
   private $_resources = [];
-  private $_dest ='';
+  private $_dest = '';
 
   public function preProcess() {
     $buttonName = $this->controller->getButtonName();
@@ -136,7 +136,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
   public function buildQuickForm() {
     CRM_Core_Resources::singleton()->addScriptFile('resource-management', 'js/moment.js', 5);
     if ($this->_dest) {
-       $this->controller->_destination = $this->_dest;
+      $this->controller->_destination = $this->_dest;
     }
     $startTime = date('Y-m-d H:i:s', $this->_start_time);
     $this->add('hidden', 'start_date', $startTime);
@@ -171,8 +171,27 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
 
     $resource_options = [];
     $priceSets = [];
+    $warnings = [];
+    
     foreach ($this->_resources as $id => $res) {
-      $resource_options[$id] = $res['name'];
+      $minStart = strtotime($res['min_start']);
+      $maxEnd = strtotime($res['max_end']);
+      if ($this->_start_time >= $minStart && 
+        $this->_start_time < $maxEnd && 
+        $this->_end_time <= $maxEnd &&
+        $this->_end_time > $minStart) {
+        $resource_options[$id] = $res['name'];
+      } else {
+        $warnings[] = $res['name'];
+      }
+    }
+    if (!empty($warnings)) {
+        $warnList = implode(', ', $warnings);
+        CRM_Core_Session::setStatus(
+          ts("{$warnList} er allerede reserveret i det valgte interval"),
+          ts('Warning'),
+          'alert'   // 'alert' = yellow warning; also 'info', 'success', 'error'
+        );
     }
     $this->add('hidden', 'resource_source', json_encode($this->_resources));
     if ($this->_eventId) {
@@ -308,12 +327,11 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
     $buttons[] = [
       'type' => 'submit',
       'subName' => 'submit',
-      'name' => E::ts('Submit'),
+      'name' => E::ts('Save'),
       'isDefault' => TRUE,
     ];
     $buttons[] = [
-      'type' => 'submit',
-      'subName' => 'return',
+      'type' => 'cancel',
       'name' => E::ts('Cancel'),
       'isDefault' => FALSE,
     ];
@@ -610,7 +628,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
       $sql = "SELECT e.start_date FROM `civicrm_event` e
                     LEFT JOIN `civicrm_participant` p ON p.event_id = e.id
                     WHERE p.contact_id = {$dao->contact_id}
-                    AND e.`start_date` > '{$start_time}'";
+                    AND e.`start_date` >= '{$start_time}'";
       if ($this->_eventId) {
         $sql .= " AND e.id != " . $this->_eventId;
       }
@@ -624,7 +642,7 @@ class CRM_ResourceManagement_Form_CreateResourceEvent extends CRM_Core_Form {
       $sql = "SELECT e.end_date FROM `civicrm_event` e
                     LEFT JOIN `civicrm_participant` p ON p.event_id = e.id
                     WHERE p.contact_id = {$dao->contact_id}
-                    AND e.`end_date` <= '{$start_time}'";
+                    AND e.`end_date` <= '{$max_time}'";
       if ($this->_eventId) {
         $sql .= " AND e.id != " . $this->_eventId;
       }

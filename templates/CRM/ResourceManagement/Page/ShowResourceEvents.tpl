@@ -28,15 +28,18 @@
                   const isAdmin = {/literal}{$is_admin}{literal};
                   const onlyAdmin = {/literal}{$only_admin}{literal};
                   const defaultStartDate = (localStorage.getItem("fcDefaultStartDate") ? localStorage.getItem("fcDefaultStartDate") : moment().format('YYYY-MM-DD'));
-                  const defaultView = (localStorage.getItem("fcDefaultView") ? localStorage.getItem("fcDefaultView") : 'timeGridWeek');
+                  const defaultView = (localStorage.getItem("fcDefaultView") ? localStorage.getItem("fcDefaultView") : 'dayGridMonth');
                   var isLoading = true;
-                  var refreshColor = null;
+                  var refreshColor = false;
                   let calendarEl = document.getElementById("calendar");
                   let calendar = new FullCalendar.Calendar(calendarEl, {
+                      navLinks: true, // can click day/week names to navigate views
+                      editable: true,
+                      dayMaxEvents: true, // allow "more" link when too many events
                       initialView: defaultView,
                       initialDate: defaultStartDate,
                       scrollTime: scroll,
-                      customButtons: {
+                      buttons: {
                           refresh: {
                               text: 'Refresh',
                               click: function () {
@@ -75,7 +78,7 @@
                       aspectRatio: 1.8,
                       locale: 'da',
                       selectable: true,
-                      selectOverlap: false,
+                      selectOverlap: true,
                       stickyHeaderDates: true,
                       eventSources: [
                           {
@@ -93,11 +96,11 @@
                       ],
                       loading: function (is_loading) {
                           isLoading = is_loading;
-                          if (refreshColor !== null) {
+                          if (refreshColor) {
                               if (isLoading) {
-                                  $('.fc-refresh-button').css("background", "red");
+                                  $("button[aria-label='Refresh']").css("background", "red");
                               } else {
-                                  $('.fc-refresh-button').css("background", refreshColor);
+                                  $("button[aria-label='Refresh']").css("background", refreshColor);
                               }
                           }
                       },
@@ -115,38 +118,25 @@
                           if (typeof $filter === "string" && $filter.length === 0) {
                               $filter = $('#resource_selector').children().first().val();
                           }
-                          if (true) {
-                              var params = {
-                                  calendar_id: calendarId,
-                                  filter: $filter,
-                                  start: info.start.toISOString(),
-                                  end: info.end.toISOString(),
-                                  allday: info.allDay,
-                                  dest: window.location.href,
-                              };
-                              window.location.replace(CRM.url('civicrm/book-resource',
-                                params));
-                          } else {
-                              CRM.loadForm(CRM.url('civicrm/book-resource', {
-                                  calendar_id: calendarId,
-                                  filter: $filter,
-                                  start: info.start.toISOString(),
-                                  end: info.end.toISOString(),
-                                  allday: info.allDay}),
-                                {
-                                    cancelButton: '.cancel.crm-form-submit',
-                                    autoResize: true
-                                })
-                                .on('crmFormSuccess', function (event, data) {
-                                    if (data.openpage) {
-                                        window.open(data.openpage);
-                                    }
-                                    calendar.refetchEvents();
-                                })
-                                .on('crmFormCancel', function (event, data) {
-                                    concole.log('Canceled');
-                                });
-                          }
+                          CRM.loadForm(CRM.url('civicrm/book-resource', {
+                              calendar_id: calendarId,
+                              filter: $filter,
+                              start: info.start.toISOString(),
+                              end: info.end.toISOString(),
+                              allday: info.allDay}),
+                            {
+                                cancelButton: '.cancel.crm-form-submit',
+                                autoResize: true
+                            })
+                            .on('crmFormSuccess', function (event, data) {
+                                if (data.openpage) {
+                                    window.open(data.openpage);
+                                }
+                                calendar.refetchEvents();
+                            })
+                            .on('crmFormCancel', function (event, data) {
+                                console.log('Canceled');
+                            });
                       },
                       eventContent: function (info) {
                           let spanEl = document.createElement('span');
@@ -179,33 +169,33 @@
                                           .on('crmFormSuccess', function (event, data) {
                                               calendar.refetchEvents();
                                           }).on('crmFormCancel', function (event, data) {
-                                            concole.log('Canceled');
+                                            console.log('Canceled');
                                         });
                                     }
-                                  }
-                                  calendar.refetchEvents();
-                              })
-                              .on('crmFormCancel', function (event, data) {
-                                  concole.log('Canceled');
-                              });
-                        }
-                    });
-                    calendar.render();
-                    refreshColor = $('.fc-refresh-button').css("background");
-                    if (isLoading) {
-                        $('.fc-refresh-button').css("background", "red");
-                    }
-                    $("#resource_selector").change(function () {
-                        let source = calendar.getEventSourceById(eventSourceId);
-                        source.internalEventSource._raw.extraParams.filter = this.value;
-                        calendar.refetchEvents();
-                    });
-                    if ($("#resource_selector option").length == 1) {
-                        $("#resource_selector").val($("#resource_selector option").first().val()).trigger('change');
-                    } else {
-                        $("#resource_selector").val("0").trigger('change');
-                    }
-                });
+                                }
+                                calendar.refetchEvents();
+                            })
+                            .on('crmFormCancel', function (event, data) {
+                                console.log('Canceled');
+                            });
+                      }
+                  });
+                  calendar.render();
+                  refreshColor = $("button[aria-label='Refresh']").css("background");
+                  if (isLoading) {
+                      $("button[aria-label='Refresh']").css("background", "red");
+                  }
+                  $("#resource_selector").change(function () {
+                      let source = calendar.getEventSourceById(eventSourceId);
+                      source.internalEventSource._raw.extraParams.filter = this.value;
+                      calendar.refetchEvents();
+                  });
+                  if ($("#resource_selector option").length == 1) {
+                      $("#resource_selector").val($("#resource_selector option").first().val()).trigger('change');
+                  } else {
+                      $("#resource_selector").val("0").trigger('change');
+                  }
+              });
           });
     </script>
 {/literal}

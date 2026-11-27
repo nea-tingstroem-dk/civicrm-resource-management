@@ -402,8 +402,9 @@ class CRM_ResourceManagement_Page_AJAX {
 
       if (isset($settings['status_colors'][$event['pr.status_id']])) {
         $color = $settings['status_colors'][$event['pr.status_id']];
-        $eventData['backgroundColor'] = "#{$color}";
-        $eventData['textColor'] = self::_getContrastTextColor($eventData['backgroundColor']);
+        $eventData['color'] = "#{$color}";
+        $eventData['contrastColor'] = self::_getContrastTextColor($eventData['color']);
+//        $eventData['display'] ='background';
       }
       $eventData['allDay'] = false;
       $eventData['title'] .= "<br >{$event['res.display_name']}" .
@@ -521,7 +522,7 @@ class CRM_ResourceManagement_Page_AJAX {
 
     // If contrast is more than 5, return black color
     if ($contrastRatio > 5) {
-      return '#000000';
+      return '#010101';
     } else {
       // if not, return white color.
       return '#FFFFFF';

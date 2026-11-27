@@ -13,7 +13,22 @@ class CRM_ResourceManagement_Page_ShowResourceEvents extends CRM_Core_Page {
     }
     CRM_Core_Session::singleton()->pushUserContext($url);
     Civi::resources()->addScriptFile('resource-management', 'js/moment.js', ['weight' => 5]);
-    Civi::resources()->addScriptFile('resource-management', 'js/index.global.min.js', ['weight' => 10]);
+    Civi::resources()->addScriptFile('resource-management', 'fullcalendar/dist/fullcalendar.global.js', ['weight' => 10]);
+    Civi::resources()->addScriptFile('resource-management', 'fullcalendar/dist/themes/classic/global.js', ['weight' => 20]);
+    Civi::resources()->addScriptFile('resource-management', 'fullcalendar/dist/locales-all/global.js', ['weight' => 30]);
+
+    Civi::resources()->addstyleFile('resource-management', 'fullcalendar/dist/skeleton.css', [
+      'weight' => 100,
+      'region' => 'html-header'
+      ]);
+    Civi::resources()->addstyleFile('resource-management', 'fullcalendar/dist/themes/classic/theme.css', [
+      'weight' => 120,
+      'region' => 'html-header',
+      ]);
+    Civi::resources()->addStyleFile('resource-management', 'fullcalendar/dist/themes/classic/palette.css', [
+      'weight' => 130,
+      'region' => 'html-header',
+      ]);
 
     $superUser = CRM_Core_Permission::check('edit all events', $getContactId) ?: 0;
     $this->assign('is_admin', $superUser);
