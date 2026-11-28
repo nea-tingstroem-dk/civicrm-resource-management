@@ -80,6 +80,7 @@
                       selectable: true,
                       selectOverlap: true,
                       stickyHeaderDates: true,
+                      weekNumbers: true,
                       eventSources: [
                           {
                               id: eventSourceId,
